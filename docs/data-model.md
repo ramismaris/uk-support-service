@@ -6,7 +6,8 @@ PostgreSQL. Общие правила:
 - Все даты — `timestamptz`.
 - Строки — `text`.
 - Идентификаторы пользователей Max — `bigint`, идентификаторы сообщений Max — `text`.
-- Ничего не удаляем физически, кроме `login_tokens`; справочники выключаются через `is_active`.
+- Перечисления — `StrEnum` из `core/constants.py`, значения прописными; в Postgres — enum-типы.
+- Ничего не удаляем физически, кроме `auth_tokens` и `login_tokens`; справочники выключаются через `is_active`.
 
 ```mermaid
 erDiagram
@@ -21,6 +22,7 @@ erDiagram
     tickets ||--o| ticket_triage : "ML"
     tickets |o--o{ files : "вложения"
     messages |o--o{ files : "вложения"
+    users ||--o{ auth_tokens : "сессии"
     users ||--o{ login_tokens : "вход"
 ```
 
@@ -36,7 +38,7 @@ erDiagram
 | last_name | text | из Max |
 | username | text | из Max |
 | phone | text | из «Поделиться контактом» |
-| role | enum `user_role`: `client`, `manager`, `admin` | default `client`; админ умеет всё, что менеджер |
+| role | enum `user_role`: `CLIENT`, `MANAGER`, `ADMIN` | default `CLIENT`; админ умеет всё, что менеджер |
 | is_blocked | bool not null | default false; бот игнорирует заблокированных |
 | active_ticket_id | bigint FK tickets, on delete set null | куда идут сообщения клиента вне формы; циклическая ссылка, в SQLAlchemy — `use_alter=True` |
 | created_at | timestamptz not null | |
@@ -86,9 +88,9 @@ Unique: `(user_id, building_id, apartment)`.
 | Поле | Тип | Примечание |
 |---|---|---|
 | id | bigint PK, identity start 1000 | он же номер для людей: №1042 |
-| type | enum `ticket_type`: `request`, `question` | |
+| type | enum `ticket_type`: `REQUEST`, `QUESTION` | |
 | status | enum `ticket_status` | см. [ticket-lifecycle.md](ticket-lifecycle.md) |
-| priority | enum `ticket_priority`: `normal`, `urgent` | default `normal` |
+| priority | enum `ticket_priority`: `NORMAL`, `URGENT` | default `NORMAL` |
 | client_id | bigint FK users not null | |
 | assignee_id | bigint FK users | кто ведёт |
 | category_id | bigint FK categories | у вопросов пусто |
@@ -103,9 +105,9 @@ Unique: `(user_id, building_id, apartment)`.
 | rating | smallint, check 1–5 | оценка после закрытия |
 | created_at | timestamptz not null | |
 | updated_at | timestamptz not null | |
-| closed_at | timestamptz | время перехода в `closed` или `rejected`; при переоткрытии очищается |
+| closed_at | timestamptz | время перехода в `CLOSED` или `REJECTED`; при переоткрытии очищается |
 
-Check: `type = 'question' or (building_id is not null and apartment is not null and category_id is not null)`.
+Check: `type = 'QUESTION' or (building_id is not null and apartment is not null and category_id is not null)`.
 
 Адрес копируется, а не ссылается на `residences`: если жилец потом сменит адрес, старая заявка не должна «переехать».
 
@@ -119,8 +121,8 @@ Check: `type = 'question' or (building_id is not null and apartment is not null 
 |---|---|---|
 | id | bigint PK | |
 | ticket_id | bigint FK tickets not null | |
-| sender_type | enum `sender_type`: `client`, `staff`, `system` | `system` — автоматические сообщения бота клиенту в контексте обращения |
-| author_id | bigint FK users | пусто для `system` |
+| sender_type | enum `sender_type`: `CLIENT`, `STAFF`, `SYSTEM` | `SYSTEM` — автоматические сообщения бота клиенту в контексте обращения |
+| author_id | bigint FK users | пусто для `SYSTEM` |
 | text | text | может быть пустым, если есть файлы |
 | max_message_id | text, index | id в Max: входящие — для дедупликации, исходящие — для маршрутизации ответов (reply) клиента |
 | created_at | timestamptz not null | |
@@ -154,7 +156,7 @@ Check: `type = 'question' or (building_id is not null and apartment is not null 
 | from_status | `ticket_status` | пусто при создании обращения |
 | to_status | `ticket_status` not null | |
 | changed_by_id | bigint FK users | пусто — система |
-| comment | text | обязателен при переходе в `rejected`: причину видит клиент |
+| comment | text | обязателен при переходе в `REJECTED`: причину видит клиент |
 | created_at | timestamptz not null | |
 
 ## ticket_triage
@@ -181,19 +183,19 @@ CMS. Ключ-значение: новый раздел не требует ми
 
 | Поле | Тип | Примечание |
 |---|---|---|
-| key | text PK | см. таблицу ниже |
+| key | text PK | `StrEnum ContentKey`, см. таблицу ниже |
 | data | jsonb not null | |
 | updated_at | timestamptz not null | |
 | updated_by_id | bigint FK users | |
 
 | key | Схема `data` |
 |---|---|
-| `welcome` | `text`, `file_id` (обязательно) |
-| `emergency` | `text` |
-| `services` | `text` |
-| `payment` | `text`, `url`, `button_text` |
-| `contacts` | `text`, `phones: [{title, phone}]` |
-| `theme` | `company_name`, `primary_color`, `logo_file_id` |
+| `WELCOME` | `text`, `file_id` (обязательно) |
+| `EMERGENCY` | `text` |
+| `SERVICES` | `text` |
+| `PAYMENT` | `text`, `url`, `button_text` |
+| `CONTACTS` | `text`, `phones: [{title, phone}]` |
+| `THEME` | `company_name`, `primary_color`, `logo_file_id` |
 
 ## login_tokens
 
@@ -206,4 +208,16 @@ CMS. Ключ-значение: новый раздел не требует ми
 | token_hash | text unique not null | храним хэш, не сам токен |
 | expires_at | timestamptz not null | 10 минут |
 | used_at | timestamptz | |
+| created_at | timestamptz not null | |
+
+## auth_tokens
+
+Сессионные opaque-токены (как в arendalike). Выход — удаление строки.
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| user_id | bigint FK users not null | |
+| token_hash | text unique not null | храним хэш, не сам токен |
+| expires_at | timestamptz not null | 30 дней |
 | created_at | timestamptz not null | |
