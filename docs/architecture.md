@@ -152,6 +152,8 @@ WebSocket для сотрудников, менеджер подключений
 
 `backend/openapi.json` хранится в репозитории и выгружается скриптом из `app.openapi()`, поэтому в продакшене `/docs` и `/openapi.json` можно выключить, как в arendalike. Бэкенд меняет роуты или схемы → перегенерирует `openapi.json` в том же коммите → фронт обновляется по нему. Как именно фронт использует контракт — решает фронтенд.
 
+То, чего нет в OpenAPI, описывается в этом разделе: формат ссылки «Открыть» (Б3) и события WebSocket (Б4).
+
 ## Тесты
 
 Как в arendalike:
@@ -166,10 +168,10 @@ WebSocket для сотрудников, менеджер подключений
 
 | Переменная | Значение |
 |---|---|
-| `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME` | URL собирается из полей — удобно для Docker и CI |
+| `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME` | URL собирается из полей — удобно для Docker |
 | `SECRET_KEY` | подпись ссылок на файлы |
 | `BOT_TOKEN` | токен бота Max |
-| `BOT_MODE` | `polling` / `webhook` |
+| `BOT_MODE` | `polling` / `webhook` / `off` — без бота: для фронтенд-разработки и тестов |
 | `ADMIN_MAX_USER_IDS` | первые админы, через запятую |
 | `WEBAPP_URL` | адрес SPA: для кнопок мини-приложения и ссылок входа |
 | `STORAGE_DIR` | каталог файлов |
