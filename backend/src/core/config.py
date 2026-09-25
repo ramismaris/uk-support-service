@@ -1,4 +1,5 @@
 from typing import Annotated, Literal, Self
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -27,6 +28,8 @@ class Settings(BaseSettings):
     auth_token_expire_days: int = 30
     admin_max_user_ids: Annotated[list[int], NoDecode] = []
 
+    timezone: str = "Europe/Moscow"
+
     cors_origins: list[str] = ["http://localhost:5173"]
 
     @field_validator("admin_max_user_ids", mode="before")
@@ -36,6 +39,15 @@ class Settings(BaseSettings):
             return []
         if isinstance(value, str):
             return [int(item.strip()) for item in value.split(",") if item.strip()]
+        return value
+
+    @field_validator("timezone")
+    @classmethod
+    def _validate_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f"TIMEZONE is not a valid IANA time zone: {value}") from exc
         return value
 
     @model_validator(mode="after")

@@ -17,6 +17,14 @@ class UserRepository:
         result = await self.db.execute(select(User).where(User.max_user_id == max_user_id))
         return result.scalar_one_or_none()
 
+    async def list_staff(self) -> list[User]:
+        result = await self.db.execute(
+            select(User)
+            .where(User.role.in_([UserRole.MANAGER, UserRole.ADMIN]), User.is_blocked.is_(False))
+            .order_by(User.id)
+        )
+        return list(result.scalars().all())
+
     async def create(
         self,
         max_user_id: int,

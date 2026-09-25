@@ -40,3 +40,9 @@ class FileRepository:
             .order_by(File.id)
         )
         return list(result.scalars().all())
+
+    async def list_by_ids(self, file_ids: list[int]) -> list[File]:
+        if not file_ids:
+            return []
+        result = await self.db.execute(select(File).where(File.id.in_(file_ids)).order_by(File.id))
+        return list(result.scalars().all())

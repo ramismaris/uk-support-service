@@ -59,3 +59,20 @@ def test_long_secret_key_without_debug_is_allowed():
     settings = _make_settings(debug=False, secret_key="x" * 32)
 
     assert settings.secret_key == "x" * 32
+
+
+def test_timezone_defaults_to_moscow():
+    settings = _make_settings()
+
+    assert settings.timezone == "Europe/Moscow"
+
+
+def test_invalid_timezone_raises():
+    with pytest.raises(ValidationError, match="TIMEZONE"):
+        _make_settings(timezone="Europe/Nowhere")
+
+
+def test_valid_timezone_is_allowed():
+    settings = _make_settings(timezone="Asia/Yekaterinburg")
+
+    assert settings.timezone == "Asia/Yekaterinburg"
