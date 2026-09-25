@@ -21,8 +21,10 @@ STATUS_LABELS: dict[TicketStatus, str] = {
 STAFF_NEW_TICKET_BUTTON = "Открыть"
 
 DESCRIPTION_MAX_LENGTH = 500
+DESCRIPTION_LIMIT = 3000
 
 DESCRIPTION_REQUIRED = "Опишите проблему"
+DESCRIPTION_TOO_LONG = f"Описание — не больше {DESCRIPTION_LIMIT} символов"
 APARTMENT_INVALID = "Квартира — до 20 символов: буквы, цифры, пробел, «/», «.» и «-»"
 CATEGORY_NOT_FOUND = "Категория не найдена"
 BUILDING_NOT_FOUND = "Адрес не найден"
@@ -30,6 +32,8 @@ PHOTO_NOT_FOUND = "Фото не найдено"
 PHOTO_ALREADY_ATTACHED = "Фото уже прикреплено"
 PHOTOS_DUPLICATED = "Фото повторяются"
 PHOTO_NOT_IMAGE = "Можно прикрепить только фото"
+PHONE_INVALID = "Проверьте номер телефона"
+RESIDENCE_NOT_FOUND = "Адрес не найден"
 
 
 def format_address(building_address: str, apartment: str) -> str:
@@ -77,3 +81,45 @@ def new_ticket_staff_text(
     lines.append("")
     lines.append(shorten_description(description))
     return "\n".join(lines)
+
+
+# Client request form (bot)
+
+FORM_START_BUTTON = "Подать заявку"
+FORM_CONTACT_BUTTON = "Поделиться контактом"
+FORM_CANCEL_BUTTON = "Отменить"
+FORM_ADDRESS_OK_BUTTON = "Верно"
+FORM_ADDRESS_OTHER_BUTTON = "Другой адрес"
+FORM_ADDRESS_ADD_BUTTON = "Добавить адрес"
+FORM_PHOTOS_DONE_BUTTON = "Готово"
+FORM_PHOTOS_SKIP_BUTTON = "Пропустить"
+FORM_TIME_SKIP_BUTTON = "Пропустить"
+FORM_SEND_BUTTON = "Отправить"
+
+FORM_PHOTOS_MAX = 10
+
+FORM_PHONE_PROMPT = "Поделитесь номером телефона — нажмите кнопку ниже."
+FORM_PHONE_OWN_TEXT = "Нужен ваш собственный номер. Нажмите «Поделиться контактом»."
+FORM_CATEGORY_PROMPT = "Выберите категорию обращения."
+FORM_ADDRESS_PROMPT = "Адрес: {address}.\nВсё верно?"
+FORM_ADDRESS_OTHER_PROMPT = "Выберите адрес из списка или добавьте новый."
+FORM_BUILDING_PROMPT = "Выберите дом."
+FORM_APARTMENT_PROMPT = "Напишите номер квартиры."
+FORM_DESCRIPTION_PROMPT = "Опишите проблему."
+FORM_PHOTOS_PROMPT = "Пришлите фото — можно несколько. Если фото нет, нажмите «Пропустить»."
+FORM_PHOTOS_ADDED = "Фото добавлено: {count}. Пришлите ещё или нажмите «Готово»."
+FORM_PHOTOS_LIMIT = "Можно прикрепить не больше {max} фото. Добавлено: {count}."
+FORM_PHOTO_FAILED = "Не удалось добавить фото. Добавлено: {count}."
+FORM_TIME_PROMPT = "Напишите удобное время визита или нажмите «Пропустить»."
+FORM_TIME_NOT_SET = "не указано"
+FORM_CONFIRM_PROMPT = (
+    "Проверьте заявку:\n\n"
+    "Категория: {category}\n"
+    "Адрес: {address}\n"
+    "Описание: {description}\n"
+    "Фото: {photos}\n"
+    "Время: {time}\n\n"
+    "Отправляем?"
+)
+FORM_SENT = "Заявка №{ticket_id} отправлена."
+FORM_CANCELLED = "Заявка отменена."

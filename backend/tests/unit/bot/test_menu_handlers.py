@@ -44,6 +44,12 @@ def _message_callback(payload: str = "menu:emergency") -> MagicMock:
     return event
 
 
+def _context() -> MagicMock:
+    context = MagicMock()
+    context.clear = AsyncMock()
+    return context
+
+
 def _keyboard_rows(attachment: object) -> list[list[object]]:
     return attachment.payload.buttons
 
@@ -67,13 +73,16 @@ def content_service() -> MagicMock:
 
 async def test_start_sends_welcome_with_main_menu(content_service: MagicMock):
     event = _message_created()
+    context = _context()
 
-    await menu.handle_start(event, MagicMock())
+    await menu.handle_start(event, context, MagicMock())
 
+    context.clear.assert_awaited_once()
     content_service.get_welcome.assert_awaited_once()
     kwargs = event.message.answer.await_args.kwargs
     assert event.message.answer.await_args.args[0] == "Добро пожаловать"
     assert [row[0].payload for row in _keyboard_rows(kwargs["attachments"][0])] == [
+        "form:start",
         "menu:emergency",
         "menu:services",
         "menu:payment",
@@ -84,27 +93,29 @@ async def test_start_uses_fallback_without_welcome_block(content_service: MagicM
     content_service.get_welcome.return_value = None
     event = _message_created()
 
-    await menu.handle_start(event, MagicMock())
+    await menu.handle_start(event, _context(), MagicMock())
 
     assert event.message.answer.await_args.args[0] == START_TEXT
 
 
 async def test_bot_started_sends_welcome_with_main_menu(content_service: MagicMock):
     event = _bot_started()
+    context = _context()
 
-    await menu.handle_bot_started(event, MagicMock())
+    await menu.handle_bot_started(event, context, MagicMock())
 
+    context.clear.assert_awaited_once()
     kwargs = event.bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == 7
     assert kwargs["text"] == "Добро пожаловать"
-    assert len(_keyboard_rows(kwargs["attachments"][0])) == 3
+    assert len(_keyboard_rows(kwargs["attachments"][0])) == 4
 
 
 async def test_bot_started_uses_fallback_without_welcome_block(content_service: MagicMock):
     content_service.get_welcome.return_value = None
     event = _bot_started()
 
-    await menu.handle_bot_started(event, MagicMock())
+    await menu.handle_bot_started(event, _context(), MagicMock())
 
     assert event.bot.send_message.await_args.kwargs["text"] == START_TEXT
 
@@ -145,7 +156,7 @@ async def test_main_callback_edits_with_welcome_and_main_menu(content_service: M
     await menu.handle_main(event, MagicMock())
 
     assert event.edit.await_args.kwargs["text"] == "Добро пожаловать"
-    assert len(_keyboard_rows(event.edit.await_args.kwargs["attachments"][0])) == 3
+    assert len(_keyboard_rows(event.edit.await_args.kwargs["attachments"][0])) == 4
 
 
 @pytest.mark.parametrize(
@@ -196,4 +207,4 @@ async def test_free_text_prompts_to_use_menu():
     await menu.handle_free_text(event)
 
     assert event.message.answer.await_args.args[0] == USE_MENU_TEXT
-    assert len(_keyboard_rows(event.message.answer.await_args.kwargs["attachments"][0])) == 3
+    assert len(_keyboard_rows(event.message.answer.await_args.kwargs["attachments"][0])) == 4

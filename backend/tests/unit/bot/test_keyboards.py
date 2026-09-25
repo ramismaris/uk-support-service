@@ -1,13 +1,37 @@
-from maxapi.types import CallbackButton, LinkButton
+from types import SimpleNamespace
+
+from maxapi.types import CallbackButton, LinkButton, RequestContactButton
 
 from src.bot.keyboards import (
+    FORM_ADDRESS_ADD,
+    FORM_ADDRESS_OK,
+    FORM_ADDRESS_OTHER,
+    FORM_BUILDING_PREFIX,
+    FORM_CANCEL,
+    FORM_CATEGORY_PREFIX,
+    FORM_PHOTOS_DONE,
+    FORM_PHOTOS_SKIP,
+    FORM_RESIDENCE_PREFIX,
+    FORM_SEND,
+    FORM_START,
+    FORM_TIME_SKIP,
     MENU_EMERGENCY,
     MENU_MAIN,
     MENU_PAYMENT,
     MENU_SERVICES,
+    address_keyboard,
     back_keyboard,
+    building_keyboard,
+    cancel_keyboard,
+    category_keyboard,
+    confirm_keyboard,
     main_menu_keyboard,
     payment_keyboard,
+    phone_keyboard,
+    photos_done_keyboard,
+    photos_skip_keyboard,
+    residences_keyboard,
+    time_keyboard,
 )
 from src.schemas.content import PaymentContent
 
@@ -15,14 +39,16 @@ from src.schemas.content import PaymentContent
 def test_main_menu_has_one_button_per_row_in_order():
     rows = main_menu_keyboard().payload.buttons
 
-    assert [len(row) for row in rows] == [1, 1, 1]
+    assert [len(row) for row in rows] == [1, 1, 1, 1]
     assert [row[0].text for row in rows] == [
+        "Подать заявку",
         "Аварийные службы",
         "Услуги УК",
         "Оплата ЖКХ",
     ]
     assert all(isinstance(row[0], CallbackButton) for row in rows)
     assert [row[0].payload for row in rows] == [
+        FORM_START,
         MENU_EMERGENCY,
         MENU_SERVICES,
         MENU_PAYMENT,
@@ -53,3 +79,90 @@ def test_payment_keyboard_has_link_then_back():
     assert link.url == "https://pay.example/zhkh"
     assert rows[1][0].text == "« В меню"
     assert rows[1][0].payload == MENU_MAIN
+
+
+def test_phone_keyboard_has_contact_then_cancel():
+    rows = phone_keyboard().payload.buttons
+
+    assert len(rows) == 2
+    assert isinstance(rows[0][0], RequestContactButton)
+    assert rows[0][0].text == "Поделиться контактом"
+    assert rows[1][0].payload == FORM_CANCEL
+
+
+def test_cancel_keyboard_has_only_cancel():
+    rows = cancel_keyboard().payload.buttons
+
+    assert len(rows) == 1
+    assert rows[0][0].text == "Отменить"
+    assert rows[0][0].payload == FORM_CANCEL
+
+
+def test_category_keyboard_lists_categories_then_cancel():
+    categories = [
+        SimpleNamespace(id=1, title="Сантехника"),
+        SimpleNamespace(id=2, title="Электрика"),
+    ]
+
+    rows = category_keyboard(categories).payload.buttons
+
+    assert [row[0].text for row in rows] == ["Сантехника", "Электрика", "Отменить"]
+    assert [row[0].payload for row in rows] == [
+        f"{FORM_CATEGORY_PREFIX}1",
+        f"{FORM_CATEGORY_PREFIX}2",
+        FORM_CANCEL,
+    ]
+
+
+def test_address_keyboard_has_ok_other_cancel():
+    rows = address_keyboard().payload.buttons
+
+    assert [row[0].payload for row in rows] == [
+        FORM_ADDRESS_OK,
+        FORM_ADDRESS_OTHER,
+        FORM_CANCEL,
+    ]
+
+
+def test_residences_keyboard_lists_options_then_add_and_cancel():
+    rows = residences_keyboard([(5, "ул. Ленина, 1, кв. 2")]).payload.buttons
+
+    assert [row[0].text for row in rows] == ["ул. Ленина, 1, кв. 2", "Добавить адрес", "Отменить"]
+    assert rows[0][0].payload == f"{FORM_RESIDENCE_PREFIX}5"
+    assert rows[1][0].payload == FORM_ADDRESS_ADD
+    assert rows[2][0].payload == FORM_CANCEL
+
+
+def test_building_keyboard_lists_buildings_then_cancel():
+    buildings = [SimpleNamespace(id=9, address="ул. Ленина, 12")]
+
+    rows = building_keyboard(buildings).payload.buttons
+
+    assert [row[0].text for row in rows] == ["ул. Ленина, 12", "Отменить"]
+    assert rows[0][0].payload == f"{FORM_BUILDING_PREFIX}9"
+
+
+def test_photos_skip_keyboard_has_skip_then_cancel():
+    rows = photos_skip_keyboard().payload.buttons
+
+    assert [row[0].text for row in rows] == ["Пропустить", "Отменить"]
+    assert [row[0].payload for row in rows] == [FORM_PHOTOS_SKIP, FORM_CANCEL]
+
+
+def test_photos_done_keyboard_has_done_then_cancel():
+    rows = photos_done_keyboard().payload.buttons
+
+    assert [row[0].text for row in rows] == ["Готово", "Отменить"]
+    assert [row[0].payload for row in rows] == [FORM_PHOTOS_DONE, FORM_CANCEL]
+
+
+def test_time_keyboard_has_skip_then_cancel():
+    rows = time_keyboard().payload.buttons
+
+    assert [row[0].payload for row in rows] == [FORM_TIME_SKIP, FORM_CANCEL]
+
+
+def test_confirm_keyboard_has_send_then_cancel():
+    rows = confirm_keyboard().payload.buttons
+
+    assert [row[0].payload for row in rows] == [FORM_SEND, FORM_CANCEL]

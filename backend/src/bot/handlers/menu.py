@@ -1,4 +1,5 @@
 from maxapi import Router
+from maxapi.context import BaseContext
 from maxapi.filters import F
 from maxapi.filters.command import CommandStart
 from maxapi.types import BotStarted, MessageCallback, MessageCreated
@@ -39,7 +40,8 @@ async def _edit(event: MessageCallback, text: str, keyboard: AttachmentButton) -
 
 
 @router.bot_started()
-async def handle_bot_started(event: BotStarted, db: AsyncSession) -> None:
+async def handle_bot_started(event: BotStarted, context: BaseContext, db: AsyncSession) -> None:
+    await context.clear()
     text = await _welcome_text(db)
     await event.bot.send_message(
         chat_id=event.chat_id,
@@ -49,7 +51,8 @@ async def handle_bot_started(event: BotStarted, db: AsyncSession) -> None:
 
 
 @router.message_created(CommandStart())
-async def handle_start(event: MessageCreated, db: AsyncSession) -> None:
+async def handle_start(event: MessageCreated, context: BaseContext, db: AsyncSession) -> None:
+    await context.clear()
     text = await _welcome_text(db)
     await event.message.answer(text, attachments=[main_menu_keyboard()])
 

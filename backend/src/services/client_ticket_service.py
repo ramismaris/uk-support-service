@@ -10,13 +10,20 @@ from src.core.texts import (
     APARTMENT_INVALID,
     BUILDING_NOT_FOUND,
     CATEGORY_NOT_FOUND,
+    DESCRIPTION_LIMIT,
     DESCRIPTION_REQUIRED,
+    DESCRIPTION_TOO_LONG,
+    PHONE_INVALID,
     PHOTO_ALREADY_ATTACHED,
     PHOTO_NOT_FOUND,
     PHOTO_NOT_IMAGE,
     PHOTOS_DUPLICATED,
+    RESIDENCE_NOT_FOUND,
 )
+from src.models.building import Building
+from src.models.category import Category
 from src.models.file import File
+from src.models.residence import Residence
 from src.models.ticket import Ticket
 from src.models.user import User
 from src.providers.messenger_provider import MessengerProvider
@@ -24,6 +31,7 @@ from src.providers.storage_provider import StorageProvider
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.file_repository import FileRepository
+from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.services.file_service import MAX_FILE_SIZE, FileService
@@ -41,6 +49,15 @@ def validate_apartment(value: str) -> str:
     return apartment
 
 
+def validate_description(value: str) -> str:
+    description = value.strip()
+    if not description:
+        raise AppException(DESCRIPTION_REQUIRED, status_code=400)
+    if len(description) > DESCRIPTION_LIMIT:
+        raise AppException(DESCRIPTION_TOO_LONG, status_code=400)
+    return description
+
+
 class ClientTicketService:
     def __init__(self, db: AsyncSession, messenger: MessengerProvider, storage: StorageProvider):
         self.db = db
@@ -51,7 +68,50 @@ class ClientTicketService:
         self.status_changes = StatusChangeRepository(db)
         self.categories = CategoryRepository(db)
         self.buildings = BuildingRepository(db)
+        self.residences = ResidenceRepository(db)
         self.notifications = NotificationService(db, messenger)
+
+    async def set_phone(self, client: User, raw: str) -> None:
+        digits = re.sub(r"\D", "", raw)
+        if len(digits) == 11 and digits.startswith("8"):
+            digits = "7" + digits[1:]
+        if not 10 <= len(digits) <= 15:
+            raise AppException(PHONE_INVALID, status_code=400)
+        client.phone = f"+{digits}"
+        await self.db.commit()
+
+    async def list_categories(self) -> list[Category]:
+        return await self.categories.list_active()
+
+    async def list_buildings(self) -> list[Building]:
+        return await self.buildings.list_active()
+
+    async def list_residences(self, client: User) -> list[Residence]:
+        return await self.residences.list_by_user(client.id)
+
+    async def add_residence(self, client: User, building_id: int, apartment: str) -> Residence:
+        building = await self.buildings.get_by_id(building_id)
+        if building is None or not building.is_active:
+            raise NotFoundException(BUILDING_NOT_FOUND)
+
+        apartment = validate_apartment(apartment)
+
+        existing = await self.residences.get(client.id, building_id, apartment)
+        if existing is not None:
+            return existing
+
+        is_primary = not await self.residences.list_by_user(client.id)
+        residence = await self.residences.create(
+            client.id, building.id, apartment, is_primary=is_primary
+        )
+        await self.db.commit()
+        return residence
+
+    async def get_residence(self, client: User, residence_id: int) -> Residence:
+        residence = await self.residences.get_by_id(residence_id)
+        if residence is None or residence.user_id != client.id:
+            raise NotFoundException(RESIDENCE_NOT_FOUND)
+        return residence
 
     async def save_photo(self, url: str) -> File:
         data, mime = await self.messenger.download_file(url, MAX_FILE_SIZE)
@@ -70,9 +130,7 @@ class ClientTicketService:
         preferred_time: str | None,
         photo_ids: list[int],
     ) -> Ticket:
-        description = description.strip()
-        if not description:
-            raise AppException(DESCRIPTION_REQUIRED, status_code=400)
+        description = validate_description(description)
         apartment = validate_apartment(apartment)
         if preferred_time is not None:
             preferred_time = preferred_time.strip() or None

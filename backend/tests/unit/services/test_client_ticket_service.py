@@ -6,7 +6,8 @@ import pytest
 
 from src.core.constants import TicketStatus, TicketType
 from src.core.exceptions import AppException, MessengerException, NotFoundException
-from src.services.client_ticket_service import ClientTicketService
+from src.core.texts import DESCRIPTION_LIMIT
+from src.services.client_ticket_service import ClientTicketService, validate_description
 from src.services.file_service import MAX_FILE_SIZE
 
 
@@ -35,12 +36,26 @@ def env() -> SimpleNamespace:
     category.is_active = True
     categories = MagicMock()
     categories.get_by_id = AsyncMock(return_value=category)
+    categories.list_active = AsyncMock(return_value=[category])
 
     building = MagicMock()
     building.id = 8
     building.is_active = True
     buildings = MagicMock()
     buildings.get_by_id = AsyncMock(return_value=building)
+    buildings.list_active = AsyncMock(return_value=[building])
+
+    residence = MagicMock()
+    residence.id = 3
+    residence.user_id = 1
+    residence.building_id = building.id
+    residence.apartment = "45"
+    residence.is_primary = True
+    residences = MagicMock()
+    residences.get = AsyncMock(return_value=None)
+    residences.get_by_id = AsyncMock(return_value=None)
+    residences.list_by_user = AsyncMock(return_value=[])
+    residences.create = AsyncMock(return_value=residence)
 
     notifications = MagicMock()
     notifications.send_status_card = AsyncMock()
@@ -77,6 +92,12 @@ def env() -> SimpleNamespace:
         )
         stack.enter_context(
             patch(
+                "src.services.client_ticket_service.ResidenceRepository",
+                return_value=residences,
+            )
+        )
+        stack.enter_context(
+            patch(
                 "src.services.client_ticket_service.NotificationService",
                 return_value=notifications,
             )
@@ -103,6 +124,8 @@ def env() -> SimpleNamespace:
             categories=categories,
             building=building,
             buildings=buildings,
+            residence=residence,
+            residences=residences,
             notifications=notifications,
             client=client,
             run_bg=run_bg,
@@ -122,6 +145,30 @@ async def _request(env: SimpleNamespace, **overrides):
     }
     params.update(overrides)
     return await env.service.create_request(env.client, **params)
+
+
+def test_validate_description_accepts_limit_length() -> None:
+    value = "a" * DESCRIPTION_LIMIT
+
+    assert validate_description(value) == value
+
+
+def test_validate_description_strips() -> None:
+    assert validate_description("  Течёт кран  ") == "Течёт кран"
+
+
+def test_validate_description_rejects_over_limit() -> None:
+    with pytest.raises(AppException) as exc:
+        validate_description("a" * (DESCRIPTION_LIMIT + 1))
+
+    assert exc.value.status_code == 400
+
+
+def test_validate_description_rejects_blank() -> None:
+    with pytest.raises(AppException) as exc:
+        validate_description("   ")
+
+    assert exc.value.status_code == 400
 
 
 def _assert_no_writes(env: SimpleNamespace) -> None:
@@ -184,6 +231,14 @@ async def test_create_request_happy_path(env: SimpleNamespace) -> None:
 async def test_blank_description_rejected_writes_nothing(env: SimpleNamespace) -> None:
     with pytest.raises(AppException) as exc:
         await _request(env, description="   ")
+
+    assert exc.value.status_code == 400
+    _assert_no_writes(env)
+
+
+async def test_too_long_description_rejected_writes_nothing(env: SimpleNamespace) -> None:
+    with pytest.raises(AppException) as exc:
+        await _request(env, description="a" * (DESCRIPTION_LIMIT + 1))
 
     assert exc.value.status_code == 400
     _assert_no_writes(env)
@@ -348,3 +403,111 @@ async def test_save_photo_lets_messenger_exception_through(env: SimpleNamespace)
 
     with pytest.raises(MessengerException):
         await env.service.save_photo("https://i.oneme.ru/i?r=abc")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("79161234567", "+79161234567"),
+        ("+7 (916) 123-45-67", "+79161234567"),
+        ("89161234567", "+79161234567"),
+    ],
+)
+async def test_set_phone_normalizes(env: SimpleNamespace, raw: str, expected: str) -> None:
+    await env.service.set_phone(env.client, raw)
+
+    assert env.client.phone == expected
+    env.db.commit.assert_awaited_once()
+
+
+@pytest.mark.parametrize("raw", ["12345", "не телефон", "", "+7"])
+async def test_set_phone_invalid_rejected(env: SimpleNamespace, raw: str) -> None:
+    with pytest.raises(AppException) as exc:
+        await env.service.set_phone(env.client, raw)
+
+    assert exc.value.status_code == 400
+    env.db.commit.assert_not_awaited()
+
+
+async def test_add_residence_first_is_primary(env: SimpleNamespace) -> None:
+    env.residences.list_by_user.return_value = []
+    env.residence.is_primary = True
+
+    residence = await env.service.add_residence(env.client, env.building.id, " 45 ")
+
+    env.residences.create.assert_awaited_once_with(
+        env.client.id, env.building.id, "45", is_primary=True
+    )
+    env.db.commit.assert_awaited_once()
+    assert residence is env.residence
+
+
+async def test_add_residence_second_is_not_primary(env: SimpleNamespace) -> None:
+    env.residences.list_by_user.return_value = [env.residence]
+
+    await env.service.add_residence(env.client, env.building.id, "45")
+
+    assert env.residences.create.await_args.kwargs["is_primary"] is False
+
+
+async def test_add_residence_existing_returned_without_write(env: SimpleNamespace) -> None:
+    existing = MagicMock()
+    env.residences.get.return_value = existing
+
+    residence = await env.service.add_residence(env.client, env.building.id, "45")
+
+    assert residence is existing
+    env.residences.create.assert_not_awaited()
+    env.db.commit.assert_not_awaited()
+
+
+async def test_add_residence_inactive_building_rejected(env: SimpleNamespace) -> None:
+    env.building.is_active = False
+
+    with pytest.raises(NotFoundException):
+        await env.service.add_residence(env.client, env.building.id, "45")
+
+    env.residences.create.assert_not_awaited()
+    env.db.commit.assert_not_awaited()
+
+
+async def test_add_residence_bad_apartment_rejected(env: SimpleNamespace) -> None:
+    with pytest.raises(AppException) as exc:
+        await env.service.add_residence(env.client, env.building.id, "   ")
+
+    assert exc.value.status_code == 400
+    env.residences.create.assert_not_awaited()
+    env.db.commit.assert_not_awaited()
+
+
+async def test_get_residence_returns_own(env: SimpleNamespace) -> None:
+    own = MagicMock()
+    own.user_id = env.client.id
+    env.residences.get_by_id.return_value = own
+
+    assert await env.service.get_residence(env.client, 5) is own
+
+
+async def test_get_residence_of_another_client_rejected(env: SimpleNamespace) -> None:
+    foreign = MagicMock()
+    foreign.user_id = env.client.id + 1
+    env.residences.get_by_id.return_value = foreign
+
+    with pytest.raises(NotFoundException):
+        await env.service.get_residence(env.client, 5)
+
+
+async def test_get_residence_missing_rejected(env: SimpleNamespace) -> None:
+    env.residences.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundException):
+        await env.service.get_residence(env.client, 5)
+
+
+async def test_lists_delegate_to_repositories(env: SimpleNamespace) -> None:
+    assert await env.service.list_categories() == [env.category]
+    assert await env.service.list_buildings() == [env.building]
+    env.residences.list_by_user.return_value = [env.residence]
+
+    assert await env.service.list_residences(env.client) == [env.residence]
+    env.residences.list_by_user.assert_awaited_once_with(env.client.id)
