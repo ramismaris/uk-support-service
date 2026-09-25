@@ -190,7 +190,7 @@ CMS. Ключ-значение: новый раздел не требует ми
 
 | key | Схема `data` |
 |---|---|
-| `WELCOME` | `text`, `file_id` (обязательно) |
+| `WELCOME` | `text`, `file_id` (обязательно в админке; до загрузки фото в Б6 — пусто) |
 | `EMERGENCY` | `text` |
 | `SERVICES` | `text` |
 | `PAYMENT` | `text`, `url`, `button_text` |

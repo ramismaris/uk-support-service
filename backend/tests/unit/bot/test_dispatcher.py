@@ -3,6 +3,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.bot import dispatcher
+from src.bot.handlers.menu import router as menu_router
+from src.bot.handlers.start import router as start_router
+
+
+def test_menu_router_registered_after_start_router():
+    assert dispatcher.dp.routers.index(menu_router) > dispatcher.dp.routers.index(start_router)
 
 
 async def test_stop_bot_closes_session_when_polling_failed():

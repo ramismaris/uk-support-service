@@ -4,6 +4,7 @@ from contextlib import suppress
 
 from maxapi import Bot, Dispatcher
 
+from src.bot.handlers.menu import router as menu_router
 from src.bot.handlers.start import router as start_router
 from src.bot.middlewares import UserSyncMiddleware
 from src.core.config import settings
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 dp = Dispatcher()
 dp.register_outer_middleware(UserSyncMiddleware())
-dp.include_routers(start_router)
+dp.include_routers(start_router, menu_router)
 
 _bot: Bot | None = None
 _polling_task: asyncio.Task[None] | None = None
