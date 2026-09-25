@@ -1,13 +1,29 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.api.v1.router import router
+from src.bot.dispatcher import start_bot, stop_bot
 from src.core.config import settings
 from src.core.exceptions import AppException
 from src.core.logging import setup_logging
 
 setup_logging(debug=settings.debug)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    if settings.bot_mode == "polling":
+        await start_bot()
+    try:
+        yield
+    finally:
+        if settings.bot_mode == "polling":
+            await stop_bot()
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -15,6 +31,7 @@ app = FastAPI(
     docs_url="/docs" if settings.debug else None,
     redoc_url=None,
     openapi_url="/openapi.json" if settings.debug else None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(

@@ -1,3 +1,6 @@
+from typing import Literal, Self
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,7 +17,16 @@ class Settings(BaseSettings):
     database_port: int = 5432
     database_name: str
 
+    bot_token: str = ""
+    bot_mode: Literal["polling", "off"] = "off"
+
     cors_origins: list[str] = ["http://localhost:5173"]
+
+    @model_validator(mode="after")
+    def _validate_bot_token(self) -> Self:
+        if self.bot_mode == "polling" and not self.bot_token:
+            raise ValueError("BOT_TOKEN must be set when BOT_MODE=polling")
+        return self
 
     @property
     def database_url(self) -> str:
