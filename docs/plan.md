@@ -33,10 +33,10 @@
 - [x] pytest: фикстуры тестовой БД; `/api/v1/health`.
 - [x] Выгрузка `openapi.json`; `/docs` в dev.
 - [x] Бот запускается в `lifespan`: `/start` и `/id` (показывает `max_user_id` для `ADMIN_MAX_USER_IDS`). `BOT_MODE=off` — запуск без бота.
-- [ ] `docker compose`: бэкенд и Postgres одной командой.
-- [ ] Команда проверки перед вливанием: `ruff`, `pytest`, актуальность `openapi.json`, одна «голова» Alembic.
+- [x] `docker compose`: бэкенд и Postgres одной командой.
+- [x] Команда проверки перед вливанием: `ruff`, `pytest`, актуальность `openapi.json`, одна «голова» Alembic.
 - [ ] Деплой на сервер.
-- [ ] Раздел «Команды» в `AGENTS.md`.
+- [x] Раздел «Команды» в `AGENTS.md`.
 
 Готово: бот на сервере отвечает; `/health` доступен по HTTPS; бэкенд поднимается локально одной командой.
 

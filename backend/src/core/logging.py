@@ -9,3 +9,5 @@ def setup_logging(debug: bool = False) -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[logging.StreamHandler(sys.stdout)],
     )
+    if debug:
+        logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)

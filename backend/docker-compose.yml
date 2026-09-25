@@ -17,5 +17,17 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:

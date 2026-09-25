@@ -28,7 +28,35 @@ raw_data/   исходные заметки
 
 ## Команды
 
-_Заполняется вместе со скелетом проекта._
+Все команды — из каталога `backend/`.
+
+```bash
+# Первый запуск
+cp .env.template .env
+docker compose up -d --wait db
+uv sync
+uv run alembic upgrade head
+
+# API в режиме разработки; Swagger — /docs при DEBUG=true
+uv run uvicorn src.main:app --reload
+
+# Тесты
+uv run pytest
+
+# Проверка перед вливанием в main: ruff, pytest, актуальность openapi.json, одна «голова» Alembic
+scripts/check.sh
+
+# Перегенерировать openapi.json после изменений API
+uv run python scripts/dump_openapi.py
+
+# Новая миграция
+uv run alembic revision --autogenerate -m "..."
+
+# Весь бэкенд (API + Postgres) в Docker одной командой
+docker compose up -d --build
+```
+
+Бот по умолчанию выключен (`BOT_MODE=off`) — для фронтенд-разработки и тестов. Чтобы включить его, задайте в `.env` `BOT_MODE=polling` и `BOT_TOKEN`.
 
 ## Правила
 
@@ -83,7 +111,7 @@ PR и ревью не используем: ветка вливается в `ma
   ```bash
   git switch main && git pull
   git switch <branch> && git rebase main
-  # ruff и pytest зелёные
+  backend/scripts/check.sh
   git switch main && git merge --ff-only <branch> && git push
   git branch -d <branch>
   ```
