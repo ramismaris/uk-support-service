@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     bot_token: str = ""
     bot_mode: Literal["polling", "off"] = "off"
 
+    secret_key: str
+    storage_dir: str = "storage"
+
     dev_auth: bool = False
     auth_token_expire_days: int = 30
     admin_max_user_ids: Annotated[list[int], NoDecode] = []
@@ -39,6 +42,12 @@ class Settings(BaseSettings):
     def _validate_bot_token(self) -> Self:
         if self.bot_mode == "polling" and not self.bot_token:
             raise ValueError("BOT_TOKEN must be set when BOT_MODE=polling")
+        return self
+
+    @model_validator(mode="after")
+    def _validate_secret_key(self) -> Self:
+        if not self.debug and len(self.secret_key) < 32:
+            raise ValueError("SECRET_KEY must be at least 32 characters when DEBUG=false")
         return self
 
     @property

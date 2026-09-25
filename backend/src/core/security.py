@@ -6,10 +6,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl
 
+from src.core.config import settings
 from src.core.exceptions import UnauthorizedException
 
 INIT_DATA_MAX_AGE = timedelta(hours=24)
 INIT_DATA_CLOCK_SKEW = timedelta(minutes=5)
+FILE_LINK_TTL = timedelta(hours=1)
 
 _HASH_LENGTH = 64
 _HEX_DIGITS = frozenset("0123456789abcdef")
@@ -80,3 +82,23 @@ def validate_init_data(init_data: str, bot_token: str, now: datetime) -> MaxInit
         last_name=user.get("last_name"),
         username=user.get("username"),
     )
+
+
+def sign_file_link(file_id: int, expires_at: int) -> str:
+    payload = f"{file_id}:{expires_at}".encode()
+    return hmac.new(settings.secret_key.encode(), payload, hashlib.sha256).hexdigest()
+
+
+def build_file_url(file_id: int, now: datetime) -> str:
+    expires_at = int((now + FILE_LINK_TTL).timestamp())
+    sig = sign_file_link(file_id, expires_at)
+    return f"/api/v1/files/{file_id}?exp={expires_at}&sig={sig}"
+
+
+def verify_file_link(file_id: int, expires_at: int, sig: str, now: datetime) -> bool:
+    if not _is_valid_hash(sig):
+        return False
+    if expires_at < int(now.timestamp()):
+        return False
+    expected = sign_file_link(file_id, expires_at)
+    return hmac.compare_digest(expected.encode(), sig.encode())

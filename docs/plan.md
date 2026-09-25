@@ -47,7 +47,7 @@
 - [x] Сиды: дома, категории, контент, пользователи всех ролей.
 - [x] Авторизация: `/auth/max`, `/auth/dev`, `/auth/logout`, `/me`; `get_current_user`, `require_staff`, `require_admin`; админы из `ADMIN_MAX_USER_IDS`.
 - [x] Бот: сессия БД на апдейт, создание или обновление пользователя.
-- [ ] Файлы: `LocalStorageProvider`, подписанные ссылки, `/files`.
+- [x] Файлы: `LocalStorageProvider`, подписанные ссылки, `/files`.
 
 Готово: тесты зелёные; в Swagger вход через `/auth/dev`, `/me` возвращает роль.
 

@@ -42,3 +42,20 @@ def test_admin_max_user_ids_defaults_to_empty_list():
     settings = _make_settings()
 
     assert settings.admin_max_user_ids == []
+
+
+def test_short_secret_key_without_debug_raises():
+    with pytest.raises(ValidationError, match="SECRET_KEY must be at least 32 characters"):
+        _make_settings(debug=False, secret_key="short")
+
+
+def test_short_secret_key_with_debug_is_allowed():
+    settings = _make_settings(debug=True, secret_key="short")
+
+    assert settings.secret_key == "short"
+
+
+def test_long_secret_key_without_debug_is_allowed():
+    settings = _make_settings(debug=False, secret_key="x" * 32)
+
+    assert settings.secret_key == "x" * 32
