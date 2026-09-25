@@ -15,6 +15,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
+COPY scripts/ ./scripts/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY docker-entrypoint.sh ./

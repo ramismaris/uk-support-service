@@ -49,6 +49,10 @@ scripts/check.sh
 # Перегенерировать openapi.json после изменений API
 uv run python scripts/dump_openapi.py
 
+# Демо-данные (идемпотентно: добавляет только отсутствующие строки)
+uv run python scripts/seed.py
+docker compose exec api python scripts/seed.py
+
 # Новая миграция
 uv run alembic revision --autogenerate -m "..."
 
