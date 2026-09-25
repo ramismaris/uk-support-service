@@ -10,6 +10,7 @@ from src.bot.dispatcher import start_bot, stop_bot
 from src.core.config import settings
 from src.core.exceptions import AppException
 from src.core.logging import setup_logging
+from src.providers.factory import close_messenger_provider
 
 setup_logging(debug=settings.debug)
 
@@ -21,8 +22,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
-        if settings.bot_mode == "polling":
-            await stop_bot()
+        try:
+            if settings.bot_mode == "polling":
+                await stop_bot()
+        finally:
+            await close_messenger_provider()
 
 
 app = FastAPI(

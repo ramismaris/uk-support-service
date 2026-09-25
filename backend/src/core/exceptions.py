@@ -23,3 +23,8 @@ class UnauthorizedException(AppException):
 class ConflictException(AppException):
     def __init__(self, message: str = "Conflict"):
         super().__init__(message, status_code=409)
+
+
+class MessengerException(AppException):
+    def __init__(self, message: str = "Не удалось связаться с Max"):
+        super().__init__(message, status_code=502)

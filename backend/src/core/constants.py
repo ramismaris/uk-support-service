@@ -31,6 +31,12 @@ class SenderType(StrEnum):
     SYSTEM = "SYSTEM"
 
 
+class ButtonType(StrEnum):
+    CALLBACK = "CALLBACK"
+    LINK = "LINK"
+    OPEN_APP = "OPEN_APP"
+
+
 class ContentKey(StrEnum):
     WELCOME = "WELCOME"
     EMERGENCY = "EMERGENCY"
