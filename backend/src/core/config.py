@@ -1,7 +1,7 @@
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
-from pydantic import model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -20,7 +20,20 @@ class Settings(BaseSettings):
     bot_token: str = ""
     bot_mode: Literal["polling", "off"] = "off"
 
+    dev_auth: bool = False
+    auth_token_expire_days: int = 30
+    admin_max_user_ids: Annotated[list[int], NoDecode] = []
+
     cors_origins: list[str] = ["http://localhost:5173"]
+
+    @field_validator("admin_max_user_ids", mode="before")
+    @classmethod
+    def _parse_admin_max_user_ids(cls, value: object) -> object:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [int(item.strip()) for item in value.split(",") if item.strip()]
+        return value
 
     @model_validator(mode="after")
     def _validate_bot_token(self) -> Self:

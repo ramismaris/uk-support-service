@@ -24,3 +24,21 @@ def test_off_without_token_is_allowed():
 
     assert settings.bot_mode == "off"
     assert settings.bot_token == ""
+
+
+def test_admin_max_user_ids_parses_comma_separated():
+    settings = _make_settings(admin_max_user_ids="185257313,42")
+
+    assert settings.admin_max_user_ids == [185257313, 42]
+
+
+def test_admin_max_user_ids_empty_string_is_empty_list():
+    settings = _make_settings(admin_max_user_ids="")
+
+    assert settings.admin_max_user_ids == []
+
+
+def test_admin_max_user_ids_defaults_to_empty_list():
+    settings = _make_settings()
+
+    assert settings.admin_max_user_ids == []
