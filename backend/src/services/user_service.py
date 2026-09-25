@@ -27,14 +27,14 @@ class UserService:
             user = await self.users.create(
                 max_user_id=max_user_id,
                 first_name=first_name,
-                last_name=last_name,
-                username=username,
+                last_name=last_name or None,
+                username=username or None,
                 role=UserRole.ADMIN if is_admin else UserRole.CLIENT,
             )
         else:
             user.first_name = first_name
-            user.last_name = last_name
-            user.username = username
+            user.last_name = last_name or None
+            user.username = username or None
             if is_admin and user.role != UserRole.ADMIN:
                 user.role = UserRole.ADMIN
 

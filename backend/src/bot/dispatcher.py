@@ -5,11 +5,13 @@ from contextlib import suppress
 from maxapi import Bot, Dispatcher
 
 from src.bot.handlers.start import router as start_router
+from src.bot.middlewares import UserSyncMiddleware
 from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 dp = Dispatcher()
+dp.register_outer_middleware(UserSyncMiddleware())
 dp.include_routers(start_router)
 
 _bot: Bot | None = None
