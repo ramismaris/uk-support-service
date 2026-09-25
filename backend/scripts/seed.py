@@ -5,6 +5,7 @@ Run from backend/: uv run python scripts/seed.py
 
 import asyncio
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -12,15 +13,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.constants import ContentKey, UserRole
+from src.core.constants import ContentKey, TicketStatus, TicketType, UserRole
 from src.db.session import AsyncSessionLocal
 from src.models.building import Building
 from src.models.category import Category
 from src.models.content_block import ContentBlock
+from src.models.ticket import Ticket
 from src.models.user import User
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.content_block_repository import ContentBlockRepository
+from src.repositories.residence_repository import ResidenceRepository
+from src.repositories.status_change_repository import StatusChangeRepository
+from src.repositories.ticket_repository import TicketRepository
 from src.repositories.user_repository import UserRepository
 
 BUILDINGS = [
@@ -38,6 +43,12 @@ CATEGORIES = [
     "Благоустройство",
     "Другое",
 ]
+
+DEMO_CLIENT_MAX_USER_ID = 1000003
+DEMO_MANAGER_MAX_USER_ID = 1000002
+DEMO_PHONE = "+7 (900) 000-00-03"
+DEMO_BUILDING = "ул. Ленина, 12"
+DEMO_APARTMENT = "45"
 
 USERS = [
     {
@@ -60,6 +71,7 @@ USERS = [
         "last_name": "Иванова",
         "username": "demo_client",
         "role": UserRole.CLIENT,
+        "phone": DEMO_PHONE,
     },
 ]
 
@@ -129,6 +141,158 @@ async def seed(db: AsyncSession) -> None:
         if await content.get(key) is None:
             await content.create(key, data)
 
+    client = await users.get_by_max_user_id(DEMO_CLIENT_MAX_USER_ID)
+    manager = await users.get_by_max_user_id(DEMO_MANAGER_MAX_USER_ID)
+    building = await buildings.get_by_address(DEMO_BUILDING)
+
+    residences = ResidenceRepository(db)
+    if await residences.get(client.id, building.id, DEMO_APARTMENT) is None:
+        await residences.create(client.id, building.id, DEMO_APARTMENT, is_primary=True)
+
+    has_tickets = await db.scalar(
+        select(func.count()).select_from(Ticket).where(Ticket.client_id == client.id)
+    )
+    if not has_tickets:
+        await _seed_demo_tickets(db, client, manager, building, categories)
+
+
+async def _seed_demo_tickets(
+    db: AsyncSession,
+    client: User,
+    manager: User,
+    building: Building,
+    categories: CategoryRepository,
+) -> None:
+    now = datetime.now(UTC)
+    tickets = TicketRepository(db)
+    history = StatusChangeRepository(db)
+
+    specs: list[dict] = [
+        {
+            "type": TicketType.REQUEST,
+            "status": TicketStatus.NEW,
+            "category": "Сантехника",
+            "created_at": now - timedelta(minutes=40),
+            "description": "Течёт кран на кухне, под раковиной лужа.",
+            "preferred_time": "Будни после 18:00",
+            "transitions": [],
+        },
+        {
+            "type": TicketType.REQUEST,
+            "status": TicketStatus.IN_PROGRESS,
+            "category": "Электрика",
+            "created_at": now - timedelta(days=1),
+            "description": "В подъезде на 3-м этаже не горит свет.",
+            "assignee": manager,
+            "transitions": [
+                {
+                    "to_status": TicketStatus.IN_PROGRESS,
+                    "at": now - timedelta(days=1) + timedelta(minutes=30),
+                },
+            ],
+        },
+        {
+            "type": TicketType.REQUEST,
+            "status": TicketStatus.WAITING_CLIENT,
+            "category": "Лифт",
+            "created_at": now - timedelta(days=2),
+            "description": "Лифт останавливается между этажами, двери открываются не сразу.",
+            "assignee": manager,
+            "transitions": [
+                {
+                    "to_status": TicketStatus.IN_PROGRESS,
+                    "at": now - timedelta(days=2) + timedelta(hours=1),
+                },
+                {"to_status": TicketStatus.WAITING_CLIENT, "at": now - timedelta(days=1)},
+            ],
+        },
+        {
+            "type": TicketType.REQUEST,
+            "status": TicketStatus.CLOSED,
+            "category": "Уборка",
+            "created_at": now - timedelta(days=5),
+            "description": "Не вывозят мусор у второго подъезда.",
+            "assignee": manager,
+            "rating": 5,
+            "transitions": [
+                {
+                    "to_status": TicketStatus.IN_PROGRESS,
+                    "at": now - timedelta(days=5) + timedelta(hours=2),
+                },
+                {"to_status": TicketStatus.CLOSED, "at": now - timedelta(days=3)},
+            ],
+        },
+        {
+            "type": TicketType.REQUEST,
+            "status": TicketStatus.REJECTED,
+            "category": "Благоустройство",
+            "created_at": now - timedelta(days=6),
+            "description": "Прошу установить шлагбаум во дворе.",
+            "transitions": [
+                {
+                    "to_status": TicketStatus.REJECTED,
+                    "at": now - timedelta(days=5),
+                    "comment": ("Установка шлагбаума решается общим собранием собственников."),
+                },
+            ],
+        },
+        {
+            "type": TicketType.QUESTION,
+            "status": TicketStatus.NEW,
+            "category": None,
+            "created_at": now - timedelta(hours=3),
+            "description": "Когда будет перерасчёт за отопление за прошлый месяц?",
+            "has_address": False,
+            "transitions": [],
+        },
+    ]
+
+    for spec in specs:
+        category = None
+        if spec["category"] is not None:
+            category = await categories.get_by_title(spec["category"])
+        assignee = spec.get("assignee")
+        has_address = spec.get("has_address", True)
+        transitions: list[dict] = spec["transitions"]
+        closed_at = (
+            transitions[-1]["at"]
+            if spec["status"]
+            in (
+                TicketStatus.CLOSED,
+                TicketStatus.REJECTED,
+            )
+            else None
+        )
+
+        ticket = await tickets.create(
+            type=spec["type"],
+            status=spec["status"],
+            client_id=client.id,
+            description=spec["description"],
+            category_id=category.id if category else None,
+            building_id=building.id if has_address else None,
+            apartment=DEMO_APARTMENT if has_address else None,
+            contact_phone=DEMO_PHONE,
+            preferred_time=spec.get("preferred_time"),
+            assignee_id=assignee.id if assignee else None,
+            rating=spec.get("rating"),
+            created_at=spec["created_at"],
+            closed_at=closed_at,
+        )
+
+        rows = [{"to_status": TicketStatus.NEW, "at": spec["created_at"]}, *transitions]
+        previous_status = None
+        for index, row in enumerate(rows):
+            await history.create(
+                ticket.id,
+                previous_status,
+                row["to_status"],
+                changed_by_id=client.id if index == 0 else manager.id,
+                comment=row.get("comment"),
+                created_at=row["at"],
+            )
+            previous_status = row["to_status"]
+
 
 async def _count_rows(db: AsyncSession) -> dict[str, int]:
     counts: dict[str, int] = {}
@@ -137,6 +301,7 @@ async def _count_rows(db: AsyncSession) -> dict[str, int]:
         "categories": Category,
         "content_blocks": ContentBlock,
         "users": User,
+        "tickets": Ticket,
     }.items():
         counts[name] = await db.scalar(select(func.count()).select_from(model)) or 0
     return counts
@@ -155,7 +320,8 @@ async def main() -> None:
         f"дома — {added['buildings']}, "
         f"категории — {added['categories']}, "
         f"блоки контента — {added['content_blocks']}, "
-        f"пользователи — {added['users']}."
+        f"пользователи — {added['users']}, "
+        f"обращения — {added['tickets']}."
     )
 
 

@@ -1,5 +1,8 @@
 from enum import StrEnum
 
+# The largest value of a Postgres bigint.
+BIGINT_MAX = 2**63 - 1
+
 
 class UserRole(StrEnum):
     CLIENT = "CLIENT"

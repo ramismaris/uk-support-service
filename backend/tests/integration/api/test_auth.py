@@ -153,6 +153,12 @@ async def test_dev_login_disabled_returns_404(client: AsyncClient):
     assert resp.status_code == 404
 
 
+async def test_dev_login_rejects_out_of_range_max_user_id(client: AsyncClient):
+    resp = await client.post("/api/v1/auth/dev", json={"max_user_id": 2**63})
+
+    assert resp.status_code == 422
+
+
 async def test_dev_login_enabled_returns_token(client: AsyncClient, db: AsyncSession):
     user = await UserRepository(db).create(max_user_id=777, first_name="Тест")
     await db.commit()

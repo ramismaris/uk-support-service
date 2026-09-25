@@ -1,10 +1,11 @@
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Identity, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.constants import TicketStatus
 from src.db.base import Base
+from src.models.user import User
 
 
 class StatusChange(Base):
@@ -23,3 +24,5 @@ class StatusChange(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+    changed_by: Mapped[User | None] = relationship(lazy="selectin")

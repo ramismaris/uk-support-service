@@ -24,6 +24,7 @@ class UserRepository:
         last_name: str | None = None,
         username: str | None = None,
         role: UserRole = UserRole.CLIENT,
+        phone: str | None = None,
     ) -> User:
         user = User(
             max_user_id=max_user_id,
@@ -31,6 +32,7 @@ class UserRepository:
             last_name=last_name,
             username=username,
             role=role,
+            phone=phone,
         )
         self.db.add(user)
         await self.db.flush()

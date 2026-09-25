@@ -11,10 +11,13 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.constants import TicketPriority, TicketStatus, TicketType
 from src.db.base import Base
+from src.models.building import Building
+from src.models.category import Category
+from src.models.user import User
 
 
 class Ticket(Base):
@@ -61,3 +64,8 @@ class Ticket(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    client: Mapped[User] = relationship(foreign_keys=[client_id], lazy="selectin")
+    assignee: Mapped[User | None] = relationship(foreign_keys=[assignee_id], lazy="selectin")
+    category: Mapped[Category | None] = relationship(lazy="selectin")
+    building: Mapped[Building | None] = relationship(lazy="selectin")

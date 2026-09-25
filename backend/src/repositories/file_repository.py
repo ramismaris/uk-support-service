@@ -32,3 +32,11 @@ class FileRepository:
     async def get_by_id(self, file_id: int) -> File | None:
         result = await self.db.execute(select(File).where(File.id == file_id))
         return result.scalar_one_or_none()
+
+    async def list_by_ticket(self, ticket_id: int) -> list[File]:
+        result = await self.db.execute(
+            select(File)
+            .where(File.ticket_id == ticket_id, File.message_id.is_(None))
+            .order_by(File.id)
+        )
+        return list(result.scalars().all())
