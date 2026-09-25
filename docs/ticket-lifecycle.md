@@ -104,7 +104,7 @@ def route_client_message(
 ) -> ToTicket | AskWhichTicket | OfferNewQuestion: ...
 ```
 
-Бот сам проверяет, что `reply_to_ticket_id` и `active_ticket_id` принадлежат этому клиенту и открыты; иначе передаёт `None`.
+`open_ticket_ids` — открытые обращения этого клиента в том порядке, в каком бот покажет их на шаге 4. `reply_to_ticket_id` и `active_ticket_id` учитываются, только если они есть в этом списке, поэтому бот передаёт их как нашёл — даже если обращение уже закрыто.
 
 ## Уведомления
 

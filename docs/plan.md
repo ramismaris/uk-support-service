@@ -53,7 +53,7 @@
 
 ### Б3. Подача заявки
 
-- [ ] `services/ticket_rules.py` и юнит-тесты по [ticket-lifecycle.md](ticket-lifecycle.md).
+- [x] `services/ticket_rules.py` и юнит-тесты по [ticket-lifecycle.md](ticket-lifecycle.md).
 - [ ] `MaxMessengerProvider`: отправка, редактирование, кнопки, файлы.
 - [ ] Бот: меню; данные жильца при первой заявке; форма с фото; карточка статуса.
 - [ ] Уведомление сотрудникам с кнопкой «Открыть»; формат ссылки — в [architecture.md](architecture.md).
