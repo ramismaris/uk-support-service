@@ -174,7 +174,7 @@ WebSocket для сотрудников, менеджер подключений
 
 ## Frontend
 
-Стек: TypeScript, React 19, Vite, Tailwind CSS v4, Max UI, framer-motion, React Router v7, TanStack Query, Zustand, openapi-fetch. Архитектура — Feature-Sliced Design, контроль — Steiger. Дизайн: [фундамент](superpowers/specs/2026-09-26-frontend-foundation-design.md), [обращения и чат](superpowers/specs/2026-09-26-frontend-tickets-design.md).
+Стек: TypeScript, React 19, Vite, Tailwind CSS v4, Max UI, framer-motion, React Router v7, TanStack Query, Zustand, openapi-fetch. Архитектура — Feature-Sliced Design, контроль — Steiger.
 
 ```
 frontend/src/
