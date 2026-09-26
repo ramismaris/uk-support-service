@@ -4,6 +4,176 @@
  */
 
 export interface paths {
+    "/api/v1/admin/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Content */
+        get: operations["get_content_api_v1_admin_content_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/welcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Welcome */
+        put: operations["put_welcome_api_v1_admin_content_welcome_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/emergency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Emergency */
+        put: operations["put_emergency_api_v1_admin_content_emergency_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Services */
+        put: operations["put_services_api_v1_admin_content_services_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Payment */
+        put: operations["put_payment_api_v1_admin_content_payment_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Contacts */
+        put: operations["put_contacts_api_v1_admin_content_contacts_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/theme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Theme */
+        put: operations["put_theme_api_v1_admin_content_theme_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/content/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Content Image */
+        post: operations["upload_content_image_api_v1_admin_content_images_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update User */
+        patch: operations["update_user_api_v1_admin_users__user_id__patch"];
+        trace?: never;
+    };
     "/api/v1/auth/max": {
         parameters: {
             query?: never;
@@ -89,6 +259,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tickets */
+        get: operations["list_tickets_api_v1_staff_tickets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/tickets/{ticket_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ticket */
+        get: operations["get_ticket_api_v1_staff_tickets__ticket_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/tickets/{ticket_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Status */
+        post: operations["change_status_api_v1_staff_tickets__ticket_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/tickets/{ticket_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Messages */
+        get: operations["list_messages_api_v1_staff_tickets__ticket_id__messages_get"];
+        put?: never;
+        /** Send Message */
+        post: operations["send_message_api_v1_staff_tickets__ticket_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/tickets/{ticket_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Read */
+        post: operations["mark_read_api_v1_staff_tickets__ticket_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/theme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Theme */
+        get: operations["get_theme_api_v1_theme_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -110,10 +383,102 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminUserResponse */
+        AdminUserResponse: {
+            /** Id */
+            id: number;
+            /** Max User Id */
+            max_user_id: number;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string | null;
+            /** Username */
+            username: string | null;
+            /** Phone */
+            phone: string | null;
+            role: components["schemas"]["UserRole"];
+            /** Is Blocked */
+            is_blocked: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+        };
+        /** Body_send_message_api_v1_staff_tickets__ticket_id__messages_post */
+        Body_send_message_api_v1_staff_tickets__ticket_id__messages_post: {
+            /** Text */
+            text?: string | null;
+            /** Files */
+            files?: string[] | null;
+        };
+        /** Body_upload_content_image_api_v1_admin_content_images_post */
+        Body_upload_content_image_api_v1_admin_content_images_post: {
+            /** File */
+            file: string;
+        };
+        /** BuildingShortResponse */
+        BuildingShortResponse: {
+            /** Id */
+            id: number;
+            /** Address */
+            address: string;
+        };
+        /** CategoryShortResponse */
+        CategoryShortResponse: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+        };
+        /** ContactPhone */
+        ContactPhone: {
+            /** Title */
+            title: string;
+            /** Phone */
+            phone: string;
+        };
+        /** ContactsContent */
+        ContactsContent: {
+            /** Text */
+            text: string;
+            /** Phones */
+            phones: components["schemas"]["ContactPhone"][];
+        };
+        /** ContentResponse */
+        ContentResponse: {
+            welcome?: components["schemas"]["WelcomeContentResponse"] | null;
+            emergency?: components["schemas"]["EmergencyContent"] | null;
+            services?: components["schemas"]["ServicesContent"] | null;
+            payment?: components["schemas"]["PaymentContent"] | null;
+            contacts?: components["schemas"]["ContactsContent"] | null;
+            theme?: components["schemas"]["ThemeContentResponse"] | null;
+        };
         /** DevLoginRequest */
         DevLoginRequest: {
             /** Max User Id */
             max_user_id: number;
+        };
+        /** EmergencyContent */
+        EmergencyContent: {
+            /** Text */
+            text: string;
+        };
+        /** FileResponse */
+        FileResponse: {
+            /** Id */
+            id: number;
+            /** Mime */
+            mime: string;
+            /** Size */
+            size: number;
+            /** Original Name */
+            original_name: string | null;
+            /** Url */
+            readonly url: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -125,6 +490,175 @@ export interface components {
             /** Init Data */
             init_data: string;
         };
+        /** MessageResponse */
+        MessageResponse: {
+            /** Id */
+            id: number;
+            /** Ticket Id */
+            ticket_id: number;
+            sender_type: components["schemas"]["SenderType"];
+            author: components["schemas"]["UserShortResponse"] | null;
+            /** Text */
+            text: string | null;
+            /** Files */
+            files: components["schemas"]["FileResponse"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** PaginatedResponse[AdminUserResponse] */
+        PaginatedResponse_AdminUserResponse_: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["AdminUserResponse"][];
+        };
+        /** PaginatedResponse[TicketListItemResponse] */
+        PaginatedResponse_TicketListItemResponse_: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["TicketListItemResponse"][];
+        };
+        /** PaymentContent */
+        PaymentContent: {
+            /** Text */
+            text: string;
+            /** Url */
+            url: string;
+            /** Button Text */
+            button_text: string;
+        };
+        /**
+         * SenderType
+         * @enum {string}
+         */
+        SenderType: "CLIENT" | "STAFF" | "SYSTEM";
+        /** ServicesContent */
+        ServicesContent: {
+            /** Text */
+            text: string;
+        };
+        /** StatusChangeRequest */
+        StatusChangeRequest: {
+            status: components["schemas"]["TicketStatus"];
+            /** Comment */
+            comment?: string | null;
+        };
+        /** StatusChangeResponse */
+        StatusChangeResponse: {
+            from_status: components["schemas"]["TicketStatus"] | null;
+            to_status: components["schemas"]["TicketStatus"];
+            changed_by: components["schemas"]["UserShortResponse"] | null;
+            /** Comment */
+            comment: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ThemeContent */
+        ThemeContent: {
+            /** Company Name */
+            company_name: string;
+            /** Primary Color */
+            primary_color: string;
+            /** Logo File Id */
+            logo_file_id?: number | null;
+        };
+        /** ThemeContentResponse */
+        ThemeContentResponse: {
+            /** Company Name */
+            company_name: string;
+            /** Primary Color */
+            primary_color: string;
+            /** Logo File Id */
+            logo_file_id?: number | null;
+            /** Logo Url */
+            readonly logo_url: string | null;
+        };
+        /** TicketDetailResponse */
+        TicketDetailResponse: {
+            /** Id */
+            id: number;
+            type: components["schemas"]["TicketType"];
+            status: components["schemas"]["TicketStatus"];
+            priority: components["schemas"]["TicketPriority"];
+            /** Description */
+            description: string;
+            category: components["schemas"]["CategoryShortResponse"] | null;
+            building: components["schemas"]["BuildingShortResponse"] | null;
+            /** Apartment */
+            apartment: string | null;
+            client: components["schemas"]["UserResponse"];
+            assignee: components["schemas"]["UserShortResponse"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Client Message At */
+            last_client_message_at: string | null;
+            /** Contact Phone */
+            contact_phone: string | null;
+            /** Preferred Time */
+            preferred_time: string | null;
+            /** Rating */
+            rating: number | null;
+            /** Closed At */
+            closed_at: string | null;
+            /** Files */
+            files: components["schemas"]["FileResponse"][];
+            /** History */
+            history: components["schemas"]["StatusChangeResponse"][];
+            /** Allowed Statuses */
+            allowed_statuses: components["schemas"]["TicketStatus"][];
+            /** Unread */
+            readonly unread: boolean;
+        };
+        /** TicketListItemResponse */
+        TicketListItemResponse: {
+            /** Id */
+            id: number;
+            type: components["schemas"]["TicketType"];
+            status: components["schemas"]["TicketStatus"];
+            priority: components["schemas"]["TicketPriority"];
+            /** Description */
+            description: string;
+            category: components["schemas"]["CategoryShortResponse"] | null;
+            building: components["schemas"]["BuildingShortResponse"] | null;
+            /** Apartment */
+            apartment: string | null;
+            client: components["schemas"]["UserShortResponse"];
+            assignee: components["schemas"]["UserShortResponse"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Client Message At */
+            last_client_message_at: string | null;
+            /** Unread */
+            readonly unread: boolean;
+        };
+        /**
+         * TicketPriority
+         * @enum {string}
+         */
+        TicketPriority: "NORMAL" | "URGENT";
+        /**
+         * TicketStatus
+         * @enum {string}
+         */
+        TicketStatus: "NEW" | "IN_PROGRESS" | "WAITING_CLIENT" | "CLOSED" | "REJECTED";
+        /**
+         * TicketType
+         * @enum {string}
+         */
+        TicketType: "REQUEST" | "QUESTION";
         /** TokenResponse */
         TokenResponse: {
             /** Token */
@@ -152,6 +686,21 @@ export interface components {
          * @enum {string}
          */
         UserRole: "CLIENT" | "MANAGER" | "ADMIN";
+        /** UserShortResponse */
+        UserShortResponse: {
+            /** Id */
+            id: number;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string | null;
+        };
+        /** UserUpdateRequest */
+        UserUpdateRequest: {
+            role?: components["schemas"]["UserRole"] | null;
+            /** Is Blocked */
+            is_blocked?: boolean | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -165,6 +714,22 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** WelcomeContentResponse */
+        WelcomeContentResponse: {
+            /** Text */
+            text: string;
+            /** File Id */
+            file_id?: number | null;
+            /** File Url */
+            readonly file_url: string | null;
+        };
+        /** WelcomeContentUpdate */
+        WelcomeContentUpdate: {
+            /** Text */
+            text: string;
+            /** File Id */
+            file_id: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -174,6 +739,327 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_content_api_v1_admin_content_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentResponse"];
+                };
+            };
+        };
+    };
+    put_welcome_api_v1_admin_content_welcome_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WelcomeContentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WelcomeContentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_emergency_api_v1_admin_content_emergency_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmergencyContent"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmergencyContent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_services_api_v1_admin_content_services_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServicesContent"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServicesContent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_payment_api_v1_admin_content_payment_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentContent"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentContent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_contacts_api_v1_admin_content_contacts_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactsContent"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactsContent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_theme_api_v1_admin_content_theme_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThemeContent"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThemeContentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_content_image_api_v1_admin_content_images_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_content_image_api_v1_admin_content_images_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                role?: components["schemas"]["UserRole"][] | null;
+                is_blocked?: boolean | null;
+                q?: string | null;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_AdminUserResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_admin_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_with_max_api_v1_auth_max_post: {
         parameters: {
             query?: never;
@@ -308,6 +1194,223 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tickets_api_v1_staff_tickets_get: {
+        parameters: {
+            query?: {
+                status?: ("NEW" | "IN_PROGRESS" | "WAITING_CLIENT") | null;
+                building_id?: number | null;
+                category_id?: number | null;
+                mine?: boolean;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_TicketListItemResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ticket_api_v1_staff_tickets__ticket_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_status_api_v1_staff_tickets__ticket_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_messages_api_v1_staff_tickets__ticket_id__messages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_message_api_v1_staff_tickets__ticket_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_send_message_api_v1_staff_tickets__ticket_id__messages_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_read_api_v1_staff_tickets__ticket_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_theme_api_v1_theme_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThemeContentResponse"];
                 };
             };
         };
