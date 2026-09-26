@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import { MessageBubble, useMessages } from '@/entities/message'
 import type { TicketDetail } from '@/entities/ticket'
 import { EmptyState } from '@/shared/ui/empty-state'
+import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { useMarkRead } from '../model/use-mark-read'
 import { Composer } from './Composer'
 
@@ -57,6 +58,14 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
             icon={<MessageCircle size={48} strokeWidth={1.5} />}
             title="Сообщений пока нет"
             text="Напишите жильцу — ответ придёт ему в Max."
+            animation={
+              <LottieAnimation
+                src={animations.emptyChat}
+                speed={0.7}
+                repeatDelay={1500}
+                className="size-32"
+              />
+            }
           />
         )}
         <AnimatePresence initial={false}>

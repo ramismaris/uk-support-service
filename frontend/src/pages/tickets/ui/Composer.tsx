@@ -1,13 +1,17 @@
-import { Button, Textarea } from '@maxhub/max-ui'
+import { IconButton, Textarea } from '@maxhub/max-ui'
 import { Paperclip, SendHorizontal, X } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { formatFileSize } from '@/shared/lib/format'
+import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { hasContent, MESSAGE_TEXT_LIMIT, validateMessage } from '../lib/message-rules'
 import { useSendMessage } from '../model/use-send-message'
 
 export function Composer({ ticketId }: { ticketId: number }) {
   const [text, setText] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  // Bumped on every successful send to replay the "sent" check inside the button.
+  const [sentCount, setSentCount] = useState(0)
+  const [showSent, setShowSent] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const send = useSendMessage(ticketId)
 
@@ -24,6 +28,8 @@ export function Composer({ ticketId }: { ticketId: number }) {
         onSuccess: () => {
           setText('')
           setFiles([])
+          setSentCount((count) => count + 1)
+          setShowSent(true)
         },
       },
     )
@@ -91,14 +97,27 @@ export function Composer({ ticketId }: { ticketId: number }) {
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
         />
-        <Button
+        <IconButton
           aria-label="Отправить"
-          size="medium"
-          disabled={!canSend}
+          size="large"
+          variant={canSend || showSent ? 'primary' : 'secondary'}
+          disabled={!canSend && !showSent}
           loading={send.isPending}
           onClick={submit}
-          iconBefore={<SendHorizontal size={20} strokeWidth={2} />}
-        />
+          className="shrink-0 rounded-full"
+        >
+          {showSent ? (
+            <LottieAnimation
+              key={sentCount}
+              src={animations.sent}
+              speed={3.3}
+              className="-m-3 size-12"
+              onComplete={() => setShowSent(false)}
+            />
+          ) : (
+            <SendHorizontal size={20} strokeWidth={2} />
+          )}
+        </IconButton>
       </div>
       {error && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">

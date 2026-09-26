@@ -3,6 +3,7 @@ import { Inbox, SearchX } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { useTicketList } from '@/entities/ticket'
 import { EmptyState } from '@/shared/ui/empty-state'
+import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { parseTicketFilters, ticketFiltersToSearch } from '../lib/filters'
 import { TicketFiltersBar } from './TicketFiltersBar'
 import { TicketRow } from './TicketRow'
@@ -41,7 +42,18 @@ export function TicketList() {
           }
         />
       ) : (
-        <EmptyState icon={<Inbox size={48} strokeWidth={1.5} />} title="Обращений нет" />
+        <EmptyState
+          icon={<Inbox size={48} strokeWidth={1.5} />}
+          title="Обращений нет"
+          animation={
+            <LottieAnimation
+              src={animations.emptyList}
+              speed={0.6}
+              repeatDelay={1500}
+              className="size-24"
+            />
+          }
+        />
       )
     }
     return (
