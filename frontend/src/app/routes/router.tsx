@@ -6,6 +6,7 @@ import { NotFoundPage } from '@/pages/not-found'
 import { StaffHomePage } from '@/pages/staff-home'
 import { routePaths } from '@/shared/config'
 import { AppShell } from '@/widgets/app-shell'
+import { StaffRealtime } from '../realtime/StaffRealtime'
 import { RequireRole } from './RequireRole'
 import { RoleRedirect } from './RoleRedirect'
 import { SessionGate } from './SessionGate'
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
         path: routePaths.staff,
         element: (
           <RequireRole allow={isStaff}>
+            <StaffRealtime />
             <AppShell />
           </RequireRole>
         ),
