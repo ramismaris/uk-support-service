@@ -233,6 +233,26 @@ async def test_reject_requires_reason(
     assert "Не наш профиль" in messenger.sent[-1]["text"]
 
 
+async def test_reject_reason_with_nul_returns_422_and_changes_nothing(
+    client: AsyncClient,
+    db: AsyncSession,
+    base: SimpleNamespace,
+    messenger: FakeMessenger,
+) -> None:
+    ticket_id = await _create_ticket(db, base)
+
+    resp = await _change_status(
+        client, ticket_id, base.manager_token, TicketStatus.REJECTED, comment="a\x00b"
+    )
+
+    assert resp.status_code == 422
+
+    card = await client.get(f"/api/v1/staff/tickets/{ticket_id}", headers=_auth(base.manager_token))
+    assert card.json()["status"] == TicketStatus.NEW
+    assert card.json()["history"] == []
+    assert messenger.sent == []
+
+
 @pytest.mark.parametrize("status", [TicketStatus.CLOSED, TicketStatus.REJECTED])
 async def test_reopen_forbidden_for_manager_allowed_for_admin(
     client: AsyncClient,

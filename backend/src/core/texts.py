@@ -299,3 +299,10 @@ QUESTION_WRITE_BUTTON = "Написать вопрос"
 QUESTION_PROMPT = "Напишите вопрос одним сообщением. Можно приложить фото."
 QUESTION_TEXT_REQUIRED = "Напишите вопрос текстом — фото можно приложить к нему."
 QUESTION_CANCELLED = "Вопрос не отправлен."
+
+# Content (admin API)
+
+CONTENT_IMAGE_FORMAT = "Нужна картинка в формате JPEG или PNG"
+CONTENT_IMAGE_NOT_FOUND = "Фото не найдено — загрузите его заново"
+THEME_NOT_SET = "Оформление не настроено"
+TEXT_INVALID_CHARACTER = "Текст содержит недопустимый символ"

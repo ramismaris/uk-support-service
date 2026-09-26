@@ -1,4 +1,5 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import ContentKey
@@ -27,3 +28,24 @@ class ContentBlockRepository:
         self.db.add(block)
         await self.db.flush()
         return block
+
+    async def upsert(
+        self,
+        key: ContentKey,
+        data: dict,
+        updated_by_id: int | None = None,
+    ) -> None:
+        # onupdate of the model does not run for INSERT ... ON CONFLICT, so set updated_at here.
+        statement = (
+            insert(ContentBlock)
+            .values(key=key, data=data, updated_by_id=updated_by_id, updated_at=func.now())
+            .on_conflict_do_update(
+                index_elements=[ContentBlock.key],
+                set_={
+                    "data": data,
+                    "updated_by_id": updated_by_id,
+                    "updated_at": func.now(),
+                },
+            )
+        )
+        await self.db.execute(statement)

@@ -5,12 +5,30 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import AppException, NotFoundException
-from src.core.texts import PHOTO_ALREADY_ATTACHED, PHOTO_NOT_FOUND, PHOTOS_DUPLICATED
+from src.core.texts import (
+    CONTENT_IMAGE_FORMAT,
+    PHOTO_ALREADY_ATTACHED,
+    PHOTO_NOT_FOUND,
+    PHOTOS_DUPLICATED,
+)
 from src.models.file import File
 from src.providers.storage_provider import StorageProvider
 from src.repositories.file_repository import FileRepository
 
 MAX_FILE_SIZE = 20 * 1024 * 1024
+
+CONTENT_IMAGE_MIMES = frozenset({"image/png", "image/jpeg"})
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_JPEG_SIGNATURE = b"\xff\xd8\xff"
+
+
+def _image_mime(data: bytes) -> str:
+    if data.startswith(_PNG_SIGNATURE):
+        return "image/png"
+    if data.startswith(_JPEG_SIGNATURE):
+        return "image/jpeg"
+    raise AppException(CONTENT_IMAGE_FORMAT, status_code=400)
 
 
 class FileService:
@@ -49,6 +67,9 @@ class FileService:
         message_id: int | None = None,
     ) -> File:
         self.check_data(data)
+
+        if original_name is not None:
+            original_name = original_name.replace("\x00", "") or None
 
         now = datetime.now(UTC)
         extension = mimetypes.guess_extension(mime) or ""
@@ -91,6 +112,11 @@ class FileService:
             await self.storage.delete(file.storage_key)
             raise
         return file
+
+    async def save_image(self, data: bytes, original_name: str | None) -> File:
+        self.check_data(data)
+        mime = _image_mime(data)
+        return await self.save(data, mime, original_name)
 
     async def read(self, file_id: int) -> tuple[File, bytes]:
         file = await self.files.get_by_id(file_id)

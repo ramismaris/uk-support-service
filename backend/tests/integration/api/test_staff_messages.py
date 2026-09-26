@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.constants import SenderType, TicketStatus, TicketType, UserRole
 from src.core.exceptions import MessengerException
 from src.core.security import hash_token
-from src.core.texts import MESSAGE_FILES_MIXED
+from src.core.texts import MESSAGE_FILES_MIXED, TEXT_INVALID_CHARACTER
 from src.main import app
 from src.models.message import Message
 from src.models.ticket import Ticket
@@ -351,6 +351,27 @@ async def test_send_message_blank_without_files_returns_400(
 
     assert resp.status_code == 400
     assert messenger.sent == []
+    assert await _messages_count(db, ticket_id) == 0
+
+
+async def test_send_message_text_with_nul_returns_400_and_saves_nothing(
+    client: AsyncClient,
+    db: AsyncSession,
+    base: SimpleNamespace,
+    messenger: FakeMessenger,
+) -> None:
+    ticket_id = await _create_ticket(db, base, status=TicketStatus.IN_PROGRESS)
+
+    resp = await client.post(
+        f"/api/v1/staff/tickets/{ticket_id}/messages",
+        data={"text": "a\x00b"},
+        headers=_auth(base.manager_token),
+    )
+
+    assert resp.status_code == 400
+    assert resp.json() == {"detail": TEXT_INVALID_CHARACTER}
+    assert messenger.sent == []
+    assert messenger.uploads == []
     assert await _messages_count(db, ticket_id) == 0
 
 

@@ -3,7 +3,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.core.exceptions import AppException, NotFoundException
+from src.core.texts import CONTENT_IMAGE_FORMAT
 from src.services.file_service import MAX_FILE_SIZE, FileService
+
+PNG_BYTES = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01"
 
 
 @pytest.fixture
@@ -191,6 +195,28 @@ async def test_add_writes_blob_and_flushes_without_commit(
     storage.delete.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("original_name", "expected"),
+    [
+        pytest.param("a\x00b.png", "ab.png", id="nul-in-middle"),
+        pytest.param("\x00", None, id="only-nul"),
+    ],
+)
+async def test_add_strips_nul_from_original_name(
+    storage: MagicMock,
+    files_repo: MagicMock,
+    original_name: str,
+    expected: str | None,
+):
+    db = AsyncMock()
+    files_repo.create.return_value = MagicMock()
+    service = _service(db, storage, files_repo)
+
+    await service.add(b"data", "image/png", original_name=original_name)
+
+    assert files_repo.create.await_args.kwargs["original_name"] == expected
+
+
 async def test_add_rejects_empty_data(storage: MagicMock, files_repo: MagicMock):
     db = AsyncMock()
     service = _service(db, storage, files_repo)
@@ -268,3 +294,79 @@ async def test_read_missing_stored_file_raises_not_found(storage: MagicMock, fil
 
     with pytest.raises(NotFoundException):
         await service.read(5)
+
+
+async def test_save_image_png_as_content_file(storage: MagicMock, files_repo: MagicMock):
+    db = AsyncMock()
+    expected = MagicMock()
+    files_repo.create.return_value = expected
+    service = _service(db, storage, files_repo)
+
+    result = await service.save_image(PNG_BYTES, "logo.png")
+
+    assert result is expected
+    storage.save.assert_awaited_once()
+    files_repo.create.assert_awaited_once()
+    kwargs = files_repo.create.await_args.kwargs
+    assert kwargs["mime"] == "image/png"
+    assert kwargs["size"] == len(PNG_BYTES)
+    assert kwargs["original_name"] == "logo.png"
+    assert kwargs["ticket_id"] is None
+    assert kwargs["message_id"] is None
+    db.commit.assert_awaited_once()
+
+
+async def test_save_image_jpeg_as_content_file(storage: MagicMock, files_repo: MagicMock):
+    db = AsyncMock()
+    files_repo.create.return_value = MagicMock()
+    service = _service(db, storage, files_repo)
+
+    await service.save_image(JPEG_BYTES, "photo.jpg")
+
+    assert files_repo.create.await_args.kwargs["mime"] == "image/jpeg"
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pytest.param(b"GIF89a\x00\x00", id="gif"),
+        pytest.param(b"just text", id="text"),
+    ],
+)
+async def test_save_image_rejects_unknown_format(
+    storage: MagicMock, files_repo: MagicMock, data: bytes
+):
+    db = AsyncMock()
+    service = _service(db, storage, files_repo)
+
+    with pytest.raises(AppException) as exc_info:
+        await service.save_image(data, "x.bin")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.message == CONTENT_IMAGE_FORMAT
+    storage.save.assert_not_awaited()
+    files_repo.create.assert_not_awaited()
+    db.commit.assert_not_awaited()
+
+
+async def test_save_image_rejects_empty_data(storage: MagicMock, files_repo: MagicMock):
+    db = AsyncMock()
+    service = _service(db, storage, files_repo)
+
+    with pytest.raises(AppException) as exc_info:
+        await service.save_image(b"", "x.png")
+
+    assert exc_info.value.status_code == 400
+    storage.save.assert_not_awaited()
+
+
+async def test_save_image_rejects_too_large_data(storage: MagicMock, files_repo: MagicMock):
+    db = AsyncMock()
+    service = _service(db, storage, files_repo)
+
+    with pytest.raises(AppException) as exc_info:
+        await service.save_image(b"\x89PNG\r\n\x1a\n" + b"x" * MAX_FILE_SIZE, "x.png")
+
+    assert exc_info.value.status_code == 413
+    storage.save.assert_not_awaited()
+    files_repo.create.assert_not_awaited()

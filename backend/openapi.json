@@ -5,6 +5,354 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/admin/content": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Content",
+        "operationId": "get_content_api_v1_admin_content_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/welcome": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Welcome",
+        "operationId": "put_welcome_api_v1_admin_content_welcome_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WelcomeContentUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WelcomeContentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/emergency": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Emergency",
+        "operationId": "put_emergency_api_v1_admin_content_emergency_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmergencyContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyContent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/services": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Services",
+        "operationId": "put_services_api_v1_admin_content_services_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServicesContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServicesContent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/payment": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Payment",
+        "operationId": "put_payment_api_v1_admin_content_payment_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentContent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/contacts": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Contacts",
+        "operationId": "put_contacts_api_v1_admin_content_contacts_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactsContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactsContent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/theme": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Put Theme",
+        "operationId": "put_theme_api_v1_admin_content_theme_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThemeContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeContentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/content/images": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Upload Content Image",
+        "operationId": "upload_content_image_api_v1_admin_content_images_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_content_image_api_v1_admin_content_images_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/max": {
       "post": {
         "tags": [
@@ -581,6 +929,32 @@
         }
       }
     },
+    "/api/v1/theme": {
+      "get": {
+        "tags": [
+          "theme"
+        ],
+        "summary": "Get Theme",
+        "operationId": "get_theme_api_v1_theme_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemeContentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health",
@@ -638,6 +1012,20 @@
         "type": "object",
         "title": "Body_send_message_api_v1_staff_tickets__ticket_id__messages_post"
       },
+      "Body_upload_content_image_api_v1_admin_content_images_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_content_image_api_v1_admin_content_images_post"
+      },
       "BuildingShortResponse": {
         "properties": {
           "id": {
@@ -674,6 +1062,118 @@
         ],
         "title": "CategoryShortResponse"
       },
+      "ContactPhone": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "phone"
+        ],
+        "title": "ContactPhone"
+      },
+      "ContactsContent": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "phones": {
+            "items": {
+              "$ref": "#/components/schemas/ContactPhone"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Phones"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "phones"
+        ],
+        "title": "ContactsContent"
+      },
+      "ContentResponse": {
+        "properties": {
+          "welcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WelcomeContentResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emergency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmergencyContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "services": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServicesContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contacts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContactsContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeContentResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "ContentResponse"
+      },
       "DevLoginRequest": {
         "properties": {
           "max_user_id": {
@@ -688,6 +1188,21 @@
           "max_user_id"
         ],
         "title": "DevLoginRequest"
+      },
+      "EmergencyContent": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "EmergencyContent"
       },
       "FileResponse": {
         "properties": {
@@ -836,6 +1351,35 @@
         ],
         "title": "PaginatedResponse[TicketListItemResponse]"
       },
+      "PaymentContent": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https?://\\S+$",
+            "title": "Url"
+          },
+          "button_text": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Button Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "url",
+          "button_text"
+        ],
+        "title": "PaymentContent"
+      },
       "SenderType": {
         "type": "string",
         "enum": [
@@ -844,6 +1388,21 @@
           "SYSTEM"
         ],
         "title": "SenderType"
+      },
+      "ServicesContent": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ServicesContent"
       },
       "StatusChangeRequest": {
         "properties": {
@@ -919,6 +1478,87 @@
           "created_at"
         ],
         "title": "StatusChangeResponse"
+      },
+      "ThemeContent": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Company Name"
+          },
+          "primary_color": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "title": "Primary Color"
+          },
+          "logo_file_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo File Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "primary_color"
+        ],
+        "title": "ThemeContent"
+      },
+      "ThemeContentResponse": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Company Name"
+          },
+          "primary_color": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "title": "Primary Color"
+          },
+          "logo_file_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo File Id"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "primary_color",
+          "logo_url"
+        ],
+        "title": "ThemeContentResponse"
       },
       "TicketDetailResponse": {
         "properties": {
@@ -1386,6 +2026,69 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WelcomeContentResponse": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "file_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Url",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "file_url"
+        ],
+        "title": "WelcomeContentResponse"
+      },
+      "WelcomeContentUpdate": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "file_id": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 1.0,
+            "title": "File Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "file_id"
+        ],
+        "title": "WelcomeContentUpdate"
       }
     },
     "securitySchemes": {

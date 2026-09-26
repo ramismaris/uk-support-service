@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from src.core.constants import TicketPriority, TicketStatus, TicketType
+from src.schemas.common import NoNul
 from src.schemas.file import FileResponse
 from src.schemas.user import UserResponse, UserShortResponse
 from src.services import ticket_rules
@@ -57,7 +59,7 @@ class StatusChangeResponse(BaseModel):
 
 class StatusChangeRequest(BaseModel):
     status: TicketStatus
-    comment: str | None = None
+    comment: Annotated[str, NoNul] | None = None
 
 
 class TicketDetailResponse(TicketListItemResponse):

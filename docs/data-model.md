@@ -143,7 +143,7 @@ Check: `type = 'QUESTION' or (building_id is not null and apartment is not null 
 | max_token | text | токен уже загруженного в Max файла, чтобы не грузить повторно |
 | created_at | timestamptz not null | |
 
-Файлы контента (фото приветствия, логотип) — без `ticket_id` и `message_id`; на них ссылаются из `content_blocks.data`.
+Файлы контента (фото приветствия, логотип) — без `ticket_id` и `message_id`, только JPEG и PNG; на них ссылаются из `content_blocks.data`.
 
 ## status_changes
 
@@ -190,7 +190,7 @@ CMS. Ключ-значение: новый раздел не требует ми
 
 | key | Схема `data` |
 |---|---|
-| `WELCOME` | `text`, `file_id` (обязательно в админке; до загрузки фото в Б6 — пусто) |
+| `WELCOME` | `text`, `file_id` (обязательно в админке; в сидах пусто — фото загружает админ) |
 | `EMERGENCY` | `text` |
 | `SERVICES` | `text` |
 | `PAYMENT` | `text`, `url`, `button_text` |

@@ -19,6 +19,7 @@ from src.core.texts import (
     MESSAGE_LIMIT,
     MESSAGE_TOO_LONG,
     MESSAGE_TOO_MANY_FILES,
+    TEXT_INVALID_CHARACTER,
     TICKET_CLOSED_FOR_CLIENT,
     TICKET_CLOSED_FOR_STAFF,
     TICKET_NOT_FOUND,
@@ -76,6 +77,8 @@ class MessageService:
             raise AppException(MESSAGE_EMPTY, status_code=400)
         if text is not None and len(text) > MESSAGE_LIMIT:
             raise AppException(MESSAGE_TOO_LONG, status_code=400)
+        if text is not None and "\x00" in text:
+            raise AppException(TEXT_INVALID_CHARACTER, status_code=400)
         if len(uploads) > MESSAGE_FILES_MAX:
             raise AppException(MESSAGE_TOO_MANY_FILES, status_code=400)
         if len(uploads) > 1 and any(not upload.mime.startswith("image/") for upload in uploads):
