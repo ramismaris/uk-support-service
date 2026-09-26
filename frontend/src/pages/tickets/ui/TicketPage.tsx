@@ -8,6 +8,8 @@ import { routePaths } from '@/shared/config'
 import { breakpoints, useMediaQuery } from '@/shared/lib/media-query'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Chat } from './Chat'
+import { DetailsDrawer } from './DetailsDrawer'
+import { TicketDetails } from './TicketDetails'
 import { TicketHeader, type TicketTab } from './TicketHeader'
 
 function parseTicketId(value: string | undefined): number | null {
@@ -32,8 +34,9 @@ function TicketNotFound() {
 function TicketView({ id }: { id: number }) {
   const ticket = useTicket(id)
   const isLg = useMediaQuery(breakpoints.lg)
+  const isXl = useMediaQuery(breakpoints.xl)
   const [tab, setTab] = useState<TicketTab>('chat')
-  const [, setDetailsOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   if (ticket.isPending) {
     return <div className="m-auto text-sm text-neutral-500">Загрузка…</div>
@@ -61,8 +64,22 @@ function TicketView({ id }: { id: number }) {
           onTabChange={setTab}
           onOpenDetails={() => setDetailsOpen(true)}
         />
-        {showChat ? <Chat ticket={ticket.data} /> : null}
+        {showChat ? (
+          <Chat ticket={ticket.data} />
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <TicketDetails ticket={ticket.data} />
+          </div>
+        )}
       </section>
+      {isXl && (
+        <aside className="w-80 shrink-0 overflow-y-auto border-l border-neutral-200 dark:border-neutral-800">
+          <TicketDetails ticket={ticket.data} />
+        </aside>
+      )}
+      <DetailsDrawer open={isLg && !isXl && detailsOpen} onClose={() => setDetailsOpen(false)}>
+        <TicketDetails ticket={ticket.data} />
+      </DetailsDrawer>
     </div>
   )
 }
