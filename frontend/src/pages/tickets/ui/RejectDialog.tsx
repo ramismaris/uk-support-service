@@ -5,11 +5,19 @@ import { validateRejectReason } from '../lib/status-actions'
 interface RejectDialogProps {
   open: boolean
   pending: boolean
+  // Server error of the last attempt, shown inside the modal where the user is looking.
+  serverError?: string
   onClose: () => void
   onConfirm: (reason: string) => void
 }
 
-export function RejectDialog({ open, pending, onClose, onConfirm }: RejectDialogProps) {
+export function RejectDialog({
+  open,
+  pending,
+  serverError,
+  onClose,
+  onConfirm,
+}: RejectDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [reason, setReason] = useState('')
   const [touched, setTouched] = useState(false)
@@ -51,9 +59,9 @@ export function RejectDialog({ open, pending, onClose, onConfirm }: RejectDialog
           placeholder="Причина"
           onChange={(event) => setReason(event.target.value)}
         />
-        {touched && error && (
+        {((touched && error) || serverError) && (
           <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {error}
+            {(touched && error) || serverError}
           </p>
         )}
         <div className="flex justify-end gap-2">

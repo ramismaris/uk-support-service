@@ -75,6 +75,7 @@ export function StatusActions({ ticket }: { ticket: TicketDetail }) {
           <RejectDialog
             open={rejecting}
             pending={change.isPending}
+            serverError={change.error?.message}
             onClose={() => setRejecting(false)}
             onConfirm={(reason) =>
               change.mutate(
