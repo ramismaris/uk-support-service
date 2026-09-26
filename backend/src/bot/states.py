@@ -16,3 +16,7 @@ class RequestForm(StatesGroup):
 class ChatStates(StatesGroup):
     choose_ticket = State()
     confirm_question = State()
+
+
+class QuestionForm(StatesGroup):
+    text = State()

@@ -6,6 +6,7 @@ from maxapi import Bot, Dispatcher
 
 from src.bot.handlers.chat import router as chat_router
 from src.bot.handlers.menu import router as menu_router
+from src.bot.handlers.question import router as question_router
 from src.bot.handlers.request_form import router as request_form_router
 from src.bot.handlers.start import router as start_router
 from src.bot.middlewares import UserSyncMiddleware
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 dp = Dispatcher()
 dp.register_outer_middleware(UserSyncMiddleware())
-dp.include_routers(start_router, request_form_router, chat_router, menu_router)
+dp.include_routers(start_router, request_form_router, question_router, chat_router, menu_router)
 
 _bot: Bot | None = None
 _polling_task: asyncio.Task[None] | None = None

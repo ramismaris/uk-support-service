@@ -213,3 +213,20 @@ FORM_CONFIRM_PROMPT = (
 )
 FORM_SENT = "Заявка №{ticket_id} отправлена."
 FORM_CANCELLED = "Заявка отменена."
+
+# Client menu (bot)
+
+MY_TICKETS_BUTTON = "Мои заявки"
+QUESTION_BUTTON = "Задать вопрос"
+
+MY_TICKETS_LIMIT = 10
+MY_TICKETS_TITLE = "Ваши заявки:"
+MY_TICKETS_EMPTY = "У вас пока нет заявок."
+MY_TICKETS_WRITE_BUTTON = "Написать по {label}"
+
+QUESTION_SECTION_DEFAULT = "Задайте вопрос — ответим здесь, в чате."
+QUESTION_WRITE_BUTTON = "Написать вопрос"
+
+QUESTION_PROMPT = "Напишите вопрос одним сообщением. Можно приложить фото."
+QUESTION_TEXT_REQUIRED = "Напишите вопрос текстом — фото можно приложить к нему."
+QUESTION_CANCELLED = "Вопрос не отправлен."

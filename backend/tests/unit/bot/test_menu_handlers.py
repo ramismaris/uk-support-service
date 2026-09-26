@@ -1,16 +1,22 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from maxapi.types import BotStarted, MessageCallback, MessageCreated
 
 from src.bot.handlers import menu
+from src.core.constants import TicketStatus, TicketType
 from src.core.texts import (
+    MY_TICKETS_EMPTY,
     OUTDATED_BUTTON_TEXT,
+    QUESTION_SECTION_DEFAULT,
     SECTION_EMPTY_TEXT,
     START_TEXT,
     USE_MENU_TEXT,
 )
 from src.schemas.content import (
+    ContactPhone,
+    ContactsContent,
     EmergencyContent,
     PaymentContent,
     ServicesContent,
@@ -67,8 +73,32 @@ def content_service() -> MagicMock:
             button_text="Оплатить",
         )
     )
+    service.get_contacts = AsyncMock(
+        return_value=ContactsContent(
+            text="Свяжитесь с нами",
+            phones=[ContactPhone(title="Диспетчерская", phone="+7 (800) 000-00-01")],
+        )
+    )
     with patch("src.bot.handlers.menu.ContentService", return_value=service):
         yield service
+
+
+@pytest.fixture
+def client_service() -> MagicMock:
+    service = MagicMock()
+    service.list_tickets = AsyncMock(return_value=[])
+    with patch("src.bot.handlers.menu.ClientTicketService", return_value=service):
+        yield service
+
+
+def _ticket(
+    ticket_id: int,
+    ticket_type: TicketType = TicketType.REQUEST,
+    status: TicketStatus = TicketStatus.NEW,
+    category_title: str | None = "Сантехника",
+) -> SimpleNamespace:
+    category = None if category_title is None else SimpleNamespace(title=category_title)
+    return SimpleNamespace(id=ticket_id, type=ticket_type, status=status, category=category)
 
 
 async def test_start_sends_welcome_with_main_menu(content_service: MagicMock):
@@ -83,6 +113,8 @@ async def test_start_sends_welcome_with_main_menu(content_service: MagicMock):
     assert event.message.answer.await_args.args[0] == "Добро пожаловать"
     assert [row[0].payload for row in _keyboard_rows(kwargs["attachments"][0])] == [
         "form:start",
+        "menu:tickets",
+        "menu:question",
         "menu:emergency",
         "menu:services",
         "menu:payment",
@@ -108,7 +140,7 @@ async def test_bot_started_sends_welcome_with_main_menu(content_service: MagicMo
     kwargs = event.bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == 7
     assert kwargs["text"] == "Добро пожаловать"
-    assert len(_keyboard_rows(kwargs["attachments"][0])) == 4
+    assert len(_keyboard_rows(kwargs["attachments"][0])) == 6
 
 
 async def test_bot_started_uses_fallback_without_welcome_block(content_service: MagicMock):
@@ -156,7 +188,7 @@ async def test_main_callback_edits_with_welcome_and_main_menu(content_service: M
     await menu.handle_main(event, MagicMock())
 
     assert event.edit.await_args.kwargs["text"] == "Добро пожаловать"
-    assert len(_keyboard_rows(event.edit.await_args.kwargs["attachments"][0])) == 4
+    assert len(_keyboard_rows(event.edit.await_args.kwargs["attachments"][0])) == 6
 
 
 @pytest.mark.parametrize(
@@ -207,4 +239,106 @@ async def test_free_text_prompts_to_use_menu():
     await menu.handle_free_text(event)
 
     assert event.message.answer.await_args.args[0] == USE_MENU_TEXT
-    assert len(_keyboard_rows(event.message.answer.await_args.kwargs["attachments"][0])) == 4
+    assert len(_keyboard_rows(event.message.answer.await_args.kwargs["attachments"][0])) == 6
+
+
+async def test_my_tickets_edits_with_ticket_lines(client_service: MagicMock) -> None:
+    client_service.list_tickets.return_value = [
+        _ticket(1042, status=TicketStatus.IN_PROGRESS, category_title="Сантехника"),
+        _ticket(
+            1051,
+            ticket_type=TicketType.QUESTION,
+            status=TicketStatus.NEW,
+            category_title=None,
+        ),
+        _ticket(1030, status=TicketStatus.CLOSED, category_title="Электрика"),
+    ]
+    event = _message_callback("menu:tickets")
+
+    await menu.handle_my_tickets(event, MagicMock(), MagicMock())
+
+    client_service.list_tickets.assert_awaited_once()
+    assert event.edit.await_args.kwargs["text"] == (
+        "Ваши заявки:\n\n"
+        "№1042 · Сантехника — В работе\n"
+        "№1051 · Вопрос — Принята\n"
+        "№1030 · Электрика — Закрыта"
+    )
+    rows = _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
+    assert [row[0].text for row in rows] == [
+        "Написать по заявке №1042",
+        "Написать по вопросу №1051",
+        "« В меню",
+    ]
+    assert [row[0].payload for row in rows] == [
+        "chat:ticket:1042",
+        "chat:ticket:1051",
+        "menu:main",
+    ]
+
+
+async def test_my_tickets_empty_edits_with_form_offer(client_service: MagicMock) -> None:
+    event = _message_callback("menu:tickets")
+
+    await menu.handle_my_tickets(event, MagicMock(), MagicMock())
+
+    assert event.edit.await_args.kwargs["text"] == MY_TICKETS_EMPTY
+    rows = _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
+    assert [row[0].payload for row in rows] == ["form:start", "menu:main"]
+
+
+async def test_my_tickets_only_closed_has_no_write_buttons(client_service: MagicMock) -> None:
+    client_service.list_tickets.return_value = [
+        _ticket(1030, status=TicketStatus.REJECTED, category_title="Электрика")
+    ]
+    event = _message_callback("menu:tickets")
+
+    await menu.handle_my_tickets(event, MagicMock(), MagicMock())
+
+    assert "№1030 · Электрика — Отклонена" in event.edit.await_args.kwargs["text"]
+    rows = _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
+    assert [row[0].payload for row in rows] == ["menu:main"]
+
+
+async def test_my_tickets_callback_without_original_message_acks(
+    client_service: MagicMock,
+) -> None:
+    event = _message_callback("menu:tickets")
+    event.edit = AsyncMock(side_effect=ValueError("message is gone"))
+
+    await menu.handle_my_tickets(event, MagicMock(), MagicMock())
+
+    event.ack.assert_awaited_once_with(notification=OUTDATED_BUTTON_TEXT)
+
+
+async def test_question_edits_with_contacts_and_phones(content_service: MagicMock) -> None:
+    event = _message_callback("menu:question")
+
+    await menu.handle_question(event, MagicMock())
+
+    assert event.edit.await_args.kwargs["text"] == (
+        "Свяжитесь с нами\n\nДиспетчерская: +7 (800) 000-00-01"
+    )
+    rows = _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
+    assert [row[0].text for row in rows] == ["Написать вопрос", "« В меню"]
+    assert [row[0].payload for row in rows] == ["question:write", "menu:main"]
+
+
+async def test_question_without_phones_shows_only_text(content_service: MagicMock) -> None:
+    content_service.get_contacts.return_value = ContactsContent(text="Свяжитесь с нами", phones=[])
+    event = _message_callback("menu:question")
+
+    await menu.handle_question(event, MagicMock())
+
+    assert event.edit.await_args.kwargs["text"] == "Свяжитесь с нами"
+
+
+async def test_question_missing_block_shows_default(content_service: MagicMock) -> None:
+    content_service.get_contacts.return_value = None
+    event = _message_callback("menu:question")
+
+    await menu.handle_question(event, MagicMock())
+
+    assert event.edit.await_args.kwargs["text"] == QUESTION_SECTION_DEFAULT
+    rows = _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
+    assert [row[0].payload for row in rows] == ["question:write", "menu:main"]

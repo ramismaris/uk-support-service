@@ -2,6 +2,7 @@ from maxapi.types import CallbackButton, LinkButton, RequestContactButton
 from maxapi.types.attachments import AttachmentButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
+from src.core.constants import CHAT_TICKET_PREFIX
 from src.core.texts import (
     CHAT_NEW_QUESTION_BUTTON,
     CHAT_NO_BUTTON,
@@ -16,13 +17,21 @@ from src.core.texts import (
     FORM_SEND_BUTTON,
     FORM_START_BUTTON,
     FORM_TIME_SKIP_BUTTON,
+    MY_TICKETS_BUTTON,
+    MY_TICKETS_WRITE_BUTTON,
+    QUESTION_BUTTON,
+    QUESTION_WRITE_BUTTON,
     ticket_button_label,
+    ticket_dative,
 )
 from src.schemas.content import PaymentContent
+from src.services.ticket_rules import is_open
 
 MENU_EMERGENCY = "menu:emergency"
 MENU_SERVICES = "menu:services"
 MENU_PAYMENT = "menu:payment"
+MENU_TICKETS = "menu:tickets"
+MENU_QUESTION = "menu:question"
 MENU_MAIN = "menu:main"
 
 MENU_PREFIX = "menu:"
@@ -48,13 +57,56 @@ CHAT_CANCEL = "chat:cancel"
 
 CHAT_PREFIX = "chat:"
 
+QUESTION_WRITE = "question:write"
+QUESTION_CANCEL = "question:cancel"
+
+QUESTION_PREFIX = "question:"
+
 
 def main_menu_keyboard() -> AttachmentButton:
     builder = InlineKeyboardBuilder()
     builder.row(CallbackButton(text=FORM_START_BUTTON, payload=FORM_START))
+    builder.row(CallbackButton(text=MY_TICKETS_BUTTON, payload=MENU_TICKETS))
+    builder.row(CallbackButton(text=QUESTION_BUTTON, payload=MENU_QUESTION))
     builder.row(CallbackButton(text="Аварийные службы", payload=MENU_EMERGENCY))
     builder.row(CallbackButton(text="Услуги УК", payload=MENU_SERVICES))
     builder.row(CallbackButton(text="Оплата ЖКХ", payload=MENU_PAYMENT))
+    return builder.as_markup()
+
+
+def my_tickets_keyboard(tickets: list) -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    for ticket in tickets:
+        if not is_open(ticket.status):
+            continue
+        label = ticket_dative(ticket.type, ticket.id)
+        builder.row(
+            CallbackButton(
+                text=MY_TICKETS_WRITE_BUTTON.format(label=label),
+                payload=f"{CHAT_TICKET_PREFIX}{ticket.id}",
+            )
+        )
+    builder.row(CallbackButton(text="« В меню", payload=MENU_MAIN))
+    return builder.as_markup()
+
+
+def my_tickets_empty_keyboard() -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text=FORM_START_BUTTON, payload=FORM_START))
+    builder.row(CallbackButton(text="« В меню", payload=MENU_MAIN))
+    return builder.as_markup()
+
+
+def contacts_keyboard() -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text=QUESTION_WRITE_BUTTON, payload=QUESTION_WRITE))
+    builder.row(CallbackButton(text="« В меню", payload=MENU_MAIN))
+    return builder.as_markup()
+
+
+def question_cancel_keyboard() -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text=FORM_CANCEL_BUTTON, payload=QUESTION_CANCEL))
     return builder.as_markup()
 
 

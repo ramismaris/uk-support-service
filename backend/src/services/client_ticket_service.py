@@ -18,6 +18,7 @@ from src.core.texts import (
     DESCRIPTION_LIMIT,
     DESCRIPTION_REQUIRED,
     DESCRIPTION_TOO_LONG,
+    MY_TICKETS_LIMIT,
     PHONE_INVALID,
     PHOTO_NOT_IMAGE,
     RESIDENCE_NOT_FOUND,
@@ -44,6 +45,8 @@ from src.services.notification_service import NotificationService, notify_staff_
 logger = logging.getLogger(__name__)
 
 _APARTMENT_PATTERN = re.compile(r"[0-9A-Za-zА-Яа-яЁё][0-9A-Za-zА-Яа-яЁё /.-]{0,19}")
+
+MY_TICKETS_CLOSED_STATUSES = (TicketStatus.CLOSED, TicketStatus.REJECTED)
 
 
 def validate_apartment(value: str) -> str:
@@ -191,6 +194,18 @@ class ClientTicketService:
 
     async def list_open_tickets(self, client: User) -> list[Ticket]:
         return await self.tickets.list_by_client(client.id, statuses=ticket_rules.OPEN_STATUSES)
+
+    async def list_tickets(self, client: User) -> list[Ticket]:
+        open_tickets = await self.tickets.list_by_client(
+            client.id, statuses=ticket_rules.OPEN_STATUSES, limit=MY_TICKETS_LIMIT
+        )
+        remaining = MY_TICKETS_LIMIT - len(open_tickets)
+        if remaining <= 0:
+            return open_tickets
+        closed_tickets = await self.tickets.list_by_client(
+            client.id, statuses=MY_TICKETS_CLOSED_STATUSES, limit=remaining
+        )
+        return open_tickets + closed_tickets
 
     async def get_ticket(self, client: User, ticket_id: int) -> Ticket:
         ticket = await self.tickets.get_by_id(ticket_id)

@@ -75,12 +75,16 @@ class TicketRepository:
         client_id: int,
         *,
         statuses: Iterable[TicketStatus],
+        limit: int | None = None,
     ) -> list[Ticket]:
-        result = await self.db.execute(
+        query = (
             select(Ticket)
             .where(Ticket.client_id == client_id, Ticket.status.in_(statuses))
             .order_by(Ticket.created_at.desc(), Ticket.id.desc())
         )
+        if limit is not None:
+            query = query.limit(limit)
+        result = await self.db.execute(query)
         return list(result.scalars().all())
 
     async def list(

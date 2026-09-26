@@ -21,7 +21,11 @@ from src.bot.keyboards import (
     MENU_EMERGENCY,
     MENU_MAIN,
     MENU_PAYMENT,
+    MENU_QUESTION,
     MENU_SERVICES,
+    MENU_TICKETS,
+    QUESTION_CANCEL,
+    QUESTION_WRITE,
     address_keyboard,
     back_keyboard,
     building_keyboard,
@@ -30,24 +34,30 @@ from src.bot.keyboards import (
     choose_ticket_keyboard,
     confirm_keyboard,
     confirm_question_keyboard,
+    contacts_keyboard,
     main_menu_keyboard,
+    my_tickets_empty_keyboard,
+    my_tickets_keyboard,
     payment_keyboard,
     phone_keyboard,
     photos_done_keyboard,
     photos_skip_keyboard,
+    question_cancel_keyboard,
     residences_keyboard,
     time_keyboard,
 )
-from src.core.constants import TicketType
+from src.core.constants import CHAT_TICKET_PREFIX, TicketStatus, TicketType
 from src.schemas.content import PaymentContent
 
 
 def test_main_menu_has_one_button_per_row_in_order():
     rows = main_menu_keyboard().payload.buttons
 
-    assert [len(row) for row in rows] == [1, 1, 1, 1]
+    assert [len(row) for row in rows] == [1, 1, 1, 1, 1, 1]
     assert [row[0].text for row in rows] == [
         "Подать заявку",
+        "Мои заявки",
+        "Задать вопрос",
         "Аварийные службы",
         "Услуги УК",
         "Оплата ЖКХ",
@@ -55,6 +65,8 @@ def test_main_menu_has_one_button_per_row_in_order():
     assert all(isinstance(row[0], CallbackButton) for row in rows)
     assert [row[0].payload for row in rows] == [
         FORM_START,
+        MENU_TICKETS,
+        MENU_QUESTION,
         MENU_EMERGENCY,
         MENU_SERVICES,
         MENU_PAYMENT,
@@ -217,3 +229,63 @@ def test_confirm_question_keyboard_has_yes_then_no():
 
     assert [row[0].text for row in rows] == ["Да", "Нет"]
     assert [row[0].payload for row in rows] == [CHAT_QUESTION, CHAT_CANCEL]
+
+
+def _status_ticket(
+    ticket_type: TicketType,
+    ticket_id: int,
+    status: TicketStatus,
+    category_title: str | None = None,
+):
+    category = None if category_title is None else SimpleNamespace(title=category_title)
+    return SimpleNamespace(type=ticket_type, id=ticket_id, status=status, category=category)
+
+
+def test_my_tickets_keyboard_offers_write_only_for_open_tickets():
+    tickets = [
+        _status_ticket(TicketType.REQUEST, 1042, TicketStatus.IN_PROGRESS, "Сантехника"),
+        _status_ticket(TicketType.QUESTION, 1051, TicketStatus.NEW),
+        _status_ticket(TicketType.REQUEST, 1030, TicketStatus.CLOSED, "Электрика"),
+    ]
+
+    rows = my_tickets_keyboard(tickets).payload.buttons
+
+    assert [row[0].text for row in rows] == [
+        "Написать по заявке №1042",
+        "Написать по вопросу №1051",
+        "« В меню",
+    ]
+    assert [row[0].payload for row in rows] == [
+        f"{CHAT_TICKET_PREFIX}1042",
+        f"{CHAT_TICKET_PREFIX}1051",
+        MENU_MAIN,
+    ]
+
+
+def test_my_tickets_keyboard_without_open_tickets_has_only_back():
+    tickets = [_status_ticket(TicketType.REQUEST, 1030, TicketStatus.REJECTED, "Электрика")]
+
+    rows = my_tickets_keyboard(tickets).payload.buttons
+
+    assert [row[0].payload for row in rows] == [MENU_MAIN]
+
+
+def test_my_tickets_empty_keyboard_has_form_start_then_back():
+    rows = my_tickets_empty_keyboard().payload.buttons
+
+    assert [row[0].text for row in rows] == ["Подать заявку", "« В меню"]
+    assert [row[0].payload for row in rows] == [FORM_START, MENU_MAIN]
+
+
+def test_contacts_keyboard_has_write_question_then_back():
+    rows = contacts_keyboard().payload.buttons
+
+    assert [row[0].text for row in rows] == ["Написать вопрос", "« В меню"]
+    assert [row[0].payload for row in rows] == [QUESTION_WRITE, MENU_MAIN]
+
+
+def test_question_cancel_keyboard_has_cancel():
+    rows = question_cancel_keyboard().payload.buttons
+
+    assert [row[0].text for row in rows] == ["Отменить"]
+    assert [row[0].payload for row in rows] == [QUESTION_CANCEL]

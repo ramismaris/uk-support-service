@@ -5,6 +5,8 @@ import pytest
 
 from src.core.constants import ContentKey
 from src.schemas.content import (
+    ContactPhone,
+    ContactsContent,
     EmergencyContent,
     PaymentContent,
     ServicesContent,
@@ -58,6 +60,18 @@ def _make_block(data: dict) -> MagicMock:
             {"text": "Текст оплаты", "url": "https://pay.example", "button_text": "Оплатить"},
             PaymentContent(text="Текст оплаты", url="https://pay.example", button_text="Оплатить"),
         ),
+        (
+            "get_contacts",
+            ContentKey.CONTACTS,
+            {
+                "text": "Свяжитесь с нами",
+                "phones": [{"title": "Диспетчерская", "phone": "+7 (800) 000-00-01"}],
+            },
+            ContactsContent(
+                text="Свяжитесь с нами",
+                phones=[ContactPhone(title="Диспетчерская", phone="+7 (800) 000-00-01")],
+            ),
+        ),
     ],
 )
 async def test_getter_returns_validated_model(
@@ -77,7 +91,7 @@ async def test_getter_returns_validated_model(
 
 @pytest.mark.parametrize(
     "method",
-    ["get_welcome", "get_emergency", "get_services", "get_payment"],
+    ["get_welcome", "get_emergency", "get_services", "get_payment", "get_contacts"],
 )
 async def test_getter_returns_none_when_block_missing(blocks_repo: MagicMock, method: str):
     blocks_repo.get.return_value = None
@@ -87,7 +101,7 @@ async def test_getter_returns_none_when_block_missing(blocks_repo: MagicMock, me
 
 @pytest.mark.parametrize(
     "method",
-    ["get_welcome", "get_emergency", "get_services", "get_payment"],
+    ["get_welcome", "get_emergency", "get_services", "get_payment", "get_contacts"],
 )
 async def test_getter_returns_none_and_logs_error_on_invalid_data(
     blocks_repo: MagicMock,

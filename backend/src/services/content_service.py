@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.constants import ContentKey
 from src.repositories.content_block_repository import ContentBlockRepository
 from src.schemas.content import (
+    ContactsContent,
     EmergencyContent,
     PaymentContent,
     ServicesContent,
@@ -34,6 +35,9 @@ class ContentService:
 
     async def get_payment(self) -> PaymentContent | None:
         return await self._get(ContentKey.PAYMENT, PaymentContent)
+
+    async def get_contacts(self) -> ContactsContent | None:
+        return await self._get(ContentKey.CONTACTS, ContactsContent)
 
     async def _get(self, key: ContentKey, model: type[ModelT]) -> ModelT | None:
         block = await self.blocks.get(key)

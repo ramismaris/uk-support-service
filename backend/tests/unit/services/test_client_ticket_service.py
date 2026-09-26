@@ -11,9 +11,13 @@ from src.core.exceptions import (
     MessengerException,
     NotFoundException,
 )
-from src.core.texts import DESCRIPTION_LIMIT
+from src.core.texts import DESCRIPTION_LIMIT, MY_TICKETS_LIMIT
 from src.services import ticket_rules
-from src.services.client_ticket_service import ClientTicketService, validate_description
+from src.services.client_ticket_service import (
+    MY_TICKETS_CLOSED_STATUSES,
+    ClientTicketService,
+    validate_description,
+)
 from src.services.file_service import MAX_FILE_SIZE
 
 
@@ -675,6 +679,50 @@ async def test_list_open_tickets_delegates_with_open_statuses(env: SimpleNamespa
     assert result == [ticket]
     env.tickets.list_by_client.assert_awaited_once_with(
         env.client.id, statuses=ticket_rules.OPEN_STATUSES
+    )
+
+
+async def test_list_tickets_returns_open_then_closed(env: SimpleNamespace) -> None:
+    open_ticket = _ticket(1042, env.client.id, TicketStatus.IN_PROGRESS)
+    closed_ticket = _ticket(1030, env.client.id, TicketStatus.CLOSED)
+    env.tickets.list_by_client = AsyncMock(side_effect=[[open_ticket], [closed_ticket]])
+
+    result = await env.service.list_tickets(env.client)
+
+    assert result == [open_ticket, closed_ticket]
+    first, second = env.tickets.list_by_client.await_args_list
+    assert first.args == (env.client.id,)
+    assert first.kwargs == {
+        "statuses": ticket_rules.OPEN_STATUSES,
+        "limit": MY_TICKETS_LIMIT,
+    }
+    assert second.args == (env.client.id,)
+    assert second.kwargs == {
+        "statuses": MY_TICKETS_CLOSED_STATUSES,
+        "limit": MY_TICKETS_LIMIT - 1,
+    }
+
+
+async def test_list_tickets_reduces_closed_limit_by_open_count(env: SimpleNamespace) -> None:
+    open_tickets = [_ticket(1000 + index, env.client.id, TicketStatus.NEW) for index in range(4)]
+    env.tickets.list_by_client = AsyncMock(side_effect=[open_tickets, []])
+
+    await env.service.list_tickets(env.client)
+
+    assert env.tickets.list_by_client.await_args_list[1].kwargs["limit"] == MY_TICKETS_LIMIT - 4
+
+
+async def test_list_tickets_skips_closed_when_open_fills_limit(env: SimpleNamespace) -> None:
+    open_tickets = [
+        _ticket(1000 + index, env.client.id, TicketStatus.NEW) for index in range(MY_TICKETS_LIMIT)
+    ]
+    env.tickets.list_by_client = AsyncMock(return_value=open_tickets)
+
+    result = await env.service.list_tickets(env.client)
+
+    assert result == open_tickets
+    env.tickets.list_by_client.assert_awaited_once_with(
+        env.client.id, statuses=ticket_rules.OPEN_STATUSES, limit=MY_TICKETS_LIMIT
     )
 
 
