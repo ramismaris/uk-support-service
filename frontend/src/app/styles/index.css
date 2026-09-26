@@ -43,6 +43,26 @@
   --family-headers: var(--app-font);
   --font: var(--app-font);
   font-family: var(--app-font);
+  /* Max UI's own accent (primary buttons, controls, themed text) follows the company colour. */
+  --button-primary: var(--brand);
+  --states-button-primary-hover: color-mix(in srgb, var(--brand), #fff 28%);
+  --states-button-primary-pressed: color-mix(in srgb, var(--brand), #000 10%);
+  --states-button-primary-disabled: color-mix(in srgb, var(--brand) 48%, transparent);
+  --icon-themed: var(--brand);
+  --text-themed: var(--brand);
+  --states-text-themed-disabled: color-mix(in srgb, var(--brand) 60%, transparent);
+  --controls-active: var(--brand);
+  --states-controls-active-disabled: color-mix(in srgb, var(--brand) 48%, transparent);
+  --counter-themed: var(--brand);
+  --gradients-loading-icon-themed-filled: var(--brand);
+  --gradients-loading-icon-themed-transparent: color-mix(in srgb, var(--brand) 0%, transparent);
+}
+
+/* Dark Max greys out disabled accents instead of fading them; keep that. */
+.app-font[class*='colorScheme_dark'] {
+  --states-button-primary-disabled: hsla(0, 0%, 100%, 0.12);
+  --states-text-themed-disabled: hsla(0, 0%, 100%, 0.28);
+  --states-controls-active-disabled: hsla(0, 0%, 100%, 0.12);
 }
 
 @layer base {
