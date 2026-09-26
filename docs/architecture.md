@@ -174,16 +174,18 @@ WebSocket для сотрудников, менеджер подключений
 
 ## Frontend
 
-Стек: TypeScript, React 19, Vite, Tailwind CSS v4, Max UI, framer-motion, React Router v7, TanStack Query, Zustand, openapi-fetch. Архитектура — Feature-Sliced Design, контроль — Steiger. Дизайн фундамента — [спек](superpowers/specs/2026-09-26-frontend-foundation-design.md).
+Стек: TypeScript, React 19, Vite, Tailwind CSS v4, Max UI, framer-motion, React Router v7, TanStack Query, Zustand, openapi-fetch. Архитектура — Feature-Sliced Design, контроль — Steiger. Дизайн: [фундамент](superpowers/specs/2026-09-26-frontend-foundation-design.md), [обращения и чат](superpowers/specs/2026-09-26-frontend-tickets-design.md).
 
 ```
 frontend/src/
-├── app/        entrypoint (провайдеры), routes (гарды, вход), theme, session (токен → API-клиент), styles
-├── pages/      login (с dev-входом), staff-home, client-home, not-found
+├── app/        entrypoint (провайдеры), routes (гарды, вход, «Открыть» из Max), realtime (WebSocket),
+│               theme, session (токен → API-клиент), styles
+├── pages/      login (с dev-входом), tickets (список, обращение, чат, статусы), client-home, not-found
 ├── widgets/    app-shell — адаптивный каркас сотрудника с выходом
 ├── features/   auth-by-max
-├── entities/   session (токен, /me), user (роли)
-└── shared/     api (openapi-fetch + сгенерированные типы), config, lib/max-bridge, lib/color-scheme, ui
+├── entities/   session (токен, /me), user (роли), ticket, message
+└── shared/     api (openapi-fetch + сгенерированные типы), config, lib/{max-bridge, color-scheme,
+                format, media-query, ws}, ui/{empty-state, lottie, …}
 ```
 
 Вход:
@@ -193,6 +195,12 @@ frontend/src/
 3. `/` ведёт по роли: `MANAGER`/`ADMIN` → `/staff`, `CLIENT` → `/client`.
 
 Тема: схема из `prefers-color-scheme`, одна и та же для Max UI и Tailwind (`data-color-scheme` на `<html>`). Стили Max UI — в CSS-слое `maxui` между `base` и `utilities`, поэтому утилиты Tailwind перебивают их.
+
+Реалтайм: `app/realtime` держит WebSocket для сотрудника. `message_created` дописывает сообщение в кэш чата (дубли по `id` отбрасываются), `ticket_created`/`ticket_updated` перезапрашивают списки и карточку, после переподключения перечитывается всё. Закрытие `4401` — выход, `4403` — без переподключения; пока связи нет, в списке горит «Нет связи».
+
+Раскладка обращений: телефон — список и обращение по очереди (вкладки «Чат» / «Детали»); от `lg` — список | чат, детали в выезжающей панели; от `xl` — три колонки.
+
+Анимации: иконки — `lucide-react`; Lottie — перекрашенные в фирменный цвет JSON в `shared/ui/lottie/animations`, плеер грузится отдельным чанком, его wasm отдаётся из нашей сборки (`setWasmUrl`), а не с CDN.
 
 Требования, которые от стека не зависят:
 
