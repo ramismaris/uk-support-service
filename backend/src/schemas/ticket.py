@@ -55,6 +55,11 @@ class StatusChangeResponse(BaseModel):
     created_at: datetime
 
 
+class StatusChangeRequest(BaseModel):
+    status: TicketStatus
+    comment: str | None = None
+
+
 class TicketDetailResponse(TicketListItemResponse):
     client: UserResponse
     contact_phone: str | None
@@ -63,3 +68,4 @@ class TicketDetailResponse(TicketListItemResponse):
     closed_at: datetime | None
     files: list[FileResponse]
     history: list[StatusChangeResponse]
+    allowed_statuses: list[TicketStatus]

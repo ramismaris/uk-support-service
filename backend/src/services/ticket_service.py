@@ -63,6 +63,14 @@ class TicketService:
         history = await self.status_changes.list_by_ticket(ticket_id)
         return ticket, files, history
 
+    def allowed_statuses(self, ticket: Ticket, staff: User) -> list[TicketStatus]:
+        return ticket_rules.allowed_statuses(
+            ticket.status,
+            staff.role,
+            closed_at=ticket.closed_at,
+            now=datetime.now(UTC),
+        )
+
     async def list_messages(self, ticket_id: int) -> list[Message]:
         ticket = await self.tickets.get_by_id(ticket_id)
         if ticket is None:

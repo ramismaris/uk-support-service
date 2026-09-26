@@ -371,6 +371,65 @@
         }
       }
     },
+    "/api/v1/staff/tickets/{ticket_id}/status": {
+      "post": {
+        "tags": [
+          "staff"
+        ],
+        "summary": "Change Status",
+        "operationId": "change_status_api_v1_staff_tickets__ticket_id__status_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Ticket Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/staff/tickets/{ticket_id}/messages": {
       "get": {
         "tags": [
@@ -786,6 +845,29 @@
         ],
         "title": "SenderType"
       },
+      "StatusChangeRequest": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "StatusChangeRequest"
+      },
       "StatusChangeResponse": {
         "properties": {
           "from_status": {
@@ -977,6 +1059,13 @@
             "type": "array",
             "title": "History"
           },
+          "allowed_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TicketStatus"
+            },
+            "type": "array",
+            "title": "Allowed Statuses"
+          },
           "unread": {
             "type": "boolean",
             "title": "Unread",
@@ -1003,6 +1092,7 @@
           "closed_at",
           "files",
           "history",
+          "allowed_statuses",
           "unread"
         ],
         "title": "TicketDetailResponse"
