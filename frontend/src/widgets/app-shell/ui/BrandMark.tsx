@@ -1,15 +1,6 @@
 import { useState } from 'react'
 import { useBrandTheme } from '@/entities/theme'
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0))
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
+import { brandInitials } from '../model/brand'
 
 // The company's logo, or its initials on the brand colour until a logo is uploaded.
 export function BrandMark({ withName = false }: { withName?: boolean }) {
@@ -28,7 +19,7 @@ export function BrandMark({ withName = false }: { withName?: boolean }) {
         />
       ) : (
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white">
-          {initials(theme.companyName)}
+          {brandInitials(theme.companyName)}
         </span>
       )}
       {withName && <span className="truncate text-base font-semibold">{theme.companyName}</span>}

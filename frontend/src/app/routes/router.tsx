@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router'
-import { isClient, isStaff } from '@/entities/user'
+import { isAdmin, isClient, isStaff } from '@/entities/user'
+import { ContentLayout, SectionEditor } from '@/pages/content'
 import { ClientHomePage } from '@/pages/client-home'
 import { LoginPage } from '@/pages/login'
 import { NotFoundPage } from '@/pages/not-found'
@@ -27,6 +28,18 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
+          {
+            path: routePaths.content,
+            element: (
+              <RequireRole allow={isAdmin}>
+                <ContentLayout />
+              </RequireRole>
+            ),
+            children: [
+              { index: true, element: <SectionEditor /> },
+              { path: routePaths.contentSection, element: <SectionEditor /> },
+            ],
+          },
           {
             element: <TicketsLayout />,
             children: [
