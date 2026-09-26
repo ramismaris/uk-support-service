@@ -7,6 +7,7 @@ from src.bot.handlers.chat import router as chat_router
 from src.bot.handlers.menu import router as menu_router
 from src.bot.handlers.question import router as question_router
 from src.bot.handlers.request_form import router as request_form_router
+from src.bot.handlers.resolution import router as resolution_router
 from src.bot.handlers.start import router as start_router
 
 
@@ -15,9 +16,17 @@ def test_routers_registered_in_order():
         start_router,
         request_form_router,
         question_router,
+        resolution_router,
         chat_router,
         menu_router,
     ]
+
+
+def test_resolution_router_between_question_and_chat():
+    assert dispatcher.dp.routers.index(resolution_router) > dispatcher.dp.routers.index(
+        question_router
+    )
+    assert dispatcher.dp.routers.index(resolution_router) < dispatcher.dp.routers.index(chat_router)
 
 
 def test_menu_router_registered_after_start_router():

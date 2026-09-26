@@ -62,6 +62,8 @@ QUESTION_CANCEL = "question:cancel"
 
 QUESTION_PREFIX = "question:"
 
+RATE_PREFIX = "rate:"
+
 
 def main_menu_keyboard() -> AttachmentButton:
     builder = InlineKeyboardBuilder()
@@ -221,4 +223,15 @@ def confirm_question_keyboard() -> AttachmentButton:
     builder = InlineKeyboardBuilder()
     builder.row(CallbackButton(text=CHAT_YES_BUTTON, payload=CHAT_QUESTION))
     builder.row(CallbackButton(text=CHAT_NO_BUTTON, payload=CHAT_CANCEL))
+    return builder.as_markup()
+
+
+def rating_keyboard(ticket_id: int) -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        *[
+            CallbackButton(text=str(score), payload=f"{RATE_PREFIX}{ticket_id}:{score}")
+            for score in range(1, 6)
+        ]
+    )
     return builder.as_markup()

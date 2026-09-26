@@ -64,6 +64,12 @@ STATUS_RESOLVED_QUESTION: dict[TicketType, str] = {
     TicketType.QUESTION: "Вопрос решён?",
 }
 
+RATE_PROMPT = "Оцените работу по {label} — от 1 до 5:"
+RATE_THANKS = "Спасибо за оценку!"
+REOPENED_TEXT = (
+    "🟢 Статус {label}: В работе. Напишите, что осталось не так, — сообщение уйдёт сотруднику."
+)
+
 CHAT_SENT = "Сообщение добавлено к {label}."
 CHAT_WRITE_PROMPT = "Напишите сообщение по {label}."
 CHAT_WRITE_NOTIFICATION = "Пишите — сообщение уйдёт сотруднику"

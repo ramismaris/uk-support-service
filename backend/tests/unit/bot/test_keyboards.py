@@ -26,6 +26,7 @@ from src.bot.keyboards import (
     MENU_TICKETS,
     QUESTION_CANCEL,
     QUESTION_WRITE,
+    RATE_PREFIX,
     address_keyboard,
     back_keyboard,
     building_keyboard,
@@ -43,6 +44,7 @@ from src.bot.keyboards import (
     photos_done_keyboard,
     photos_skip_keyboard,
     question_cancel_keyboard,
+    rating_keyboard,
     residences_keyboard,
     time_keyboard,
 )
@@ -289,3 +291,17 @@ def test_question_cancel_keyboard_has_cancel():
 
     assert [row[0].text for row in rows] == ["Отменить"]
     assert [row[0].payload for row in rows] == [QUESTION_CANCEL]
+
+
+def test_rating_keyboard_has_scores_one_to_five_in_one_row():
+    rows = rating_keyboard(1042).payload.buttons
+
+    assert len(rows) == 1
+    assert [button.text for button in rows[0]] == ["1", "2", "3", "4", "5"]
+    assert [button.payload for button in rows[0]] == [
+        f"{RATE_PREFIX}1042:1",
+        f"{RATE_PREFIX}1042:2",
+        f"{RATE_PREFIX}1042:3",
+        f"{RATE_PREFIX}1042:4",
+        f"{RATE_PREFIX}1042:5",
+    ]
