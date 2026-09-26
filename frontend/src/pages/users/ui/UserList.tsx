@@ -107,7 +107,7 @@ export function UserList() {
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-fg-3"
           />
         </label>
-        <div className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-wrap items-center gap-1">
           {USER_FILTERS.map((filter) => (
             <button
               key={filter}
