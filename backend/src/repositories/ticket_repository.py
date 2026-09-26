@@ -51,8 +51,12 @@ class TicketRepository:
         await self.db.flush()
         return ticket
 
-    async def get_by_id(self, ticket_id: int) -> Ticket | None:
-        result = await self.db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    async def get_by_id(self, ticket_id: int, *, populate_existing: bool = False) -> Ticket | None:
+        result = await self.db.execute(
+            select(Ticket)
+            .where(Ticket.id == ticket_id)
+            .execution_options(populate_existing=populate_existing)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_id_for_update(self, ticket_id: int) -> Ticket | None:

@@ -105,6 +105,18 @@ def env() -> SimpleNamespace:
             )
         )
         run_bg = stack.enter_context(patch("src.services.message_service.run_in_background"))
+        publish_message_created = stack.enter_context(
+            patch(
+                "src.services.message_service.publish_message_created",
+                new_callable=AsyncMock,
+            )
+        )
+        publish_ticket_updated = stack.enter_context(
+            patch(
+                "src.services.message_service.publish_ticket_updated",
+                new_callable=AsyncMock,
+            )
+        )
         notify = MagicMock(return_value="notify-coroutine")
         stack.enter_context(
             patch(
@@ -129,6 +141,8 @@ def env() -> SimpleNamespace:
             file_service=file_service,
             notifications=notifications,
             run_bg=run_bg,
+            publish_message_created=publish_message_created,
+            publish_ticket_updated=publish_ticket_updated,
             notify=notify,
             service=service,
         )
@@ -144,6 +158,8 @@ def _assert_staff_nothing_sent_written(env: SimpleNamespace) -> None:
     env.file_service.add.assert_not_awaited()
     env.storage.save.assert_not_awaited()
     env.db.commit.assert_not_awaited()
+    env.publish_message_created.assert_not_awaited()
+    env.publish_ticket_updated.assert_not_awaited()
 
 
 def _assert_client_nothing_sent_written(env: SimpleNamespace) -> None:
@@ -151,10 +167,16 @@ def _assert_client_nothing_sent_written(env: SimpleNamespace) -> None:
     env.db.commit.assert_not_awaited()
     env.run_bg.assert_not_called()
     env.notifications.update_status_card.assert_not_awaited()
+    env.publish_message_created.assert_not_awaited()
+    env.publish_ticket_updated.assert_not_awaited()
 
 
 async def test_send_staff_message_text_only(env: SimpleNamespace) -> None:
     env.messenger.send_message.return_value = "mid-99"
+    order: list[str] = []
+    env.db.commit.side_effect = lambda: order.append("commit")
+    env.publish_message_created.side_effect = lambda db, message_id: order.append("message")
+    env.publish_ticket_updated.side_effect = lambda db, ticket_id: order.append("ticket")
 
     message = await env.service.send_staff_message(
         env.ticket.id, env.author, "  Мастер придёт завтра  ", []
@@ -185,7 +207,10 @@ async def test_send_staff_message_text_only(env: SimpleNamespace) -> None:
     assert env.ticket.status == TicketStatus.IN_PROGRESS
     assert env.ticket.assignee_id == env.author.id
     assert env.ticket.staff_seen_at is not None
+    assert order == ["commit", "message", "ticket"]
     env.db.commit.assert_awaited_once()
+    env.publish_message_created.assert_awaited_once_with(env.db, env.message.id)
+    env.publish_ticket_updated.assert_awaited_once_with(env.db, env.ticket.id)
     env.notifications.update_status_card.assert_awaited_once_with(env.ticket)
     env.messages.get_by_id.assert_awaited_once_with(env.message.id)
     env.tickets.get_by_id_for_update.assert_awaited_once_with(env.ticket.id)
@@ -237,6 +262,8 @@ async def test_send_staff_message_deletes_blobs_when_commit_fails(env: SimpleNam
         call("files/one.webp"),
         call("files/two.png"),
     ]
+    env.publish_message_created.assert_not_awaited()
+    env.publish_ticket_updated.assert_not_awaited()
 
 
 async def test_send_staff_message_normalizes_mime_and_filename(env: SimpleNamespace) -> None:
@@ -398,6 +425,8 @@ async def test_send_staff_message_upload_failure_propagates(env: SimpleNamespace
     env.messenger.send_message.assert_not_awaited()
     env.messages.create.assert_not_awaited()
     env.db.commit.assert_not_awaited()
+    env.publish_message_created.assert_not_awaited()
+    env.publish_ticket_updated.assert_not_awaited()
 
 
 async def test_send_staff_message_send_failure_propagates(env: SimpleNamespace) -> None:
@@ -409,6 +438,8 @@ async def test_send_staff_message_send_failure_propagates(env: SimpleNamespace) 
     env.messages.create.assert_not_awaited()
     env.changes.create.assert_not_awaited()
     env.db.commit.assert_not_awaited()
+    env.publish_message_created.assert_not_awaited()
+    env.publish_ticket_updated.assert_not_awaited()
     env.notifications.update_status_card.assert_not_awaited()
 
 
@@ -521,6 +552,10 @@ async def test_add_client_message_text_and_photos(env: SimpleNamespace) -> None:
     second = MagicMock()
     env.file_service.get_unattached.return_value = [first, second]
     env.ticket.status = TicketStatus.IN_PROGRESS
+    order: list[str] = []
+    env.db.commit.side_effect = lambda: order.append("commit")
+    env.publish_message_created.side_effect = lambda db, message_id: order.append("message")
+    env.publish_ticket_updated.side_effect = lambda db, ticket_id: order.append("ticket")
 
     message = await env.service.add_client_message(
         env.client,
@@ -545,7 +580,10 @@ async def test_add_client_message_text_and_photos(env: SimpleNamespace) -> None:
     assert second.message_id == env.message.id
     assert env.ticket.last_client_message_at is not None
     assert env.client.active_ticket_id == env.ticket.id
+    assert order == ["commit", "message", "ticket"]
     env.db.commit.assert_awaited_once()
+    env.publish_message_created.assert_awaited_once_with(env.db, env.message.id)
+    env.publish_ticket_updated.assert_awaited_once_with(env.db, env.ticket.id)
     env.run_bg.assert_called_once_with(
         env.notify.return_value, name=f"notify-client-message-{env.message.id}"
     )
@@ -569,6 +607,8 @@ async def test_add_client_message_duplicate_returns_existing(env: SimpleNamespac
     env.tickets.get_by_id_for_update.assert_not_awaited()
     env.messages.create.assert_not_awaited()
     env.db.commit.assert_not_awaited()
+    env.publish_message_created.assert_not_awaited()
+    env.publish_ticket_updated.assert_not_awaited()
     env.run_bg.assert_not_called()
 
 

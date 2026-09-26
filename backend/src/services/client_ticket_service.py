@@ -39,6 +39,7 @@ from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.services import ticket_rules
+from src.services.events import publish_ticket_created
 from src.services.file_service import MAX_FILE_SIZE, FileService
 from src.services.notification_service import NotificationService, notify_staff_about_new_ticket
 
@@ -254,6 +255,8 @@ class ClientTicketService:
 
         client.active_ticket_id = ticket.id
         await self.db.commit()
+
+        await publish_ticket_created(self.db, ticket.id)
 
         try:
             await self.notifications.send_status_card(ticket)

@@ -158,3 +158,44 @@ async def test_get_for_staff_missing_ticket_raises_not_found(
 
     with pytest.raises(NotFoundException):
         await service.get_for_staff(999)
+
+
+async def test_mark_read_sets_seen_at_and_publishes_after_commit(
+    tickets_repo: MagicMock, files_repo: MagicMock, changes_repo: MagicMock
+) -> None:
+    db = AsyncMock()
+    service = _service(db, tickets_repo, files_repo, changes_repo)
+    ticket = MagicMock()
+    ticket.id = 5
+    tickets_repo.get_by_id.return_value = ticket
+    order: list[str] = []
+    db.commit.side_effect = lambda: order.append("commit")
+
+    with patch(
+        "src.services.ticket_service.publish_ticket_updated", new_callable=AsyncMock
+    ) as publish:
+        publish.side_effect = lambda db, ticket_id: order.append("publish")
+        await service.mark_read(5)
+
+    assert ticket.staff_seen_at is not None
+    assert order == ["commit", "publish"]
+    publish.assert_awaited_once_with(db, ticket.id)
+
+
+async def test_mark_read_missing_ticket_raises_and_publishes_nothing(
+    tickets_repo: MagicMock, files_repo: MagicMock, changes_repo: MagicMock
+) -> None:
+    db = AsyncMock()
+    service = _service(db, tickets_repo, files_repo, changes_repo)
+    tickets_repo.get_by_id.return_value = None
+
+    with (
+        patch(
+            "src.services.ticket_service.publish_ticket_updated", new_callable=AsyncMock
+        ) as publish,
+        pytest.raises(NotFoundException),
+    ):
+        await service.mark_read(999)
+
+    db.commit.assert_not_awaited()
+    publish.assert_not_awaited()

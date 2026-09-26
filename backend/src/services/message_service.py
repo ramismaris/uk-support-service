@@ -33,6 +33,7 @@ from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.services import ticket_rules
+from src.services.events import publish_message_created, publish_ticket_updated
 from src.services.file_service import FileService
 from src.services.notification_service import (
     NotificationService,
@@ -147,6 +148,9 @@ class MessageService:
                 await self.storage.delete(key)
             raise
 
+        await publish_message_created(self.db, message.id)
+        await publish_ticket_updated(self.db, ticket.id)
+
         if new_status is not None:
             try:
                 await self.notifications.update_status_card(ticket)
@@ -233,6 +237,9 @@ class MessageService:
             ticket.status = new_status
 
         await self.db.commit()
+
+        await publish_message_created(self.db, message.id)
+        await publish_ticket_updated(self.db, ticket.id)
 
         if new_status is not None:
             try:

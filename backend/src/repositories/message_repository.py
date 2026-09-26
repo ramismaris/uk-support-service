@@ -42,8 +42,14 @@ class MessageRepository:
         )
         return list(result.scalars().all())
 
-    async def get_by_id(self, message_id: int) -> Message | None:
-        result = await self.db.execute(select(Message).where(Message.id == message_id))
+    async def get_by_id(
+        self, message_id: int, *, populate_existing: bool = False
+    ) -> Message | None:
+        result = await self.db.execute(
+            select(Message)
+            .where(Message.id == message_id)
+            .execution_options(populate_existing=populate_existing)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_max_message_id(self, max_message_id: str) -> Message | None:

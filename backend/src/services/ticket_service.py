@@ -15,6 +15,7 @@ from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.services import ticket_rules
+from src.services.events import publish_ticket_updated
 
 
 class TicketService:
@@ -74,3 +75,5 @@ class TicketService:
             raise NotFoundException(TICKET_NOT_FOUND)
         ticket.staff_seen_at = datetime.now(UTC)
         await self.db.commit()
+
+        await publish_ticket_updated(self.db, ticket.id)

@@ -107,6 +107,12 @@ def env() -> SimpleNamespace:
             )
         )
         run_bg = stack.enter_context(patch("src.services.client_ticket_service.run_in_background"))
+        publish_created = stack.enter_context(
+            patch(
+                "src.services.client_ticket_service.publish_ticket_created",
+                new_callable=AsyncMock,
+            )
+        )
         notify = MagicMock(return_value="notify-coroutine")
         stack.enter_context(
             patch(
@@ -134,6 +140,7 @@ def env() -> SimpleNamespace:
             notifications=notifications,
             client=client,
             run_bg=run_bg,
+            publish_created=publish_created,
             notify=notify,
             service=service,
         )
@@ -181,6 +188,7 @@ def _assert_no_writes(env: SimpleNamespace) -> None:
     env.changes.create.assert_not_awaited()
     env.db.commit.assert_not_awaited()
     env.notifications.send_status_card.assert_not_awaited()
+    env.publish_created.assert_not_awaited()
     env.run_bg.assert_not_called()
 
 
@@ -196,6 +204,7 @@ async def test_create_request_happy_path(env: SimpleNamespace) -> None:
     env.file_service.get_unattached.return_value = [photo_one, photo_two]
     order: list[str] = []
     env.db.commit.side_effect = lambda: order.append("commit")
+    env.publish_created.side_effect = lambda db, ticket_id: order.append("publish")
     env.notifications.send_status_card.side_effect = lambda ticket: order.append("card")
 
     ticket = await _request(env, photo_ids=[1, 2])
@@ -225,7 +234,8 @@ async def test_create_request_happy_path(env: SimpleNamespace) -> None:
     assert photo_one.ticket_id == env.ticket.id
     assert photo_two.ticket_id == env.ticket.id
     assert env.client.active_ticket_id == env.ticket.id
-    assert order == ["commit", "card"]
+    assert order == ["commit", "publish", "card"]
+    env.publish_created.assert_awaited_once_with(env.db, env.ticket.id)
     env.notifications.send_status_card.assert_awaited_once_with(env.ticket)
     env.notify.assert_called_once_with(env.ticket.id)
     env.run_bg.assert_called_once_with(
@@ -536,6 +546,7 @@ async def test_create_question_happy_path(env: SimpleNamespace) -> None:
     env.file_service.get_unattached.return_value = [photo]
     order: list[str] = []
     env.db.commit.side_effect = lambda: order.append("commit")
+    env.publish_created.side_effect = lambda db, ticket_id: order.append("publish")
     env.notifications.send_status_card.side_effect = lambda ticket: order.append("card")
 
     ticket = await _question(env, photo_ids=[1])
@@ -564,7 +575,8 @@ async def test_create_question_happy_path(env: SimpleNamespace) -> None:
     )
     assert photo.ticket_id == env.ticket.id
     assert env.client.active_ticket_id == env.ticket.id
-    assert order == ["commit", "card"]
+    assert order == ["commit", "publish", "card"]
+    env.publish_created.assert_awaited_once_with(env.db, env.ticket.id)
     env.notifications.send_status_card.assert_awaited_once_with(env.ticket)
     env.notify.assert_called_once_with(env.ticket.id)
     env.run_bg.assert_called_once_with(
