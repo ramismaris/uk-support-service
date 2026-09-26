@@ -1,0 +1,20 @@
+@layer theme, base, maxui, components, utilities;
+
+@import 'tailwindcss';
+@import '@maxhub/max-ui/dist/styles.css' layer(maxui);
+
+@custom-variant dark (&:where([data-color-scheme='dark'], [data-color-scheme='dark'] *));
+
+:root {
+  --brand: #2d7ff9;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+}
+
+@layer base {
+  body {
+    @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+  }
+}
