@@ -20,9 +20,7 @@ export function LoginPage() {
         {isDevAuthEnabled ? (
           <DevLoginForm />
         ) : (
-          <p className="text-neutral-500 dark:text-neutral-400">
-            Напишите боту команду /panel — он пришлёт ссылку для входа.
-          </p>
+          <p className="text-fg-2">Напишите боту команду /panel — он пришлёт ссылку для входа.</p>
         )}
       </PageTransition>
     </div>

@@ -8,7 +8,7 @@ export function NavMenuButton() {
       type="button"
       aria-label="Меню"
       onClick={() => setOpen(true)}
-      className="-ml-1 rounded-full p-1.5 hover:bg-neutral-100 lg:hidden dark:hover:bg-neutral-800"
+      className="-ml-1 rounded-full p-1.5 hover:bg-hover lg:hidden"
     >
       <Menu size={22} strokeWidth={2} />
     </button>

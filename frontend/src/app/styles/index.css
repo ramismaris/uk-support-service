@@ -29,6 +29,12 @@
   --color-attention: #ff832a;
   --color-waiting: var(--promo-text-step-1);
   --color-quiet: var(--icon-tertiary);
+  --color-line: var(--background-tertiary);
+  --color-hover: var(--states-background-hovered-transparent);
+  --color-press: var(--states-background-pressed-transparent);
+  --color-overlay: var(--background-overlay);
+  --color-card: var(--background-card);
+  --color-mute: var(--icon-mute);
 }
 
 /* Unlayered, so it wins over the maxui layer: Max UI components use the same font as the rest. */
@@ -40,7 +46,12 @@
 }
 
 @layer base {
+  /* body sits outside the MaxUI root, so it repeats Max's primary background by value. */
   body {
-    @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+    @apply antialiased;
+    background: #fff;
+  }
+  [data-color-scheme='dark'] body {
+    background: #17181c;
   }
 }

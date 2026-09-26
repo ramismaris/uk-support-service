@@ -37,14 +37,14 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={scroller}
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-neutral-50 p-4 dark:bg-neutral-950"
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-surface p-4"
         onScroll={(event) => {
           const element = event.currentTarget
           stickToBottom.current =
             element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM
         }}
       >
-        {messages.isPending && <div className="m-auto text-sm text-neutral-500">Загрузка…</div>}
+        {messages.isPending && <div className="m-auto text-sm text-fg-3">Загрузка…</div>}
         {messages.isError && (
           <EmptyState
             icon={<MessageCircle size={48} strokeWidth={1.5} />}
@@ -82,7 +82,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
         </AnimatePresence>
       </div>
       {closed ? (
-        <div className="border-t border-neutral-200 p-4 text-center text-sm text-neutral-500 dark:border-neutral-800">
+        <div className="border-t border-line p-4 text-center text-sm text-fg-3">
           Обращение закрыто — писать в него нельзя
         </div>
       ) : (

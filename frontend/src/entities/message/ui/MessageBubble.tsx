@@ -21,7 +21,7 @@ function Attachment({ file }: { file: MessageFile }) {
       href={file.url}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 text-sm dark:bg-white/10"
+      className="flex items-center gap-2 rounded-lg bg-fill px-3 py-2 text-sm"
     >
       <FileText size={20} strokeWidth={2} className="shrink-0" />
       <span className="min-w-0 truncate">{file.original_name ?? 'Файл'}</span>
@@ -47,9 +47,7 @@ export function MessageBubble({ message }: { message: Message }) {
     <div className={`flex ${fromStaff ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`flex max-w-[80%] flex-col gap-2 rounded-2xl px-3 py-2 ${
-          fromStaff
-            ? 'rounded-br-md bg-brand text-white'
-            : 'rounded-bl-md bg-white shadow-sm dark:bg-neutral-800'
+          fromStaff ? 'rounded-br-md bg-brand text-white' : 'rounded-bl-md bg-layer'
         }`}
       >
         {fromStaff && message.author && (

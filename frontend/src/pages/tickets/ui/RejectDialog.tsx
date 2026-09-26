@@ -37,7 +37,7 @@ export function RejectDialog({
     <dialog
       ref={dialog}
       onClose={onClose}
-      className="m-auto w-full max-w-md rounded-2xl bg-white p-0 text-neutral-900 backdrop:bg-black/40 dark:bg-neutral-900 dark:text-neutral-100"
+      className="m-auto w-full max-w-md rounded-2xl bg-layer p-0 text-fg backdrop:bg-overlay"
     >
       <form
         method="dialog"
@@ -51,7 +51,7 @@ export function RejectDialog({
         }}
       >
         <h2 className="text-lg font-semibold">Отклонить обращение</h2>
-        <p className="text-sm text-neutral-500">Причину увидит жилец.</p>
+        <p className="text-sm text-fg-3">Причину увидит жилец.</p>
         <Textarea
           value={reason}
           rows={4}
@@ -60,7 +60,7 @@ export function RejectDialog({
           onChange={(event) => setReason(event.target.value)}
         />
         {((touched && error) || serverError) && (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="text-sm text-negative">
             {(touched && error) || serverError}
           </p>
         )}

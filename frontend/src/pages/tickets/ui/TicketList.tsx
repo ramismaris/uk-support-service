@@ -18,7 +18,7 @@ export function TicketList() {
 
   const body = () => {
     if (list.isPending) {
-      return <div className="p-6 text-center text-sm text-neutral-500">Загрузка…</div>
+      return <div className="p-6 text-center text-sm text-fg-3">Загрузка…</div>
     }
     if (list.isError) {
       return (
@@ -61,7 +61,7 @@ export function TicketList() {
         {tickets.map((ticket) => (
           <TicketRow key={ticket.id} ticket={ticket} />
         ))}
-        <div className="flex flex-col items-center gap-2 p-4 text-xs text-neutral-500">
+        <div className="flex flex-col items-center gap-2 p-4 text-xs text-fg-3">
           <span>
             {tickets.length} из {total}
           </span>

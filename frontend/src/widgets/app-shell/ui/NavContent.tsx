@@ -21,13 +21,11 @@ function NavEntry({ item, onNavigate }: { item: NavItem; onNavigate?: () => void
   if (item.to === null) {
     return (
       <span
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-neutral-400 dark:text-neutral-500"
+        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-fg-3"
         aria-disabled="true"
       >
         {inner}
-        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] dark:bg-neutral-800">
-          Скоро
-        </span>
+        <span className="rounded-full bg-fill px-2 py-0.5 text-[11px] text-fg-3">Скоро</span>
       </span>
     )
   }
@@ -37,9 +35,7 @@ function NavEntry({ item, onNavigate }: { item: NavItem; onNavigate?: () => void
       onClick={onNavigate}
       className={({ isActive }) =>
         `flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-          isActive
-            ? 'bg-brand/10 font-medium text-brand'
-            : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
+          isActive ? 'bg-brand/10 font-medium text-brand' : 'hover:bg-hover'
         }`
       }
     >
@@ -66,7 +62,7 @@ export function NavContent({ user, onNavigate }: NavContentProps) {
       <div className="mt-auto flex flex-col items-start gap-2 px-3 text-sm">
         <div>
           <div className="font-medium">{getDisplayName(user)}</div>
-          <div className="text-neutral-500">{roleLabels[user.role]}</div>
+          <div className="text-fg-3">{roleLabels[user.role]}</div>
         </div>
         <LogoutButton />
       </div>

@@ -7,7 +7,7 @@ import { StatusActions } from './StatusActions'
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-neutral-500">{label}</span>
+      <span className="text-xs text-fg-3">{label}</span>
       <span className="text-sm">{children}</span>
     </div>
   )
@@ -54,9 +54,7 @@ export function TicketDetails({ ticket }: { ticket: TicketDetail }) {
                   size={16}
                   strokeWidth={2}
                   className={
-                    value <= (ticket.rating ?? 0)
-                      ? 'fill-amber-400 text-amber-400'
-                      : 'text-neutral-300'
+                    value <= (ticket.rating ?? 0) ? 'fill-attention text-attention' : 'text-mute'
                   }
                 />
               ))}
@@ -81,20 +79,20 @@ export function TicketDetails({ ticket }: { ticket: TicketDetail }) {
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs text-neutral-500">История</span>
+        <span className="text-xs text-fg-3">История</span>
         <ol className="flex flex-col gap-2 text-sm">
           {ticket.history.map((change, index) => (
             <li key={index} className="flex flex-col">
               <span>
                 {statusLabels[change.to_status]}
-                <span className="text-neutral-500">
+                <span className="text-fg-3">
                   {' · '}
                   {change.changed_by?.first_name ?? 'Система'}
                   {' · '}
                   {formatDateTime(change.created_at)}
                 </span>
               </span>
-              {change.comment && <span className="text-neutral-500">«{change.comment}»</span>}
+              {change.comment && <span className="text-fg-3">«{change.comment}»</span>}
             </li>
           ))}
         </ol>

@@ -11,7 +11,7 @@ export function AppShell() {
 
   return (
     <div className="flex h-dvh">
-      <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-neutral-200 p-4 lg:flex dark:border-neutral-800">
+      <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-line p-4 lg:flex">
         <NavContent user={user} />
       </aside>
       {/* Phones: navigation is a drawer opened from the page header (NavMenuButton). */}

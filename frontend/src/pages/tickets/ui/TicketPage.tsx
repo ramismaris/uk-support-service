@@ -39,7 +39,7 @@ function TicketView({ id }: { id: number }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
 
   if (ticket.isPending) {
-    return <div className="m-auto text-sm text-neutral-500">Загрузка…</div>
+    return <div className="m-auto text-sm text-fg-3">Загрузка…</div>
   }
   if (ticket.isError) {
     return isApiError(ticket.error, 404) ? (
@@ -73,7 +73,7 @@ function TicketView({ id }: { id: number }) {
         )}
       </section>
       {isXl && (
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-neutral-200 dark:border-neutral-800">
+        <aside className="w-80 shrink-0 overflow-y-auto border-l border-line">
           <TicketDetails ticket={ticket.data} />
         </aside>
       )}

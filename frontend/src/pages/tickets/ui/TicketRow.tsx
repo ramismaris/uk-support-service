@@ -18,8 +18,8 @@ export function TicketRow({ ticket }: { ticket: TicketListItem }) {
     <NavLink
       to={{ pathname: ticketPath(ticket.id), search }}
       className={({ isActive }) =>
-        `flex flex-col gap-1 border-b border-neutral-100 px-3 py-3 transition-colors dark:border-neutral-800/60 ${
-          isActive ? 'bg-brand/10' : 'hover:bg-neutral-100 dark:hover:bg-neutral-900'
+        `flex flex-col gap-1 border-b border-line px-3 py-3 transition-colors ${
+          isActive ? 'bg-brand/10' : 'hover:bg-hover'
         }`
       }
     >
@@ -28,16 +28,16 @@ export function TicketRow({ ticket }: { ticket: TicketListItem }) {
           <span className="size-2 shrink-0 rounded-full bg-brand" aria-label="Непрочитано" />
         )}
         <span className="font-medium">№{ticket.id}</span>
-        <span className="truncate text-sm text-neutral-500">
+        <span className="truncate text-sm text-fg-3">
           {ticket.category?.title ?? ticketTypeLabels[ticket.type]}
         </span>
         {ticket.priority === 'URGENT' && <UrgentMark />}
-        <span className="ml-auto shrink-0 text-xs text-neutral-500">
+        <span className="ml-auto shrink-0 text-xs text-fg-3">
           {formatRelativeTime(ticket.created_at)}
         </span>
       </div>
       <p className="line-clamp-2 text-sm">{ticket.description}</p>
-      <div className="flex items-center gap-2 text-xs text-neutral-500">
+      <div className="flex items-center gap-2 text-xs text-fg-3">
         <span className="truncate">
           {ticket.client.first_name}
           {address && ` · ${address}`}

@@ -14,14 +14,14 @@ export function DetailsDrawer({ open, onClose, children }: DetailsDrawerProps) {
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-black/30"
+            className="fixed inset-0 z-40 bg-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
           <motion.aside
-            className="fixed inset-y-0 right-0 z-50 w-96 max-w-full overflow-y-auto bg-white shadow-xl dark:bg-neutral-900"
+            className="fixed inset-y-0 right-0 z-50 w-96 max-w-full overflow-y-auto bg-layer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -31,7 +31,7 @@ export function DetailsDrawer({ open, onClose, children }: DetailsDrawerProps) {
               type="button"
               aria-label="Закрыть"
               onClick={onClose}
-              className="absolute top-3 right-3 rounded-full p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="absolute top-3 right-3 rounded-full p-1 hover:bg-hover"
             >
               <X size={20} strokeWidth={2} />
             </button>

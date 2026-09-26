@@ -21,17 +21,17 @@ interface TicketHeaderProps {
 export function TicketHeader({ ticket, tab, onTabChange, onOpenDetails }: TicketHeaderProps) {
   const { search } = useLocation()
   return (
-    <header className="border-b border-neutral-200 dark:border-neutral-800">
+    <header className="border-b border-line">
       <div className="flex items-center gap-2 px-3 py-2">
         <Link
           to={{ pathname: routePaths.staff, search }}
           aria-label="К списку"
-          className="-ml-1 rounded-full p-1 hover:bg-neutral-100 lg:hidden dark:hover:bg-neutral-800"
+          className="-ml-1 rounded-full p-1 hover:bg-hover lg:hidden"
         >
           <ChevronLeft size={20} strokeWidth={2} />
         </Link>
         <span className="font-semibold">№{ticket.id}</span>
-        <span className="truncate text-sm text-neutral-500">
+        <span className="truncate text-sm text-fg-3">
           {ticket.category?.title ?? ticketTypeLabels[ticket.type]}
         </span>
         {ticket.priority === 'URGENT' && <UrgentMark />}
@@ -42,7 +42,7 @@ export function TicketHeader({ ticket, tab, onTabChange, onOpenDetails }: Ticket
           type="button"
           aria-label="Детали"
           onClick={onOpenDetails}
-          className="hidden rounded-full p-1 hover:bg-neutral-100 lg:inline-flex xl:hidden dark:hover:bg-neutral-800"
+          className="hidden rounded-full p-1 hover:bg-hover lg:inline-flex xl:hidden"
         >
           <PanelRight size={20} strokeWidth={2} />
         </button>
@@ -56,9 +56,7 @@ export function TicketHeader({ ticket, tab, onTabChange, onOpenDetails }: Ticket
             aria-selected={tab === value}
             onClick={() => onTabChange(value)}
             className={`flex-1 border-b-2 py-2 text-sm ${
-              tab === value
-                ? 'border-brand font-medium text-brand'
-                : 'border-transparent text-neutral-500'
+              tab === value ? 'border-brand font-medium text-brand' : 'border-transparent text-fg-3'
             }`}
           >
             {value === 'chat' ? 'Чат' : 'Детали'}

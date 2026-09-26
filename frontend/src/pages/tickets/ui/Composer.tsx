@@ -54,20 +54,20 @@ export function Composer({ ticketId }: { ticketId: number }) {
   const error = validationError ?? send.error?.message
 
   return (
-    <div className="flex flex-col gap-2 border-t border-neutral-200 px-3 py-2 dark:border-neutral-800">
+    <div className="flex flex-col gap-2 border-t border-line px-3 py-2">
       {files.length > 0 && (
         <ul className="flex flex-wrap gap-2">
           {files.map((file, index) => (
             <li
               key={`${file.name}-${index}`}
-              className="flex items-center gap-1 rounded-full bg-neutral-100 py-1 pr-1 pl-3 text-xs dark:bg-neutral-800"
+              className="flex items-center gap-1 rounded-full bg-fill py-1 pr-1 pl-3 text-xs"
             >
               <span className="max-w-40 truncate">{file.name}</span>
-              <span className="text-neutral-500">{formatFileSize(file.size)}</span>
+              <span className="text-fg-3">{formatFileSize(file.size)}</span>
               <button
                 type="button"
                 aria-label={`Убрать ${file.name}`}
-                className="rounded-full p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                className="rounded-full p-1 hover:bg-press"
                 onClick={() => setFiles(files.filter((_, i) => i !== index))}
               >
                 <X size={12} strokeWidth={2} />
@@ -76,12 +76,12 @@ export function Composer({ ticketId }: { ticketId: number }) {
           ))}
         </ul>
       )}
-      <div className="flex items-end gap-1 rounded-3xl bg-neutral-100 p-1 dark:bg-neutral-800">
+      <div className="flex items-end gap-1 rounded-3xl bg-fill p-1">
         <button
           type="button"
           aria-label="Прикрепить файлы"
           disabled={send.isPending}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-200 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-fg-3 transition-colors hover:bg-press hover:text-fg"
           onClick={() => fileInput.current?.click()}
         >
           <Paperclip size={20} strokeWidth={2} />
@@ -103,7 +103,7 @@ export function Composer({ ticketId }: { ticketId: number }) {
           maxLength={MESSAGE_TEXT_LIMIT + 1}
           placeholder="Сообщение"
           disabled={send.isPending}
-          className="max-h-36 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-5 outline-none placeholder:text-neutral-400"
+          className="max-h-36 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-5 outline-none placeholder:text-fg-3"
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
         />
@@ -113,9 +113,7 @@ export function Composer({ ticketId }: { ticketId: number }) {
           disabled={!canSend}
           onClick={submit}
           className={`flex size-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-            canSend || showSent
-              ? 'bg-brand text-white hover:brightness-110'
-              : 'text-neutral-400 dark:text-neutral-500'
+            canSend || showSent ? 'bg-brand text-white hover:brightness-110' : 'text-fg-3'
           }`}
         >
           {showSent ? (
@@ -134,7 +132,7 @@ export function Composer({ ticketId }: { ticketId: number }) {
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-negative">
           {error}
         </p>
       )}

@@ -12,12 +12,12 @@ const CLOSED_HOLD = 400
 function ClosedCelebration({ onDone }: { onDone: () => void }) {
   return (
     <motion.div
-      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm dark:bg-neutral-950/60"
+      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-overlay backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="flex flex-col items-center gap-2 rounded-2xl bg-white px-6 py-4 shadow-lg dark:bg-neutral-900">
+      <div className="flex flex-col items-center gap-2 rounded-2xl bg-card px-6 py-4">
         <LottieAnimation
           src={animations.closed}
           speed={1.2}
@@ -68,7 +68,7 @@ export function StatusActions({ ticket }: { ticket: TicketDetail }) {
             ))}
           </div>
           {change.error && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="text-sm text-negative">
               {change.error.message}
             </p>
           )}
