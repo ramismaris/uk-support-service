@@ -43,6 +43,10 @@ class ButtonType(StrEnum):
 # Callback payload of the «Ответить» button under a staff message; the bot makes that ticket active.
 CHAT_TICKET_PREFIX = "chat:ticket:"
 
+# Callback payloads of the «Проблема решена?» buttons; the bot handles them.
+RESOLVED_YES_PREFIX = "resolved:yes:"
+RESOLVED_NO_PREFIX = "resolved:no:"
+
 
 class ContentKey(StrEnum):
     WELCOME = "WELCOME"

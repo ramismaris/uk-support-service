@@ -1,9 +1,19 @@
+from contextlib import ExitStack
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
-from src.core.constants import ButtonType, TicketStatus, TicketType, UserRole
+from src.core.constants import (
+    RESOLVED_NO_PREFIX,
+    RESOLVED_YES_PREFIX,
+    ButtonType,
+    SenderType,
+    TicketStatus,
+    TicketType,
+    UserRole,
+)
 from src.core.exceptions import MessengerException
 from src.models.building import Building
 from src.models.category import Category
@@ -80,6 +90,235 @@ def _staff(id_: int, max_user_id: int) -> MagicMock:
     staff.id = id_
     staff.max_user_id = max_user_id
     return staff
+
+
+@pytest.fixture
+def status_env():
+    with ExitStack() as stack:
+        publish = stack.enter_context(
+            patch(
+                "src.services.notification_service.publish_message_created",
+                new_callable=AsyncMock,
+            )
+        )
+
+        def build(ticket: Ticket, *, max_message_id: str | None = "card-1") -> SimpleNamespace:
+            db = AsyncMock()
+            messenger = AsyncMock()
+            messenger.send_message.return_value = "mid-status-1"
+            message = MagicMock()
+            message.id = 88
+            messages = MagicMock()
+            messages.create = AsyncMock(return_value=message)
+            status_changes = MagicMock()
+            status_changes.list_by_ticket = AsyncMock(return_value=[])
+            service = _service(db, messenger, messages=messages, status_changes=status_changes)
+            ticket.status_message_max_id = max_message_id
+            return SimpleNamespace(
+                db=db,
+                messenger=messenger,
+                messages=messages,
+                message=message,
+                status_changes=status_changes,
+                publish=publish,
+                service=service,
+            )
+
+        yield build
+
+
+async def test_send_status_message_in_progress_request(status_env) -> None:
+    ticket = _ticket(status=TicketStatus.IN_PROGRESS)
+    env = status_env(ticket)
+
+    await env.service.send_status_message(ticket, None)
+
+    text = "🟢 Статус заявки №1042: В работе."
+    env.messenger.send_message.assert_awaited_once_with(555, text, buttons=None)
+    env.messages.create.assert_awaited_once_with(
+        ticket.id, SenderType.SYSTEM, text=text, max_message_id="mid-status-1"
+    )
+    env.db.commit.assert_awaited_once()
+    env.publish.assert_awaited_once_with(env.db, env.message.id)
+    env.messenger.edit_message.assert_awaited_once()
+    assert env.messenger.edit_message.await_args.args[0] == "card-1"
+    assert "markdown" not in env.messenger.send_message.await_args.kwargs
+
+
+async def test_send_status_message_waiting_client_request(status_env) -> None:
+    ticket = _ticket(status=TicketStatus.WAITING_CLIENT)
+    env = status_env(ticket)
+
+    await env.service.send_status_message(ticket, None)
+
+    env.messenger.send_message.assert_awaited_once_with(
+        555,
+        "🟡 Статус заявки №1042: Нужен ваш ответ. Напишите его в этот чат.",
+        buttons=None,
+    )
+
+
+async def test_send_status_message_rejected_with_reason(status_env) -> None:
+    ticket = _ticket(status=TicketStatus.REJECTED)
+    env = status_env(ticket)
+
+    await env.service.send_status_message(ticket, "Не наш профиль")
+
+    env.messenger.send_message.assert_awaited_once_with(
+        555,
+        "🔴 Статус заявки №1042: Отклонена.\nПричина: Не наш профиль",
+        buttons=None,
+    )
+
+
+async def test_send_status_message_closed_request_has_resolved_buttons(status_env) -> None:
+    ticket = _ticket(status=TicketStatus.CLOSED)
+    env = status_env(ticket)
+
+    await env.service.send_status_message(ticket, None)
+
+    buttons = [
+        [
+            Button("Да", ButtonType.CALLBACK, f"{RESOLVED_YES_PREFIX}{ticket.id}"),
+            Button("Нет", ButtonType.CALLBACK, f"{RESOLVED_NO_PREFIX}{ticket.id}"),
+        ]
+    ]
+    env.messenger.send_message.assert_awaited_once_with(
+        555,
+        "🟢 Статус заявки №1042: Закрыта.\nПроблема решена?",
+        buttons=buttons,
+    )
+
+
+async def test_send_status_message_question_uses_question_wording(status_env) -> None:
+    ticket = _ticket(
+        id=1047,
+        type=TicketType.QUESTION,
+        category_id=None,
+        building_id=None,
+        apartment=None,
+        status=TicketStatus.CLOSED,
+    )
+    env = status_env(ticket)
+
+    await env.service.send_status_message(ticket, None)
+
+    env.messenger.send_message.assert_awaited_once_with(
+        555,
+        "🟢 Статус вопроса №1047: Закрыта.\nВопрос решён?",
+        buttons=[
+            [
+                Button("Да", ButtonType.CALLBACK, f"{RESOLVED_YES_PREFIX}1047"),
+                Button("Нет", ButtonType.CALLBACK, f"{RESOLVED_NO_PREFIX}1047"),
+            ]
+        ],
+    )
+
+
+async def test_send_status_message_without_id_saves_none(status_env) -> None:
+    ticket = _ticket(status=TicketStatus.IN_PROGRESS)
+    env = status_env(ticket)
+    env.messenger.send_message.return_value = None
+
+    await env.service.send_status_message(ticket, None)
+
+    assert env.messages.create.await_args.kwargs["max_message_id"] is None
+    env.db.commit.assert_awaited_once()
+    env.publish.assert_awaited_once_with(env.db, env.message.id)
+
+
+async def test_send_status_message_send_failure_saves_nothing(status_env) -> None:
+    ticket = _ticket(status=TicketStatus.IN_PROGRESS)
+    env = status_env(ticket)
+    env.messenger.send_message.side_effect = MessengerException()
+
+    with pytest.raises(MessengerException):
+        await env.service.send_status_message(ticket, None)
+
+    env.messages.create.assert_not_awaited()
+    env.db.commit.assert_not_awaited()
+    env.publish.assert_not_awaited()
+    env.messenger.edit_message.assert_awaited_once()
+
+
+async def test_notify_staff_reopened_sends_text_and_button() -> None:
+    ticket = _ticket()
+    messenger = AsyncMock()
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(10, 1000)])
+    service = _service(AsyncMock(), messenger, tickets=tickets, users=users)
+
+    await service.notify_staff_reopened(1042)
+
+    expected = (
+        "🔄 Заявка №1042 · Мария Иванова\n"
+        "Клиент сообщил, что проблема не решена — обращение снова в работе."
+    )
+    messenger.send_message.assert_awaited_once_with(
+        1000, expected, buttons=[[Button("Открыть", ButtonType.OPEN_APP, "ticket_1042")]]
+    )
+
+
+async def test_notify_staff_reopened_sends_to_eligible_assignee_only() -> None:
+    ticket = _ticket()
+    ticket.assignee = _staff(10, 1000)
+    ticket.assignee.role = UserRole.MANAGER
+    ticket.assignee.is_blocked = False
+    messenger = AsyncMock()
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(11, 1001)])
+    service = _service(AsyncMock(), messenger, tickets=tickets, users=users)
+
+    await service.notify_staff_reopened(1042)
+
+    messenger.send_message.assert_awaited_once()
+    assert messenger.send_message.await_args.args[0] == 1000
+    users.list_staff.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("role", "is_blocked"),
+    [(UserRole.CLIENT, False), (UserRole.MANAGER, True)],
+)
+async def test_notify_staff_reopened_ignores_ineligible_assignee(
+    role: UserRole, is_blocked: bool
+) -> None:
+    ticket = _ticket()
+    ticket.assignee = _staff(10, 1000)
+    ticket.assignee.role = role
+    ticket.assignee.is_blocked = is_blocked
+    messenger = AsyncMock()
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(11, 1001)])
+    service = _service(AsyncMock(), messenger, tickets=tickets, users=users)
+
+    await service.notify_staff_reopened(1042)
+
+    users.list_staff.assert_awaited_once()
+    messenger.send_message.assert_awaited_once()
+    assert messenger.send_message.await_args.args[0] == 1001
+
+
+async def test_notify_staff_reopened_survives_one_failing_recipient() -> None:
+    ticket = _ticket()
+    messenger = AsyncMock()
+    messenger.send_message.side_effect = [MessengerException(), None]
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(10, 1000), _staff(11, 1001)])
+    service = _service(AsyncMock(), messenger, tickets=tickets, users=users)
+
+    await service.notify_staff_reopened(1042)
+
+    assert messenger.send_message.await_count == 2
+    assert messenger.send_message.await_args_list[1].args[0] == 1001
 
 
 async def test_send_status_card_sends_markdown_and_stores_message_id() -> None:

@@ -10,6 +10,7 @@ from src.services.ticket_rules import (
     AskWhichTicket,
     OfferNewQuestion,
     ToTicket,
+    allowed_statuses,
     can_client_reopen,
     can_rate,
     check_transition,
@@ -177,6 +178,97 @@ def test_can_client_reopen_rejected_with_recent_closed_at():
 )
 def test_can_client_reopen_open_status_with_recent_closed_at(status: TicketStatus):
     assert can_client_reopen(status, NOW - timedelta(minutes=1), NOW) is False
+
+
+@pytest.mark.parametrize(
+    ("current", "expected"),
+    [
+        pytest.param(
+            TicketStatus.NEW,
+            [TicketStatus.IN_PROGRESS, TicketStatus.REJECTED],
+            id="new",
+        ),
+        pytest.param(
+            TicketStatus.IN_PROGRESS,
+            [TicketStatus.WAITING_CLIENT, TicketStatus.CLOSED, TicketStatus.REJECTED],
+            id="in-progress",
+        ),
+        pytest.param(
+            TicketStatus.WAITING_CLIENT,
+            [TicketStatus.CLOSED, TicketStatus.REJECTED],
+            id="waiting-client",
+        ),
+        pytest.param(TicketStatus.CLOSED, [], id="closed"),
+        pytest.param(TicketStatus.REJECTED, [], id="rejected"),
+    ],
+)
+def test_allowed_statuses_manager(current: TicketStatus, expected: list[TicketStatus]):
+    assert allowed_statuses(current, UserRole.MANAGER, closed_at=None, now=NOW) == expected
+
+
+@pytest.mark.parametrize(
+    ("current", "closed_at", "expected"),
+    [
+        pytest.param(
+            TicketStatus.NEW,
+            None,
+            [TicketStatus.IN_PROGRESS, TicketStatus.REJECTED],
+            id="new",
+        ),
+        pytest.param(
+            TicketStatus.IN_PROGRESS,
+            None,
+            [TicketStatus.WAITING_CLIENT, TicketStatus.CLOSED, TicketStatus.REJECTED],
+            id="in-progress",
+        ),
+        pytest.param(
+            TicketStatus.WAITING_CLIENT,
+            None,
+            [TicketStatus.CLOSED, TicketStatus.REJECTED],
+            id="waiting-client",
+        ),
+        pytest.param(
+            TicketStatus.CLOSED,
+            NOW - timedelta(days=30),
+            [TicketStatus.IN_PROGRESS],
+            id="closed-old",
+        ),
+        pytest.param(TicketStatus.REJECTED, None, [TicketStatus.IN_PROGRESS], id="rejected"),
+    ],
+)
+def test_allowed_statuses_admin(
+    current: TicketStatus, closed_at: datetime | None, expected: list[TicketStatus]
+):
+    assert allowed_statuses(current, UserRole.ADMIN, closed_at=closed_at, now=NOW) == expected
+
+
+@pytest.mark.parametrize(
+    ("current", "closed_at", "expected"),
+    [
+        pytest.param(TicketStatus.NEW, None, [], id="new"),
+        pytest.param(TicketStatus.IN_PROGRESS, None, [], id="in-progress"),
+        pytest.param(TicketStatus.WAITING_CLIENT, None, [], id="waiting-client"),
+        pytest.param(
+            TicketStatus.CLOSED,
+            NOW - timedelta(days=1),
+            [TicketStatus.IN_PROGRESS],
+            id="closed-inside-window",
+        ),
+        pytest.param(
+            TicketStatus.CLOSED,
+            NOW - timedelta(days=7),
+            [TicketStatus.IN_PROGRESS],
+            id="closed-exactly-seven-days",
+        ),
+        pytest.param(TicketStatus.CLOSED, NOW - timedelta(days=8), [], id="closed-outside-window"),
+        pytest.param(TicketStatus.CLOSED, None, [], id="closed-without-closed-at"),
+        pytest.param(TicketStatus.REJECTED, NOW - timedelta(days=1), [], id="rejected"),
+    ],
+)
+def test_allowed_statuses_client(
+    current: TicketStatus, closed_at: datetime | None, expected: list[TicketStatus]
+):
+    assert allowed_statuses(current, UserRole.CLIENT, closed_at=closed_at, now=NOW) == expected
 
 
 @pytest.mark.parametrize(

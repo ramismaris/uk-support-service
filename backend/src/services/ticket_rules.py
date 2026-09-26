@@ -83,6 +83,23 @@ def check_transition(
         raise ConflictException(_REOPEN_WINDOW_EXPIRED_MESSAGE)
 
 
+def allowed_statuses(
+    current: TicketStatus,
+    acting_as: UserRole,
+    *,
+    closed_at: datetime | None,
+    now: datetime,
+) -> list[TicketStatus]:
+    targets: list[TicketStatus] = []
+    for target in TicketStatus:
+        try:
+            check_transition(current, target, acting_as, closed_at=closed_at, now=now)
+        except (ConflictException, ForbiddenException):
+            continue
+        targets.append(target)
+    return targets
+
+
 def status_after_staff_message(status: TicketStatus) -> TicketStatus | None:
     if status == TicketStatus.NEW:
         return TicketStatus.IN_PROGRESS

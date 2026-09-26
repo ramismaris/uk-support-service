@@ -4,15 +4,27 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
-from src.core.constants import ButtonType, UserRole
+from src.core.constants import (
+    RESOLVED_NO_PREFIX,
+    RESOLVED_YES_PREFIX,
+    ButtonType,
+    SenderType,
+    TicketStatus,
+    UserRole,
+)
 from src.core.exceptions import MessengerException
 from src.core.texts import (
+    RESOLVED_NO_BUTTON,
+    RESOLVED_YES_BUTTON,
     STAFF_NEW_TICKET_BUTTON,
     client_message_staff_text,
     new_ticket_staff_text,
+    reopened_staff_text,
+    status_message_text,
 )
 from src.db.session import AsyncSessionLocal
 from src.models.ticket import Ticket
+from src.models.user import User
 from src.providers.factory import get_messenger_provider
 from src.providers.messenger_provider import Button, MessengerProvider
 from src.repositories.file_repository import FileRepository
@@ -20,6 +32,7 @@ from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.repositories.user_repository import UserRepository
+from src.services.events import publish_message_created
 from src.services.status_card import build_status_card
 
 logger = logging.getLogger(__name__)
@@ -52,6 +65,42 @@ class NotificationService:
         text = build_status_card(ticket, history, ZoneInfo(settings.timezone))
         await self.messenger.edit_message(ticket.status_message_max_id, text, markdown=True)
 
+    async def send_status_message(self, ticket: Ticket, comment: str | None) -> None:
+        text = status_message_text(ticket.type, ticket.id, ticket.status, comment)
+        buttons = None
+        if ticket.status == TicketStatus.CLOSED:
+            buttons = [
+                [
+                    Button(
+                        RESOLVED_YES_BUTTON,
+                        ButtonType.CALLBACK,
+                        f"{RESOLVED_YES_PREFIX}{ticket.id}",
+                    ),
+                    Button(
+                        RESOLVED_NO_BUTTON,
+                        ButtonType.CALLBACK,
+                        f"{RESOLVED_NO_PREFIX}{ticket.id}",
+                    ),
+                ]
+            ]
+        try:
+            max_message_id = await self.messenger.send_message(
+                ticket.client.max_user_id, text, buttons=buttons
+            )
+            message = await self.messages.create(
+                ticket.id,
+                SenderType.SYSTEM,
+                text=text,
+                max_message_id=max_message_id,
+            )
+            await self.db.commit()
+            await publish_message_created(self.db, message.id)
+        finally:
+            try:
+                await self.update_status_card(ticket)
+            except MessengerException:
+                logger.warning("Failed to update status card for ticket %s", ticket.id)
+
     async def notify_staff_client_message(self, message_id: int) -> None:
         message = await self.messages.get_by_id(message_id)
         ticket = await self.tickets.get_by_id(message.ticket_id)
@@ -65,21 +114,37 @@ class NotificationService:
         )
         buttons = [[Button(STAFF_NEW_TICKET_BUTTON, ButtonType.OPEN_APP, f"ticket_{ticket.id}")]]
 
+        for staff in await self._staff_recipients(ticket):
+            try:
+                await self.messenger.send_message(staff.max_user_id, text, buttons=buttons)
+            except MessengerException:
+                logger.warning("Failed to notify staff user %s", staff.id)
+
+    async def notify_staff_reopened(self, ticket_id: int) -> None:
+        ticket = await self.tickets.get_by_id(ticket_id)
+        text = reopened_staff_text(
+            ticket_id=ticket.id,
+            ticket_type=ticket.type,
+            client_first_name=ticket.client.first_name,
+            client_last_name=ticket.client.last_name,
+        )
+        buttons = [[Button(STAFF_NEW_TICKET_BUTTON, ButtonType.OPEN_APP, f"ticket_{ticket.id}")]]
+
+        for staff in await self._staff_recipients(ticket):
+            try:
+                await self.messenger.send_message(staff.max_user_id, text, buttons=buttons)
+            except MessengerException:
+                logger.warning("Failed to notify staff user %s", staff.id)
+
+    async def _staff_recipients(self, ticket: Ticket) -> list[User]:
         assignee = ticket.assignee
         if (
             assignee is not None
             and assignee.role in (UserRole.MANAGER, UserRole.ADMIN)
             and not assignee.is_blocked
         ):
-            recipients = [assignee]
-        else:
-            recipients = await self.users.list_staff()
-
-        for staff in recipients:
-            try:
-                await self.messenger.send_message(staff.max_user_id, text, buttons=buttons)
-            except MessengerException:
-                logger.warning("Failed to notify staff user %s", staff.id)
+            return [assignee]
+        return await self.users.list_staff()
 
     async def notify_staff_new_ticket(self, ticket_id: int) -> None:
         ticket = await self.tickets.get_by_id(ticket_id)
@@ -114,3 +179,9 @@ async def notify_staff_about_client_message(message_id: int) -> None:
     async with AsyncSessionLocal() as db:
         service = NotificationService(db, get_messenger_provider())
         await service.notify_staff_client_message(message_id)
+
+
+async def notify_staff_about_reopened_ticket(ticket_id: int) -> None:
+    async with AsyncSessionLocal() as db:
+        service = NotificationService(db, get_messenger_provider())
+        await service.notify_staff_reopened(ticket_id)

@@ -1,10 +1,14 @@
-from src.core.constants import TicketType
+from src.core.constants import TicketStatus, TicketType
 from src.core.texts import (
     DESCRIPTION_MAX_LENGTH,
+    STATUS_RESOLVED_QUESTION,
     client_message_staff_text,
+    reopened_staff_text,
     staff_message_client_text,
+    status_message_text,
     ticket_button_label,
     ticket_dative,
+    ticket_genitive,
 )
 
 
@@ -104,6 +108,82 @@ def test_client_message_staff_text_cuts_long_text() -> None:
 
     assert text.endswith("а" * DESCRIPTION_MAX_LENGTH + "…")
     assert "а" * (DESCRIPTION_MAX_LENGTH + 1) not in text
+
+
+def test_ticket_genitive_request() -> None:
+    assert ticket_genitive(TicketType.REQUEST, 1042) == "заявки №1042"
+
+
+def test_ticket_genitive_question() -> None:
+    assert ticket_genitive(TicketType.QUESTION, 1051) == "вопроса №1051"
+
+
+def test_status_message_text_in_progress() -> None:
+    assert (
+        status_message_text(TicketType.REQUEST, 1042, TicketStatus.IN_PROGRESS, None)
+        == "🟢 Статус заявки №1042: В работе."
+    )
+
+
+def test_status_message_text_waiting_client() -> None:
+    assert (
+        status_message_text(TicketType.REQUEST, 1042, TicketStatus.WAITING_CLIENT, None)
+        == "🟡 Статус заявки №1042: Нужен ваш ответ. Напишите его в этот чат."
+    )
+
+
+def test_status_message_text_rejected_with_reason() -> None:
+    assert (
+        status_message_text(TicketType.REQUEST, 1042, TicketStatus.REJECTED, "Не наш профиль")
+        == "🔴 Статус заявки №1042: Отклонена.\nПричина: Не наш профиль"
+    )
+
+
+def test_status_message_text_closed_request() -> None:
+    assert (
+        status_message_text(TicketType.REQUEST, 1042, TicketStatus.CLOSED, None)
+        == "🟢 Статус заявки №1042: Закрыта.\nПроблема решена?"
+    )
+
+
+def test_status_message_text_question_uses_question_wording() -> None:
+    assert (
+        status_message_text(TicketType.QUESTION, 1051, TicketStatus.IN_PROGRESS, None)
+        == "🟢 Статус вопроса №1051: В работе."
+    )
+    assert (
+        status_message_text(TicketType.QUESTION, 1051, TicketStatus.CLOSED, None)
+        == "🟢 Статус вопроса №1051: Закрыта.\nВопрос решён?"
+    )
+
+
+def test_resolved_question_by_ticket_type() -> None:
+    assert STATUS_RESOLVED_QUESTION[TicketType.REQUEST] == "Проблема решена?"
+    assert STATUS_RESOLVED_QUESTION[TicketType.QUESTION] == "Вопрос решён?"
+
+
+def test_reopened_staff_text_request() -> None:
+    assert reopened_staff_text(
+        ticket_id=1042,
+        ticket_type=TicketType.REQUEST,
+        client_first_name="Мария",
+        client_last_name="Иванова",
+    ) == (
+        "🔄 Заявка №1042 · Мария Иванова\n"
+        "Клиент сообщил, что проблема не решена — обращение снова в работе."
+    )
+
+
+def test_reopened_staff_text_question_without_last_name() -> None:
+    assert reopened_staff_text(
+        ticket_id=1051,
+        ticket_type=TicketType.QUESTION,
+        client_first_name="Мария",
+        client_last_name=None,
+    ) == (
+        "🔄 Вопрос №1051 · Мария\n"
+        "Клиент сообщил, что проблема не решена — обращение снова в работе."
+    )
 
 
 def test_ticket_dative_request() -> None:

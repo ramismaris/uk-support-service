@@ -50,6 +50,20 @@ TICKET_CLOSED_FOR_STAFF = "Обращение закрыто — написат�
 TICKET_CLOSED_FOR_CLIENT = "Обращение №{ticket_id} уже закрыто"
 TICKET_REPLY_BUTTON = "Ответить"
 
+# Status change, closing and rating
+STATUS_COMMENT_LIMIT = 1000
+STATUS_COMMENT_TOO_LONG = f"Комментарий — не больше {STATUS_COMMENT_LIMIT} символов"
+REJECT_REASON_REQUIRED = "Укажите причину отклонения"
+RATING_INVALID = "Оценка — от 1 до 5"
+RATING_ONLY_CLOSED = "Оценить можно только закрытое обращение"
+
+RESOLVED_YES_BUTTON = "Да"
+RESOLVED_NO_BUTTON = "Нет"
+STATUS_RESOLVED_QUESTION: dict[TicketType, str] = {
+    TicketType.REQUEST: "Проблема решена?",
+    TicketType.QUESTION: "Вопрос решён?",
+}
+
 CHAT_SENT = "Сообщение добавлено к {label}."
 CHAT_WRITE_PROMPT = "Напишите сообщение по {label}."
 CHAT_WRITE_NOTIFICATION = "Пишите — сообщение уйдёт сотруднику"
@@ -165,6 +179,55 @@ def ticket_dative(ticket_type: TicketType, ticket_id: int) -> str:
     if ticket_type == TicketType.QUESTION:
         return f"вопросу №{ticket_id}"
     return f"заявке №{ticket_id}"
+
+
+def ticket_genitive(ticket_type: TicketType, ticket_id: int) -> str:
+    if ticket_type == TicketType.QUESTION:
+        return f"вопроса №{ticket_id}"
+    return f"заявки №{ticket_id}"
+
+
+_STATUS_MESSAGE_ICONS: dict[TicketStatus, str] = {
+    TicketStatus.IN_PROGRESS: "🟢",
+    TicketStatus.WAITING_CLIENT: "🟡",
+    TicketStatus.REJECTED: "🔴",
+    TicketStatus.CLOSED: "🟢",
+}
+
+
+def status_message_text(
+    ticket_type: TicketType,
+    ticket_id: int,
+    status: TicketStatus,
+    comment: str | None,
+) -> str:
+    label = STATUS_LABELS[status]
+    text = f"{_STATUS_MESSAGE_ICONS[status]} Статус {ticket_genitive(ticket_type, ticket_id)}: {label}."
+    if status == TicketStatus.WAITING_CLIENT:
+        text += " Напишите его в этот чат."
+    elif status == TicketStatus.REJECTED:
+        text += f"\nПричина: {comment}"
+    elif status == TicketStatus.CLOSED:
+        text += f"\n{STATUS_RESOLVED_QUESTION[ticket_type]}"
+    return text
+
+
+def reopened_staff_text(
+    *,
+    ticket_id: int,
+    ticket_type: TicketType,
+    client_first_name: str,
+    client_last_name: str | None,
+) -> str:
+    if ticket_type == TicketType.QUESTION:
+        header = f"🔄 Вопрос №{ticket_id}"
+    else:
+        header = f"🔄 Заявка №{ticket_id}"
+    client_name = " ".join(part for part in (client_first_name, client_last_name) if part)
+    return (
+        f"{header} · {client_name}\n"
+        "Клиент сообщил, что проблема не решена — обращение снова в работе."
+    )
 
 
 def ticket_button_label(ticket_type: TicketType, ticket_id: int, category_title: str | None) -> str:
