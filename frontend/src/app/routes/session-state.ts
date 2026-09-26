@@ -5,8 +5,9 @@ export type SessionState =
   | { kind: 'loading' }
   | { kind: 'ready'; user: User }
   | { kind: 'unauthenticated' }
-  | { kind: 'blocked' }
-  | { kind: 'error'; message: string }
+  // canSignOut: a browser user must be able to leave a dead end; in Max sign-in is automatic.
+  | { kind: 'blocked'; canSignOut: boolean }
+  | { kind: 'error'; message: string; canSignOut: boolean }
 
 export interface SessionInput {
   token: string | null
@@ -22,16 +23,17 @@ function errorMessage(error: unknown): string {
 }
 
 export function resolveSessionState({ token, inMax, me, maxLogin }: SessionInput): SessionState {
+  const canSignOut = !inMax
   if (token !== null && me.data) {
     return { kind: 'ready', user: me.data }
   }
   if (isApiError(me.error, 403) || isApiError(maxLogin.error, 403)) {
-    return { kind: 'blocked' }
+    return { kind: 'blocked', canSignOut }
   }
   if (token !== null) {
     // 401 means the token is being dropped by the api client; wait for that.
     if (me.error && !isApiError(me.error, 401)) {
-      return { kind: 'error', message: errorMessage(me.error) }
+      return { kind: 'error', message: errorMessage(me.error), canSignOut }
     }
     return { kind: 'loading' }
   }
@@ -39,7 +41,7 @@ export function resolveSessionState({ token, inMax, me, maxLogin }: SessionInput
     return { kind: 'unauthenticated' }
   }
   if (maxLogin.error) {
-    return { kind: 'error', message: errorMessage(maxLogin.error) }
+    return { kind: 'error', message: errorMessage(maxLogin.error), canSignOut }
   }
   return { kind: 'loading' }
 }
