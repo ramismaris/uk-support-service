@@ -14,6 +14,7 @@ from src.services.ticket_rules import (
     can_rate,
     check_transition,
     is_open,
+    is_unread,
     route_client_message,
     status_after_client_message,
     status_after_staff_message,
@@ -240,6 +241,25 @@ def test_open_statuses():
 )
 def test_is_open(status: TicketStatus, expected: bool):
     assert is_open(status) is expected
+
+
+@pytest.mark.parametrize(
+    ("last_client_message_at", "staff_seen_at", "expected"),
+    [
+        pytest.param(None, None, False, id="no-client-message"),
+        pytest.param(None, NOW - timedelta(minutes=1), False, id="seen-without-message"),
+        pytest.param(NOW, None, True, id="never-seen"),
+        pytest.param(NOW, NOW - timedelta(minutes=1), True, id="seen-before"),
+        pytest.param(NOW, NOW + timedelta(minutes=1), False, id="seen-after"),
+        pytest.param(NOW, NOW, False, id="seen-at-the-same-time"),
+    ],
+)
+def test_is_unread(
+    last_client_message_at: datetime | None,
+    staff_seen_at: datetime | None,
+    expected: bool,
+):
+    assert is_unread(last_client_message_at, staff_seen_at) is expected
 
 
 def test_route_reply_to_open_ticket_wins_over_active_and_several_open():

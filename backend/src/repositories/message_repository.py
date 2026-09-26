@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +19,7 @@ class MessageRepository:
         author_id: int | None = None,
         text: str | None = None,
         max_message_id: str | None = None,
+        created_at: datetime | None = None,
     ) -> Message:
         message = Message(
             ticket_id=ticket_id,
@@ -25,9 +28,19 @@ class MessageRepository:
             text=text,
             max_message_id=max_message_id,
         )
+        if created_at is not None:
+            message.created_at = created_at
         self.db.add(message)
         await self.db.flush()
         return message
+
+    async def list_by_ticket(self, ticket_id: int) -> list[Message]:
+        result = await self.db.execute(
+            select(Message)
+            .where(Message.ticket_id == ticket_id)
+            .order_by(Message.created_at, Message.id)
+        )
+        return list(result.scalars().all())
 
     async def get_by_id(self, message_id: int) -> Message | None:
         result = await self.db.execute(select(Message).where(Message.id == message_id))

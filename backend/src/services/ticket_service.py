@@ -1,13 +1,17 @@
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import TicketStatus
 from src.core.exceptions import NotFoundException
 from src.core.texts import TICKET_NOT_FOUND
 from src.models.file import File
+from src.models.message import Message
 from src.models.status_change import StatusChange
 from src.models.ticket import Ticket
 from src.models.user import User
 from src.repositories.file_repository import FileRepository
+from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.services import ticket_rules
@@ -17,6 +21,7 @@ class TicketService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.tickets = TicketRepository(db)
+        self.messages = MessageRepository(db)
         self.files = FileRepository(db)
         self.status_changes = StatusChangeRepository(db)
 
@@ -56,3 +61,16 @@ class TicketService:
         files = await self.files.list_by_ticket(ticket_id)
         history = await self.status_changes.list_by_ticket(ticket_id)
         return ticket, files, history
+
+    async def list_messages(self, ticket_id: int) -> list[Message]:
+        ticket = await self.tickets.get_by_id(ticket_id)
+        if ticket is None:
+            raise NotFoundException(TICKET_NOT_FOUND)
+        return await self.messages.list_by_ticket(ticket_id)
+
+    async def mark_read(self, ticket_id: int) -> None:
+        ticket = await self.tickets.get_by_id(ticket_id)
+        if ticket is None:
+            raise NotFoundException(TICKET_NOT_FOUND)
+        ticket.staff_seen_at = datetime.now(UTC)
+        await self.db.commit()

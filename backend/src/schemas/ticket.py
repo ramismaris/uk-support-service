@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from src.core.constants import TicketPriority, TicketStatus, TicketType
 from src.schemas.file import FileResponse
 from src.schemas.user import UserResponse, UserShortResponse
+from src.services import ticket_rules
 
 
 class CategoryShortResponse(BaseModel):
@@ -35,6 +36,13 @@ class TicketListItemResponse(BaseModel):
     client: UserShortResponse
     assignee: UserShortResponse | None
     created_at: datetime
+    last_client_message_at: datetime | None
+    staff_seen_at: datetime | None = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def unread(self) -> bool:
+        return ticket_rules.is_unread(self.last_client_message_at, self.staff_seen_at)
 
 
 class StatusChangeResponse(BaseModel):

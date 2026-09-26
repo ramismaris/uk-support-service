@@ -13,16 +13,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.constants import ContentKey, TicketStatus, TicketType, UserRole
+from src.core.constants import ContentKey, SenderType, TicketStatus, TicketType, UserRole
 from src.db.session import AsyncSessionLocal
 from src.models.building import Building
 from src.models.category import Category
 from src.models.content_block import ContentBlock
+from src.models.message import Message
 from src.models.ticket import Ticket
 from src.models.user import User
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.content_block_repository import ContentBlockRepository
+from src.repositories.message_repository import MessageRepository
 from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
@@ -120,6 +122,78 @@ CONTENT_BLOCKS = {
 }
 
 
+DEMO_CHATS: list[dict] = [
+    {
+        "description": "Течёт кран на кухне, под раковиной лужа.",
+        "messages": [
+            {
+                "sender": SenderType.CLIENT,
+                "text": "Вода уже капает к соседям снизу, можно побыстрее?",
+                "offset": timedelta(minutes=30),
+            },
+        ],
+        "last_client_message_at_offset": timedelta(minutes=30),
+        "staff_seen_at_offset": None,
+    },
+    {
+        "description": "В подъезде на 3-м этаже не горит свет.",
+        "messages": [
+            {
+                "sender": SenderType.STAFF,
+                "text": "Здравствуйте! Электрик зайдёт сегодня до 18:00.",
+                "offset": timedelta(minutes=30),
+            },
+            {
+                "sender": SenderType.CLIENT,
+                "text": "Спасибо, буду ждать.",
+                "offset": timedelta(hours=1),
+            },
+        ],
+        "last_client_message_at_offset": timedelta(hours=1),
+        "staff_seen_at_offset": timedelta(hours=1, minutes=5),
+    },
+    {
+        "description": "Лифт останавливается между этажами, двери открываются не сразу.",
+        "messages": [
+            {
+                "sender": SenderType.STAFF,
+                "text": "Здравствуйте! Передали заявку в лифтовую службу.",
+                "offset": timedelta(hours=1),
+            },
+            {
+                "sender": SenderType.STAFF,
+                "text": "Подскажите, пожалуйста, в каком подъезде этот лифт?",
+                "offset": timedelta(days=1),
+            },
+        ],
+        "last_client_message_at_offset": None,
+        "staff_seen_at_offset": None,
+    },
+    {
+        "description": "Не вывозят мусор у второго подъезда.",
+        "messages": [
+            {
+                "sender": SenderType.STAFF,
+                "text": "Здравствуйте! Передали подрядчику, вывоз сегодня вечером.",
+                "offset": timedelta(hours=2),
+            },
+            {
+                "sender": SenderType.CLIENT,
+                "text": "Всё вывезли, спасибо!",
+                "offset": timedelta(days=1, hours=2),
+            },
+            {
+                "sender": SenderType.STAFF,
+                "text": "Рады помочь! Закрываем заявку.",
+                "offset": timedelta(days=2) - timedelta(minutes=10),
+            },
+        ],
+        "last_client_message_at_offset": timedelta(days=1, hours=2),
+        "staff_seen_at_offset": timedelta(days=2),
+    },
+]
+
+
 async def seed(db: AsyncSession) -> None:
     users = UserRepository(db)
     for spec in USERS:
@@ -154,6 +228,8 @@ async def seed(db: AsyncSession) -> None:
     )
     if not has_tickets:
         await _seed_demo_tickets(db, client, manager, building, categories)
+
+    await _seed_demo_chats(db, client, manager)
 
 
 async def _seed_demo_tickets(
@@ -292,6 +368,46 @@ async def _seed_demo_tickets(
                 created_at=row["at"],
             )
             previous_status = row["to_status"]
+
+
+async def _seed_demo_chats(db: AsyncSession, client: User, manager: User) -> None:
+    has_messages = await db.scalar(
+        select(func.count())
+        .select_from(Message)
+        .join(Ticket, Message.ticket_id == Ticket.id)
+        .where(Ticket.client_id == client.id)
+    )
+    if has_messages:
+        return
+
+    messages = MessageRepository(db)
+    for spec in DEMO_CHATS:
+        ticket = await db.scalar(
+            select(Ticket).where(
+                Ticket.client_id == client.id,
+                Ticket.description == spec["description"],
+            )
+        )
+        if ticket is None:
+            continue
+
+        for message_spec in spec["messages"]:
+            is_staff = message_spec["sender"] == SenderType.STAFF
+            await messages.create(
+                ticket.id,
+                message_spec["sender"],
+                author_id=manager.id if is_staff else client.id,
+                text=message_spec["text"],
+                created_at=ticket.created_at + message_spec["offset"],
+            )
+
+        last_client_message_offset = spec["last_client_message_at_offset"]
+        if last_client_message_offset is not None:
+            ticket.last_client_message_at = ticket.created_at + last_client_message_offset
+        staff_seen_offset = spec["staff_seen_at_offset"]
+        if staff_seen_offset is not None:
+            ticket.staff_seen_at = ticket.created_at + staff_seen_offset
+    await db.flush()
 
 
 async def _count_rows(db: AsyncSession) -> dict[str, int]:

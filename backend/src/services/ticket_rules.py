@@ -46,6 +46,15 @@ def is_open(status: TicketStatus) -> bool:
     return status in OPEN_STATUSES
 
 
+def is_unread(
+    last_client_message_at: datetime | None,
+    staff_seen_at: datetime | None,
+) -> bool:
+    if last_client_message_at is None:
+        return False
+    return staff_seen_at is None or last_client_message_at > staff_seen_at
+
+
 def can_client_reopen(status: TicketStatus, closed_at: datetime | None, now: datetime) -> bool:
     if status != TicketStatus.CLOSED or closed_at is None:
         return False

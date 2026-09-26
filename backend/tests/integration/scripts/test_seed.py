@@ -1,19 +1,21 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from itertools import pairwise
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from scripts.seed import seed
-from src.core.constants import ContentKey, TicketStatus, TicketType, UserRole
+from src.core.constants import ContentKey, SenderType, TicketStatus, TicketType, UserRole
 from src.models.building import Building
 from src.models.category import Category
 from src.models.content_block import ContentBlock
+from src.models.message import Message
 from src.models.residence import Residence
 from src.models.status_change import StatusChange
 from src.models.ticket import Ticket
 from src.models.user import User
 from src.repositories.content_block_repository import ContentBlockRepository
+from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.user_repository import UserRepository
 from src.services import ticket_rules
@@ -158,3 +160,113 @@ async def test_seed_tickets_are_idempotent(db: AsyncSession) -> None:
     assert await _count(db, Ticket) == tickets_before
     assert await _count(db, StatusChange) == history_before
     assert await _count(db, Residence) == residences_before
+
+
+LEAKY_DESCRIPTION = "Течёт кран на кухне, под раковиной лужа."
+LIGHT_DESCRIPTION = "В подъезде на 3-м этаже не горит свет."
+LIFT_DESCRIPTION = "Лифт останавливается между этажами, двери открываются не сразу."
+GARBAGE_DESCRIPTION = "Не вывозят мусор у второго подъезда."
+REJECTED_DESCRIPTION = "Прошу установить шлагбаум во дворе."
+QUESTION_DESCRIPTION = "Когда будет перерасчёт за отопление за прошлый месяц?"
+
+DEMO_MESSAGES_COUNT = 8
+
+
+async def _ticket_by_description(db: AsyncSession, client: User, description: str) -> Ticket:
+    ticket = await db.scalar(
+        select(Ticket).where(Ticket.client_id == client.id, Ticket.description == description)
+    )
+    assert ticket is not None
+    return ticket
+
+
+async def test_seed_creates_demo_chats(db: AsyncSession) -> None:
+    await seed(db)
+
+    client = await UserRepository(db).get_by_max_user_id(1000003)
+    manager = await UserRepository(db).get_by_max_user_id(1000002)
+    assert client is not None
+    assert manager is not None
+
+    messages = MessageRepository(db)
+
+    leaky = await _ticket_by_description(db, client, LEAKY_DESCRIPTION)
+    chat = await messages.list_by_ticket(leaky.id)
+    assert [message.text for message in chat] == [
+        "Вода уже капает к соседям снизу, можно побыстрее?"
+    ]
+    assert chat[0].sender_type == SenderType.CLIENT
+    assert chat[0].author_id == client.id
+    assert chat[0].max_message_id is None
+    assert chat[0].created_at == leaky.created_at + timedelta(minutes=30)
+    assert leaky.last_client_message_at == leaky.created_at + timedelta(minutes=30)
+    assert leaky.staff_seen_at is None
+
+    light = await _ticket_by_description(db, client, LIGHT_DESCRIPTION)
+    chat = await messages.list_by_ticket(light.id)
+    assert [message.text for message in chat] == [
+        "Здравствуйте! Электрик зайдёт сегодня до 18:00.",
+        "Спасибо, буду ждать.",
+    ]
+    assert [message.sender_type for message in chat] == [SenderType.STAFF, SenderType.CLIENT]
+    assert [message.author_id for message in chat] == [manager.id, client.id]
+    assert chat[0].created_at == light.created_at + timedelta(minutes=30)
+    assert chat[1].created_at == light.created_at + timedelta(hours=1)
+    assert light.last_client_message_at == light.created_at + timedelta(hours=1)
+    assert light.staff_seen_at == light.created_at + timedelta(hours=1, minutes=5)
+
+    lift = await _ticket_by_description(db, client, LIFT_DESCRIPTION)
+    chat = await messages.list_by_ticket(lift.id)
+    assert [message.text for message in chat] == [
+        "Здравствуйте! Передали заявку в лифтовую службу.",
+        "Подскажите, пожалуйста, в каком подъезде этот лифт?",
+    ]
+    assert [message.sender_type for message in chat] == [SenderType.STAFF, SenderType.STAFF]
+    assert [message.author_id for message in chat] == [manager.id, manager.id]
+    assert lift.last_client_message_at is None
+    assert lift.staff_seen_at is None
+
+    garbage = await _ticket_by_description(db, client, GARBAGE_DESCRIPTION)
+    chat = await messages.list_by_ticket(garbage.id)
+    assert [message.text for message in chat] == [
+        "Здравствуйте! Передали подрядчику, вывоз сегодня вечером.",
+        "Всё вывезли, спасибо!",
+        "Рады помочь! Закрываем заявку.",
+    ]
+    assert [message.sender_type for message in chat] == [
+        SenderType.STAFF,
+        SenderType.CLIENT,
+        SenderType.STAFF,
+    ]
+    assert garbage.last_client_message_at == garbage.created_at + timedelta(days=1, hours=2)
+    assert garbage.staff_seen_at == garbage.created_at + timedelta(days=2)
+
+    rejected = await _ticket_by_description(db, client, REJECTED_DESCRIPTION)
+    question = await _ticket_by_description(db, client, QUESTION_DESCRIPTION)
+    assert await messages.list_by_ticket(rejected.id) == []
+    assert await messages.list_by_ticket(question.id) == []
+
+    assert await _count(db, Message) == DEMO_MESSAGES_COUNT
+
+
+async def test_seed_demo_chats_are_idempotent(db: AsyncSession) -> None:
+    await seed(db)
+    assert await _count(db, Message) == DEMO_MESSAGES_COUNT
+
+    await seed(db)
+
+    assert await _count(db, Message) == DEMO_MESSAGES_COUNT
+
+
+async def test_seed_adds_chats_to_existing_tickets_without_messages(db: AsyncSession) -> None:
+    await seed(db)
+    await db.execute(delete(Message))
+    for ticket in (await db.execute(select(Ticket))).scalars().all():
+        ticket.last_client_message_at = None
+        ticket.staff_seen_at = None
+    await db.flush()
+    assert await _count(db, Message) == 0
+
+    await seed(db)
+
+    assert await _count(db, Message) == DEMO_MESSAGES_COUNT
