@@ -1,5 +1,7 @@
+from maxapi.enums.upload_type import UploadType
 from maxapi.types import CallbackButton, LinkButton, RequestContactButton
 from maxapi.types.attachments import AttachmentButton
+from maxapi.types.attachments.upload import AttachmentPayload, AttachmentUpload
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.core.constants import CHAT_TICKET_PREFIX
@@ -63,6 +65,10 @@ QUESTION_CANCEL = "question:cancel"
 QUESTION_PREFIX = "question:"
 
 RATE_PREFIX = "rate:"
+
+
+def photo_attachment(token: str) -> AttachmentUpload:
+    return AttachmentUpload(type=UploadType.IMAGE, payload=AttachmentPayload(token=token))
 
 
 def main_menu_keyboard() -> AttachmentButton:

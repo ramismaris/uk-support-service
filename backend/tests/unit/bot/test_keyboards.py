@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 
+from maxapi.enums.upload_type import UploadType
 from maxapi.types import CallbackButton, LinkButton, RequestContactButton
+from maxapi.types.attachments.upload import AttachmentUpload
 
 from src.bot.keyboards import (
     CHAT_CANCEL,
@@ -41,6 +43,7 @@ from src.bot.keyboards import (
     my_tickets_keyboard,
     payment_keyboard,
     phone_keyboard,
+    photo_attachment,
     photos_done_keyboard,
     photos_skip_keyboard,
     question_cancel_keyboard,
@@ -50,6 +53,14 @@ from src.bot.keyboards import (
 )
 from src.core.constants import CHAT_TICKET_PREFIX, TicketStatus, TicketType
 from src.schemas.content import PaymentContent
+
+
+def test_photo_attachment_carries_token_as_image():
+    attachment = photo_attachment("tok-1")
+
+    assert isinstance(attachment, AttachmentUpload)
+    assert attachment.type == UploadType.IMAGE
+    assert attachment.payload.token == "tok-1"
 
 
 def test_main_menu_has_one_button_per_row_in_order():

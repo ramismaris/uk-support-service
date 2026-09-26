@@ -2,7 +2,10 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from maxapi.enums.upload_type import UploadType
+from maxapi.exceptions import MaxApiError
 from maxapi.types import BotStarted, MessageCallback, MessageCreated
+from maxapi.types.attachments.upload import AttachmentUpload
 
 from src.bot.handlers import menu
 from src.core.constants import TicketStatus, TicketType
@@ -11,7 +14,6 @@ from src.core.texts import (
     OUTDATED_BUTTON_TEXT,
     QUESTION_SECTION_DEFAULT,
     SECTION_EMPTY_TEXT,
-    START_TEXT,
     USE_MENU_TEXT,
 )
 from src.schemas.content import (
@@ -20,8 +22,8 @@ from src.schemas.content import (
     EmergencyContent,
     PaymentContent,
     ServicesContent,
-    WelcomeContent,
 )
+from src.services.welcome_service import WelcomeMessage
 
 
 def _message_created() -> MagicMock:
@@ -63,7 +65,6 @@ def _keyboard_rows(attachment: object) -> list[list[object]]:
 @pytest.fixture
 def content_service() -> MagicMock:
     service = MagicMock()
-    service.get_welcome = AsyncMock(return_value=WelcomeContent(text="Добро пожаловать"))
     service.get_emergency = AsyncMock(return_value=EmergencyContent(text="Аварийный текст"))
     service.get_services = AsyncMock(return_value=ServicesContent(text="Текст услуг"))
     service.get_payment = AsyncMock(
@@ -80,6 +81,16 @@ def content_service() -> MagicMock:
         )
     )
     with patch("src.bot.handlers.menu.ContentService", return_value=service):
+        yield service
+
+
+@pytest.fixture
+def welcome_service() -> MagicMock:
+    service = MagicMock()
+    service.get_message = AsyncMock(
+        return_value=WelcomeMessage(text="Добро пожаловать", photo_token=None)
+    )
+    with patch("src.bot.handlers.menu.WelcomeService", return_value=service):
         yield service
 
 
@@ -101,16 +112,17 @@ def _ticket(
     return SimpleNamespace(id=ticket_id, type=ticket_type, status=status, category=category)
 
 
-async def test_start_sends_welcome_with_main_menu(content_service: MagicMock):
+async def test_start_sends_welcome_with_main_menu(welcome_service: MagicMock):
     event = _message_created()
     context = _context()
 
     await menu.handle_start(event, context, MagicMock())
 
     context.clear.assert_awaited_once()
-    content_service.get_welcome.assert_awaited_once()
+    welcome_service.get_message.assert_awaited_once()
     kwargs = event.message.answer.await_args.kwargs
-    assert event.message.answer.await_args.args[0] == "Добро пожаловать"
+    assert kwargs["text"] == "Добро пожаловать"
+    assert len(kwargs["attachments"]) == 1
     assert [row[0].payload for row in _keyboard_rows(kwargs["attachments"][0])] == [
         "form:start",
         "menu:tickets",
@@ -121,16 +133,51 @@ async def test_start_sends_welcome_with_main_menu(content_service: MagicMock):
     ]
 
 
-async def test_start_uses_fallback_without_welcome_block(content_service: MagicMock):
-    content_service.get_welcome.return_value = None
+async def test_start_sends_photo_before_main_menu(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
     event = _message_created()
 
     await menu.handle_start(event, _context(), MagicMock())
 
-    assert event.message.answer.await_args.args[0] == START_TEXT
+    attachments = event.message.answer.await_args.kwargs["attachments"]
+    assert len(attachments) == 2
+    assert isinstance(attachments[0], AttachmentUpload)
+    assert attachments[0].type == UploadType.IMAGE
+    assert attachments[0].payload.token == "tok-1"
+    assert len(_keyboard_rows(attachments[1])) == 6
 
 
-async def test_bot_started_sends_welcome_with_main_menu(content_service: MagicMock):
+async def test_start_retries_without_photo_when_max_rejects(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _message_created()
+    event.message.answer = AsyncMock(side_effect=[MaxApiError(code=400, raw={}), None])
+
+    await menu.handle_start(event, _context(), MagicMock())
+
+    assert event.message.answer.await_count == 2
+    first, second = event.message.answer.await_args_list
+    assert first.kwargs["text"] == "Добро пожаловать"
+    assert len(first.kwargs["attachments"]) == 2
+    assert second.kwargs["text"] == "Добро пожаловать"
+    assert len(second.kwargs["attachments"]) == 1
+    assert not isinstance(second.kwargs["attachments"][0], AttachmentUpload)
+
+
+async def test_start_without_photo_does_not_retry(welcome_service: MagicMock):
+    event = _message_created()
+    event.message.answer = AsyncMock(side_effect=MaxApiError(code=400, raw={}))
+
+    with pytest.raises(MaxApiError):
+        await menu.handle_start(event, _context(), MagicMock())
+
+    event.message.answer.assert_awaited_once()
+
+
+async def test_bot_started_sends_welcome_with_main_menu(welcome_service: MagicMock):
     event = _bot_started()
     context = _context()
 
@@ -140,16 +187,41 @@ async def test_bot_started_sends_welcome_with_main_menu(content_service: MagicMo
     kwargs = event.bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == 7
     assert kwargs["text"] == "Добро пожаловать"
+    assert len(kwargs["attachments"]) == 1
     assert len(_keyboard_rows(kwargs["attachments"][0])) == 6
 
 
-async def test_bot_started_uses_fallback_without_welcome_block(content_service: MagicMock):
-    content_service.get_welcome.return_value = None
+async def test_bot_started_sends_photo_before_main_menu(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
     event = _bot_started()
 
     await menu.handle_bot_started(event, _context(), MagicMock())
 
-    assert event.bot.send_message.await_args.kwargs["text"] == START_TEXT
+    attachments = event.bot.send_message.await_args.kwargs["attachments"]
+    assert len(attachments) == 2
+    assert isinstance(attachments[0], AttachmentUpload)
+    assert attachments[0].payload.token == "tok-1"
+    assert len(_keyboard_rows(attachments[1])) == 6
+
+
+async def test_bot_started_retries_without_photo_when_max_rejects(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _bot_started()
+    event.bot.send_message = AsyncMock(side_effect=[MaxApiError(code=400, raw={}), None])
+
+    await menu.handle_bot_started(event, _context(), MagicMock())
+
+    assert event.bot.send_message.await_count == 2
+    first, second = event.bot.send_message.await_args_list
+    assert first.kwargs["chat_id"] == 7
+    assert len(first.kwargs["attachments"]) == 2
+    assert second.kwargs["chat_id"] == 7
+    assert len(second.kwargs["attachments"]) == 1
+    assert not isinstance(second.kwargs["attachments"][0], AttachmentUpload)
 
 
 async def test_emergency_callback_edits_with_section_text(content_service: MagicMock):
@@ -182,13 +254,75 @@ async def test_payment_callback_edits_with_link_keyboard(content_service: MagicM
     assert rows[1][0].payload == "menu:main"
 
 
-async def test_main_callback_edits_with_welcome_and_main_menu(content_service: MagicMock):
+async def test_main_callback_edits_with_welcome_and_main_menu(welcome_service: MagicMock):
     event = _message_callback("menu:main")
 
     await menu.handle_main(event, MagicMock())
 
-    assert event.edit.await_args.kwargs["text"] == "Добро пожаловать"
-    assert len(_keyboard_rows(event.edit.await_args.kwargs["attachments"][0])) == 6
+    kwargs = event.edit.await_args.kwargs
+    assert kwargs["text"] == "Добро пожаловать"
+    assert len(kwargs["attachments"]) == 1
+    assert len(_keyboard_rows(kwargs["attachments"][0])) == 6
+
+
+async def test_main_callback_edits_with_photo(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _message_callback("menu:main")
+
+    await menu.handle_main(event, MagicMock())
+
+    attachments = event.edit.await_args.kwargs["attachments"]
+    assert len(attachments) == 2
+    assert isinstance(attachments[0], AttachmentUpload)
+    assert attachments[0].payload.token == "tok-1"
+    assert len(_keyboard_rows(attachments[1])) == 6
+
+
+async def test_main_callback_retries_without_photo_when_max_rejects(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _message_callback("menu:main")
+    event.edit = AsyncMock(side_effect=[MaxApiError(code=400, raw={}), None])
+
+    await menu.handle_main(event, MagicMock())
+
+    assert event.edit.await_count == 2
+    first, second = event.edit.await_args_list
+    assert first.kwargs["text"] == "Добро пожаловать"
+    assert len(first.kwargs["attachments"]) == 2
+    assert second.kwargs["text"] == "Добро пожаловать"
+    assert len(second.kwargs["attachments"]) == 1
+    assert not isinstance(second.kwargs["attachments"][0], AttachmentUpload)
+    event.ack.assert_not_awaited()
+
+
+async def test_main_callback_without_original_message_acks(welcome_service: MagicMock):
+    event = _message_callback("menu:main")
+    event.edit = AsyncMock(side_effect=ValueError("message is gone"))
+
+    await menu.handle_main(event, MagicMock())
+
+    event.ack.assert_awaited_once_with(notification=OUTDATED_BUTTON_TEXT)
+
+
+async def test_main_callback_photo_fallback_without_original_message_acks(
+    welcome_service: MagicMock,
+):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _message_callback("menu:main")
+    event.edit = AsyncMock(
+        side_effect=[MaxApiError(code=400, raw={}), ValueError("message is gone")]
+    )
+
+    await menu.handle_main(event, MagicMock())
+
+    assert event.edit.await_count == 2
+    event.ack.assert_awaited_once_with(notification=OUTDATED_BUTTON_TEXT)
 
 
 @pytest.mark.parametrize(
@@ -213,6 +347,41 @@ async def test_missing_section_edits_with_placeholder(
     assert [
         row[0].payload for row in _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
     ] == ["menu:main"]
+
+
+@pytest.mark.parametrize(
+    ("payload", "handler"),
+    [
+        ("menu:emergency", menu.handle_emergency),
+        ("menu:services", menu.handle_services),
+        ("menu:payment", menu.handle_payment),
+        ("menu:question", menu.handle_question),
+    ],
+)
+async def test_sections_edit_with_only_their_keyboard(
+    content_service: MagicMock, payload: str, handler: object
+):
+    event = _message_callback(payload)
+
+    await handler(event, MagicMock())
+
+    attachments = event.edit.await_args.kwargs["attachments"]
+    assert len(attachments) == 1
+    assert not isinstance(attachments[0], AttachmentUpload)
+
+
+@pytest.mark.parametrize("tickets", [[], [_ticket(1042)]])
+async def test_my_tickets_edits_with_only_its_keyboard(
+    client_service: MagicMock, tickets: list[SimpleNamespace]
+):
+    client_service.list_tickets.return_value = tickets
+    event = _message_callback("menu:tickets")
+
+    await menu.handle_my_tickets(event, MagicMock(), MagicMock())
+
+    attachments = event.edit.await_args.kwargs["attachments"]
+    assert len(attachments) == 1
+    assert not isinstance(attachments[0], AttachmentUpload)
 
 
 async def test_unknown_menu_payload_acks_with_notification():
