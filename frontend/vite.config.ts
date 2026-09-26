@@ -10,7 +10,9 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   server: {
-    proxy: { '/api': 'http://localhost:8000' },
+    // localhost resolves to ::1 on some machines and the browser then cannot reach the server.
+    host: '127.0.0.1',
+    proxy: { '/api': { target: 'http://localhost:8000', ws: true } },
   },
   test: {
     environment: 'jsdom',
