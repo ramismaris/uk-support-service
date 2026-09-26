@@ -21,7 +21,6 @@ function SideLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
-      end
       className={({ isActive }) =>
         `rounded-lg px-3 py-2 transition-colors ${
           isActive
@@ -47,7 +46,6 @@ function TabLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
-      end
       className={({ isActive }) => `${base} ${isActive ? 'font-medium text-brand' : ''}`}
     >
       {item.label}
@@ -64,7 +62,7 @@ export function AppShell() {
   const name = getDisplayName(user)
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex h-dvh">
       <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-neutral-200 p-4 lg:flex dark:border-neutral-800">
         <div className="px-3 text-lg font-semibold">Панель УК</div>
         <nav className="flex flex-col gap-1">
@@ -86,7 +84,7 @@ export function AppShell() {
           <span className="text-sm font-medium">{name}</span>
           <LogoutButton />
         </header>
-        <main className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
           <Outlet />
         </main>
       </div>

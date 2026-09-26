@@ -3,7 +3,7 @@ import { isClient, isStaff } from '@/entities/user'
 import { ClientHomePage } from '@/pages/client-home'
 import { LoginPage } from '@/pages/login'
 import { NotFoundPage } from '@/pages/not-found'
-import { StaffHomePage } from '@/pages/staff-home'
+import { TicketsIndexPage, TicketsLayout } from '@/pages/tickets'
 import { routePaths } from '@/shared/config'
 import { AppShell } from '@/widgets/app-shell'
 import { StaffRealtime } from '../realtime/StaffRealtime'
@@ -26,7 +26,12 @@ export const router = createBrowserRouter([
             <AppShell />
           </RequireRole>
         ),
-        children: [{ index: true, element: <StaffHomePage /> }],
+        children: [
+          {
+            element: <TicketsLayout />,
+            children: [{ index: true, element: <TicketsIndexPage /> }],
+          },
+        ],
       },
       {
         path: routePaths.client,
