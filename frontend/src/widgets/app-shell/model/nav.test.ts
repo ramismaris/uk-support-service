@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { User } from '@/entities/user'
-import { visibleNavItems } from './nav'
+import { isNavItemActive, visibleNavItems } from './nav'
 
 const user = (role: User['role']): User => ({
   id: 1,
@@ -17,7 +17,28 @@ describe('visibleNavItems', () => {
     expect(visibleNavItems(user('MANAGER')).map((item) => item.key)).toEqual(['tickets'])
   })
 
-  it('hides sections that are not built yet, even from an admin', () => {
-    expect(visibleNavItems(user('ADMIN')).map((item) => item.key)).toEqual(['tickets'])
+  it('shows the admin sections to an admin', () => {
+    expect(visibleNavItems(user('ADMIN')).map((item) => item.key)).toEqual([
+      'tickets',
+      'content',
+      'users',
+      'appearance',
+    ])
+  })
+})
+
+describe('isNavItemActive', () => {
+  const [tickets, content] = visibleNavItems(user('ADMIN'))
+
+  it('keeps tickets active on the list and on a ticket, not on admin sections', () => {
+    expect(isNavItemActive(tickets, '/staff')).toBe(true)
+    expect(isNavItemActive(tickets, '/staff/tickets/1000')).toBe(true)
+    expect(isNavItemActive(tickets, '/staff/content')).toBe(false)
+  })
+
+  it('matches a section and its sub-pages', () => {
+    expect(isNavItemActive(content, '/staff/content')).toBe(true)
+    expect(isNavItemActive(content, '/staff/content/payment')).toBe(true)
+    expect(isNavItemActive(content, '/staff/contents')).toBe(false)
   })
 })

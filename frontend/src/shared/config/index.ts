@@ -1,2 +1,2 @@
 export { isDevAuthEnabled } from './env'
-export { routePaths, ticketPath } from './routes'
+export { contentPath, routePaths, ticketPath, userPath } from './routes'
