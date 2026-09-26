@@ -1,6 +1,7 @@
 import { WifiOff } from 'lucide-react'
 import type { ActiveTicketStatus, TicketFilters } from '@/entities/ticket'
 import { useSocketStatus } from '@/shared/lib/ws'
+import { NavMenuButton } from '@/widgets/app-shell'
 
 const STATUS_OPTIONS: { value: ActiveTicketStatus | null; label: string }[] = [
   { value: null, label: 'Все' },
@@ -27,7 +28,10 @@ export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
   return (
     <div className="flex flex-col gap-2 border-b border-neutral-200 p-3 dark:border-neutral-800">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">Обращения</h1>
+        <div className="flex items-center gap-2">
+          <NavMenuButton />
+          <h1 className="text-lg font-semibold">Обращения</h1>
+        </div>
         {!online && (
           <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
             <WifiOff size={14} strokeWidth={2} />
