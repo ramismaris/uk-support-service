@@ -2,6 +2,7 @@ import { Button } from '@maxhub/max-ui'
 import { Inbox, SearchX } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { useTicketList } from '@/entities/ticket'
+import { useBrandColor } from '@/entities/theme'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { parseTicketFilters, ticketFiltersToSearch } from '../lib/filters'
@@ -15,6 +16,7 @@ export function TicketList() {
   const tickets = list.data?.pages.flatMap((page) => page.items) ?? []
   const total = list.data?.pages.at(-1)?.total ?? 0
   const filtered = filters.status !== null || filters.mine
+  const brandColor = useBrandColor()
 
   const body = () => {
     if (list.isPending) {
@@ -58,6 +60,7 @@ export function TicketList() {
           animation={
             <LottieAnimation
               src={animations.emptyList}
+              tint={brandColor}
               speed={0.6}
               repeatDelay={1500}
               className="size-24"

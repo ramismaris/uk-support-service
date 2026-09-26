@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { MessageBubble, useMessages } from '@/entities/message'
 import type { TicketDetail } from '@/entities/ticket'
 import { formatDateTime } from '@/shared/lib/format'
+import { useBrandColor } from '@/entities/theme'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { buildTimeline, type TimelineItem } from '../lib/timeline'
@@ -56,6 +57,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   }, [timeline.length, ticket.id])
 
   const notice = closedNotice(ticket.status)
+  const brandColor = useBrandColor()
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -103,6 +105,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
             animation={
               <LottieAnimation
                 src={animations.emptyChat}
+                tint={brandColor}
                 speed={0.7}
                 repeatDelay={1500}
                 className="size-32"

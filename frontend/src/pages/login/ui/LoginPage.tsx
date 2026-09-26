@@ -1,6 +1,7 @@
 import { Typography } from '@maxhub/max-ui'
 import { Navigate } from 'react-router'
 import { useSessionStore } from '@/entities/session'
+import { readCachedTheme } from '@/entities/theme'
 import { isDevAuthEnabled, routePaths } from '@/shared/config'
 import { isInMax } from '@/shared/lib/max-bridge'
 import { PageTransition } from '@/shared/ui/page-transition'
@@ -16,7 +17,10 @@ export function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center p-4">
       <PageTransition className="flex w-full max-w-sm flex-col gap-6">
-        <Typography.Title>Вход в панель УК</Typography.Title>
+        <div className="flex flex-col gap-1">
+          <Typography.Title>{readCachedTheme().companyName}</Typography.Title>
+          <p className="text-sm text-fg-2">Вход в панель сотрудника</p>
+        </div>
         {isDevAuthEnabled ? (
           <DevLoginForm />
         ) : (
