@@ -2,15 +2,27 @@
 
 @import 'tailwindcss';
 @import '@maxhub/max-ui/dist/styles.css' layer(maxui);
+@import '@fontsource-variable/roboto';
 
 @custom-variant dark (&:where([data-color-scheme='dark'], [data-color-scheme='dark'] *));
 
 :root {
   --brand: #2d7ff9;
+  /* Like Max itself: San Francisco on Apple devices, Roboto everywhere else (bundled, no CDN). */
+  --app-font: -apple-system, BlinkMacSystemFont, 'Roboto Variable', Roboto, sans-serif;
 }
 
 @theme inline {
   --color-brand: var(--brand);
+  --font-sans: var(--app-font);
+}
+
+/* Unlayered, so it wins over the maxui layer: Max UI components use the same font as the rest. */
+.app-font {
+  --family-base: var(--app-font);
+  --family-headers: var(--app-font);
+  --font: var(--app-font);
+  font-family: var(--app-font);
 }
 
 @layer base {

@@ -10,5 +10,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.colorScheme = colorScheme
   }, [colorScheme])
 
-  return <MaxUI colorScheme={colorScheme}>{children}</MaxUI>
+  return (
+    <MaxUI colorScheme={colorScheme} className="app-font">
+      {children}
+    </MaxUI>
+  )
 }

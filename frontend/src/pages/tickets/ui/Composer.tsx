@@ -1,6 +1,5 @@
-import { IconButton, Textarea } from '@maxhub/max-ui'
-import { Paperclip, SendHorizontal, X } from 'lucide-react'
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { LoaderCircle, Paperclip, SendHorizontal, X } from 'lucide-react'
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { formatFileSize } from '@/shared/lib/format'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { hasContent, MESSAGE_TEXT_LIMIT, validateMessage } from '../lib/message-rules'
@@ -13,7 +12,17 @@ export function Composer({ ticketId }: { ticketId: number }) {
   const [sentCount, setSentCount] = useState(0)
   const [showSent, setShowSent] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const textArea = useRef<HTMLTextAreaElement>(null)
   const send = useSendMessage(ticketId)
+
+  // Grow with the text up to max-h, then scroll.
+  useLayoutEffect(() => {
+    const element = textArea.current
+    if (element) {
+      element.style.height = 'auto'
+      element.style.height = `${element.scrollHeight}px`
+    }
+  }, [text])
 
   const validationError = validateMessage(text, files)
   const canSend = hasContent(text, files) && validationError === null && !send.isPending
@@ -45,7 +54,7 @@ export function Composer({ ticketId }: { ticketId: number }) {
   const error = validationError ?? send.error?.message
 
   return (
-    <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
+    <div className="flex flex-col gap-2 border-t border-neutral-200 px-3 py-2 dark:border-neutral-800">
       {files.length > 0 && (
         <ul className="flex flex-wrap gap-2">
           {files.map((file, index) => (
@@ -67,12 +76,12 @@ export function Composer({ ticketId }: { ticketId: number }) {
           ))}
         </ul>
       )}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1 rounded-3xl bg-neutral-100 p-1 dark:bg-neutral-800">
         <button
           type="button"
           aria-label="Прикрепить файлы"
           disabled={send.isPending}
-          className="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-200 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-neutral-200"
           onClick={() => fileInput.current?.click()}
         >
           <Paperclip size={20} strokeWidth={2} />
@@ -87,37 +96,42 @@ export function Composer({ ticketId }: { ticketId: number }) {
             event.target.value = ''
           }}
         />
-        <Textarea
+        <textarea
+          ref={textArea}
           value={text}
           rows={1}
           maxLength={MESSAGE_TEXT_LIMIT + 1}
           placeholder="Сообщение"
           disabled={send.isPending}
-          className="max-h-40 min-w-0 flex-1 resize-none"
+          className="max-h-36 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-5 outline-none placeholder:text-neutral-400"
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
         />
-        <IconButton
+        <button
+          type="button"
           aria-label="Отправить"
-          size="large"
-          variant={canSend || showSent ? 'primary' : 'secondary'}
-          disabled={!canSend && !showSent}
-          loading={send.isPending}
+          disabled={!canSend}
           onClick={submit}
-          className="shrink-0 rounded-full"
+          className={`flex size-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+            canSend || showSent
+              ? 'bg-brand text-white hover:brightness-110'
+              : 'text-neutral-400 dark:text-neutral-500'
+          }`}
         >
           {showSent ? (
             <LottieAnimation
               key={sentCount}
               src={animations.sent}
               speed={3.3}
-              className="-m-3 size-12"
+              className="-m-1.5 size-12"
               onComplete={() => setShowSent(false)}
             />
+          ) : send.isPending ? (
+            <LoaderCircle size={18} strokeWidth={2} className="animate-spin" />
           ) : (
-            <SendHorizontal size={20} strokeWidth={2} />
+            <SendHorizontal size={18} strokeWidth={2} />
           )}
-        </IconButton>
+        </button>
       </div>
       {error && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
