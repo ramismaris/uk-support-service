@@ -25,3 +25,8 @@ dist/
 
 # Local file storage
 storage/
+
+# Agent and MCP tool artifacts
+.playwright-mcp/
+.code-review-graph/
+.superpowers/
