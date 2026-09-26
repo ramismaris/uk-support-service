@@ -3,7 +3,7 @@ import { isClient, isStaff } from '@/entities/user'
 import { ClientHomePage } from '@/pages/client-home'
 import { LoginPage } from '@/pages/login'
 import { NotFoundPage } from '@/pages/not-found'
-import { TicketsIndexPage, TicketsLayout } from '@/pages/tickets'
+import { TicketPage, TicketsIndexPage, TicketsLayout } from '@/pages/tickets'
 import { routePaths } from '@/shared/config'
 import { AppShell } from '@/widgets/app-shell'
 import { StaffRealtime } from '../realtime/StaffRealtime'
@@ -29,7 +29,10 @@ export const router = createBrowserRouter([
         children: [
           {
             element: <TicketsLayout />,
-            children: [{ index: true, element: <TicketsIndexPage /> }],
+            children: [
+              { index: true, element: <TicketsIndexPage /> },
+              { path: routePaths.ticket, element: <TicketPage /> },
+            ],
           },
         ],
       },
