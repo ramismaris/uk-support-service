@@ -14,7 +14,7 @@
 ## Стек
 
 - **Backend:** Python 3.12, FastAPI, SQLAlchemy 2 (async), Alembic, Pydantic v2, `maxapi`, PostgreSQL; uv, ruff, pytest.
-- **Frontend:** — (выбирает фронтенд-разработчик)
+- **Frontend:** TypeScript, React 19, Vite, Tailwind CSS v4, Max UI (`@maxhub/max-ui`), framer-motion, React Router v7, TanStack Query, Zustand, openapi-fetch; pnpm, ESLint, Prettier, Steiger, Vitest.
 
 ## Структура репозитория
 
@@ -28,7 +28,7 @@ raw_data/   исходные заметки
 
 ## Команды
 
-Все команды — из каталога `backend/`.
+Бэкенд — из каталога `backend/`.
 
 ```bash
 # Первый запуск
@@ -61,6 +61,28 @@ docker compose up -d --build
 ```
 
 Бот по умолчанию выключен (`BOT_MODE=off`) — для фронтенд-разработки и тестов. Чтобы включить его, задайте в `.env` `BOT_MODE=polling` и `BOT_TOKEN`.
+
+Фронтенд — из каталога `frontend/`:
+
+```bash
+# Первый запуск
+cp .env.template .env
+pnpm install
+
+# Dev-сервер на http://localhost:5173; /api проксируется на http://localhost:8000
+pnpm dev
+
+# Тесты
+pnpm test
+
+# Перегенерировать типы API после изменения backend/openapi.json
+pnpm gen:api
+
+# Проверка перед вливанием в main: tsc, eslint, prettier, steiger, vitest, актуальность типов API, сборка
+scripts/check.sh
+```
+
+Для dev-входа бэкенд должен работать с `DEV_AUTH=true` и демо-данными (`scripts/seed.py`).
 
 ## Правила
 
@@ -97,7 +119,19 @@ docker compose up -d --build
 
 ### Frontend
 
-— (появятся после выбора стека)
+Архитектура — Feature-Sliced Design строго по методичке; подробно — [docs/architecture.md](docs/architecture.md#frontend).
+
+- Слои: `app → pages → widgets → features → entities → shared`; импорт только вниз. `processes` не используем.
+- Кросс-импорт слайсов одного слоя запрещён; `@x` — только по согласованию.
+- Снаружи слайса — только через его `index.ts`; внутри слайса — относительные импорты, между слайсами — через `@/`.
+- В `app` и `shared` нет слайсов, только сегменты; сегмента `ui` в `app` нет.
+- Сегменты по назначению: `ui`, `model`, `api`, `lib`, `config` (в `app` — `entrypoint`, `routes`, `theme`, `session`, `styles`) — не `components`, `hooks`, `types`, `utils`, `providers`.
+- Код, который нужен одному слайсу, живёт в нём; в `features`/`entities` выносим, когда появляется второй потребитель.
+- Steiger (`pnpm fsd`) зелёный; правила не отключать без согласования.
+- `src/shared/api/schema.d.ts` — только `pnpm gen:api`, руками не править; при конфликте перегенерировать.
+- Пользователь — только в кэше TanStack Query (`['me']`); в Zustand — токен и клиентские флаги.
+- Компоненты — Max UI; Tailwind — раскладка и кастомные блоки. Цвет бренда — `--brand` / `bg-brand`.
+- Тесты — Vitest на чистую логику рядом с кодом (`*.test.ts`); новая чистая логика — тест.
 
 ### Контракт API
 

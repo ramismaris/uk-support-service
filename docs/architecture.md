@@ -174,7 +174,25 @@ WebSocket для сотрудников, менеджер подключений
 
 ## Frontend
 
-Стек: — (выбирает фронтенд-разработчик).
+Стек: TypeScript, React 19, Vite, Tailwind CSS v4, Max UI, framer-motion, React Router v7, TanStack Query, Zustand, openapi-fetch. Архитектура — Feature-Sliced Design, контроль — Steiger. Дизайн фундамента — [спек](superpowers/specs/2026-09-26-frontend-foundation-design.md).
+
+```
+frontend/src/
+├── app/        entrypoint (провайдеры), routes (гарды, вход), theme, session (токен → API-клиент), styles
+├── pages/      login (с dev-входом), staff-home, client-home, not-found
+├── widgets/    app-shell — адаптивный каркас сотрудника с выходом
+├── features/   auth-by-max
+├── entities/   session (токен, /me), user (роли)
+└── shared/     api (openapi-fetch + сгенерированные типы), config, lib/max-bridge, lib/color-scheme, ui
+```
+
+Вход:
+
+1. Есть токен → `GET /me`: 200 — вход; 401 — токен сбрасывается; 403 — «Доступ ограничен»; сеть или 5xx — «Не удалось войти» с повтором, токен сохраняется.
+2. Нет токена: в Max — `POST /auth/max` с `initData`; в браузере — `/login` (dev-вход при `VITE_DEV_AUTH=true`, иначе подсказка про `/panel`).
+3. `/` ведёт по роли: `MANAGER`/`ADMIN` → `/staff`, `CLIENT` → `/client`.
+
+Тема: схема из `prefers-color-scheme`, одна и та же для Max UI и Tailwind (`data-color-scheme` на `<html>`). Стили Max UI — в CSS-слое `maxui` между `base` и `utilities`, поэтому утилиты Tailwind перебивают их.
 
 Требования, которые от стека не зависят:
 
