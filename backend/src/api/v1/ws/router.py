@@ -5,15 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import UserRole
 from src.core.exceptions import ForbiddenException, UnauthorizedException
-from src.core.ws_manager import ws_manager
+from src.core.ws_manager import WS_FORBIDDEN, WS_UNAUTHORIZED, ws_manager
 from src.db.session import get_db
 from src.services.auth_service import AuthService
 
 router = APIRouter(tags=["ws"])
-
-# Close codes of the WebSocket application range: the panel can tell why it was closed.
-WS_UNAUTHORIZED = 4401
-WS_FORBIDDEN = 4403
 
 
 @router.websocket("/ws")
@@ -42,7 +38,7 @@ async def staff_websocket(
     # Do not keep a pooled connection idle inside a transaction while the panel is open.
     await db.close()
 
-    await ws_manager.connect(websocket)
+    await ws_manager.connect(websocket, user.id)
     try:
         while True:
             # Incoming frames are ignored; receiving only detects the disconnect.

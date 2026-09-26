@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
 from src.core.constants import UserRole
@@ -21,3 +23,14 @@ class UserResponse(BaseModel):
     username: str | None
     phone: str | None
     role: UserRole
+
+
+class AdminUserResponse(UserResponse):
+    is_blocked: bool
+    created_at: datetime
+    last_seen_at: datetime | None
+
+
+class UserUpdateRequest(BaseModel):
+    role: UserRole | None = None
+    is_blocked: bool | None = None

@@ -289,10 +289,10 @@ async def test_closed_panel_is_removed_from_manager(
     client: AsyncClient,
     base: SimpleNamespace,
 ) -> None:
-    assert ws_manager._connections == []
+    assert ws_manager._connections == {}
 
     async with _ws_http() as ws_http:
         async with aconnect_ws(f"{WS_PATH}?token={base.manager_token}", ws_http):
             await _wait_until(lambda: len(ws_manager._connections) == 1)
 
-        await _wait_until(lambda: ws_manager._connections == [])
+        await _wait_until(lambda: ws_manager._connections == {})
