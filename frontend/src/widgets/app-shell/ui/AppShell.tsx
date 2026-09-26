@@ -1,8 +1,8 @@
 import { NavLink, Outlet } from 'react-router'
 import { useMe } from '@/entities/session'
 import { getDisplayName, roleLabels } from '@/entities/user'
-import { LogoutButton } from '@/features/logout'
 import { visibleNavItems, type NavItem } from '../model/nav'
+import { LogoutButton } from './LogoutButton'
 
 const DISABLED_HINT = 'Раздел появится позже'
 

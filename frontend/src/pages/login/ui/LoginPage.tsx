@@ -1,10 +1,10 @@
 import { Typography } from '@maxhub/max-ui'
 import { Navigate } from 'react-router'
 import { useSessionStore } from '@/entities/session'
-import { DevLoginForm } from '@/features/auth-dev'
 import { isDevAuthEnabled, routePaths } from '@/shared/config'
 import { isInMax } from '@/shared/lib/max-bridge'
 import { PageTransition } from '@/shared/ui/page-transition'
+import { DevLoginForm } from './DevLoginForm'
 
 export function LoginPage() {
   const token = useSessionStore((state) => state.token)
