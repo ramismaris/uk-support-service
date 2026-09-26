@@ -4,7 +4,7 @@ export type User = components['schemas']['UserResponse']
 export type UserRole = User['role']
 
 export const roleLabels: Record<UserRole, string> = {
-  CLIENT: 'Клиент',
+  CLIENT: 'Жилец',
   MANAGER: 'Менеджер',
   ADMIN: 'Администратор',
 }

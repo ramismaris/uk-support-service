@@ -17,11 +17,7 @@ describe('visibleNavItems', () => {
     expect(visibleNavItems(user('MANAGER')).map((item) => item.key)).toEqual(['tickets'])
   })
 
-  it('shows admin sections to an admin', () => {
-    expect(visibleNavItems(user('ADMIN')).map((item) => item.key)).toEqual([
-      'tickets',
-      'content',
-      'users',
-    ])
+  it('hides sections that are not built yet, even from an admin', () => {
+    expect(visibleNavItems(user('ADMIN')).map((item) => item.key)).toEqual(['tickets'])
   })
 })

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { statusActionLabel, validateRejectReason } from './status-actions'
+import { primaryStatusAction, statusActionLabel, validateRejectReason } from './status-actions'
 
 describe('statusActionLabel', () => {
   it.each([
     ['NEW', 'IN_PROGRESS', 'Взять в работу'],
-    ['IN_PROGRESS', 'WAITING_CLIENT', 'Нужен ответ клиента'],
+    ['IN_PROGRESS', 'WAITING_CLIENT', 'Запросить ответ жильца'],
     ['IN_PROGRESS', 'CLOSED', 'Закрыть'],
     ['WAITING_CLIENT', 'CLOSED', 'Закрыть'],
     ['NEW', 'REJECTED', 'Отклонить'],
@@ -27,5 +27,26 @@ describe('validateRejectReason', () => {
 
   it('accepts a normal reason', () => {
     expect(validateRejectReason('Не в зоне ответственности УК')).toBeNull()
+  })
+})
+
+describe('primaryStatusAction', () => {
+  it('suggests the natural next step', () => {
+    expect(primaryStatusAction('NEW', ['IN_PROGRESS', 'REJECTED'])).toBe('IN_PROGRESS')
+    expect(primaryStatusAction('IN_PROGRESS', ['WAITING_CLIENT', 'CLOSED', 'REJECTED'])).toBe(
+      'CLOSED',
+    )
+    expect(primaryStatusAction('WAITING_CLIENT', ['IN_PROGRESS', 'CLOSED', 'REJECTED'])).toBe(
+      'CLOSED',
+    )
+    expect(primaryStatusAction('CLOSED', ['IN_PROGRESS'])).toBe('IN_PROGRESS')
+  })
+
+  it('never makes rejection the primary action', () => {
+    expect(primaryStatusAction('NEW', ['REJECTED'])).toBeNull()
+  })
+
+  it('has nothing to suggest without allowed statuses', () => {
+    expect(primaryStatusAction('CLOSED', [])).toBeNull()
   })
 })

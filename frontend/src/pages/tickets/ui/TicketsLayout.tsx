@@ -1,5 +1,6 @@
 import { Outlet, useMatch } from 'react-router'
 import { routePaths } from '@/shared/config'
+import { CloseUndoToast } from './CloseUndoToast'
 import { TicketList } from './TicketList'
 
 export function TicketsLayout() {
@@ -14,6 +15,7 @@ export function TicketsLayout() {
       <div className={`${hasTicket ? 'flex' : 'hidden lg:flex'} min-w-0 flex-1`}>
         <Outlet />
       </div>
+      <CloseUndoToast />
     </div>
   )
 }

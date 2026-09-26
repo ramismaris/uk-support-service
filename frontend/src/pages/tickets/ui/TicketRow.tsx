@@ -7,6 +7,7 @@ import {
 } from '@/entities/ticket'
 import { ticketPath } from '@/shared/config'
 import { formatRelativeTime } from '@/shared/lib/format'
+import { lastActivityAt } from '../lib/activity'
 
 export function TicketRow({ ticket }: { ticket: TicketListItem }) {
   const { search } = useLocation()
@@ -24,19 +25,21 @@ export function TicketRow({ ticket }: { ticket: TicketListItem }) {
       }
     >
       <div className="flex items-center gap-2">
-        {ticket.unread && (
-          <span className="size-2 shrink-0 rounded-full bg-brand" aria-label="Непрочитано" />
-        )}
-        <span className="font-medium">№{ticket.id}</span>
+        <span className={ticket.unread ? 'font-semibold' : 'font-medium'}>№{ticket.id}</span>
+        {ticket.unread && <span className="sr-only">Непрочитано</span>}
         <span className="truncate text-sm text-fg-3">
           {ticket.category?.title ?? ticketTypeLabels[ticket.type]}
         </span>
         {ticket.priority === 'URGENT' && <UrgentMark />}
         <span className="ml-auto shrink-0 text-xs text-fg-3">
-          {formatRelativeTime(ticket.created_at)}
+          {formatRelativeTime(lastActivityAt(ticket))}
         </span>
       </div>
-      <p className="line-clamp-2 text-sm">{ticket.description}</p>
+      <p
+        className={`line-clamp-2 text-sm ${ticket.unread ? 'font-semibold text-fg' : 'text-fg-2'}`}
+      >
+        {ticket.description}
+      </p>
       <div className="flex items-center gap-2 text-xs text-fg-3">
         <span className="truncate">
           {ticket.client.first_name}

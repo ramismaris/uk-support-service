@@ -101,7 +101,7 @@ export function Composer({ ticketId }: { ticketId: number }) {
           value={text}
           rows={1}
           maxLength={MESSAGE_TEXT_LIMIT + 1}
-          placeholder="Сообщение"
+          placeholder="Ответ жильцу"
           disabled={send.isPending}
           className="max-h-36 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-5 outline-none placeholder:text-fg-3"
           onChange={(event) => setText(event.target.value)}

@@ -7,7 +7,7 @@ const STATUS_OPTIONS: { value: ActiveTicketStatus | null; label: string }[] = [
   { value: null, label: 'Все' },
   { value: 'NEW', label: 'Новые' },
   { value: 'IN_PROGRESS', label: 'В работе' },
-  { value: 'WAITING_CLIENT', label: 'Ждут ответа' },
+  { value: 'WAITING_CLIENT', label: 'Ждём жильца' },
 ]
 
 interface TicketFiltersBarProps {
@@ -17,7 +17,7 @@ interface TicketFiltersBarProps {
 
 function chipClass(active: boolean): string {
   return `rounded-full px-3 py-1 text-sm transition-colors ${
-    active ? 'bg-brand text-white' : 'bg-fill text-fg hover:bg-press'
+    active ? 'bg-brand/12 font-medium text-brand' : 'text-fg-2 hover:bg-hover'
   }`
 }
 
@@ -30,14 +30,25 @@ export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
           <NavMenuButton />
           <h1 className="text-lg font-semibold">Обращения</h1>
         </div>
-        {!online && (
-          <span className="flex items-center gap-1 text-xs text-attention">
-            <WifiOff size={14} strokeWidth={2} />
-            Нет связи
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!online && (
+            <span className="flex items-center gap-1 text-xs text-attention">
+              <WifiOff size={14} strokeWidth={2} />
+              Нет связи
+            </span>
+          )}
+          {/* A toggle, not one of the status options: it combines with any of them. */}
+          <button
+            type="button"
+            aria-pressed={filters.mine}
+            onClick={() => onChange({ ...filters, mine: !filters.mine })}
+            className={chipClass(filters.mine)}
+          >
+            Мои
+          </button>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {STATUS_OPTIONS.map((option) => (
           <button
             key={option.label}
@@ -49,14 +60,6 @@ export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
             {option.label}
           </button>
         ))}
-        <button
-          type="button"
-          aria-pressed={filters.mine}
-          onClick={() => onChange({ ...filters, mine: !filters.mine })}
-          className={chipClass(filters.mine)}
-        >
-          Мои
-        </button>
       </div>
     </div>
   )

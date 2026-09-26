@@ -1,16 +1,13 @@
 import { Button } from '@maxhub/max-ui'
 import { FileQuestion, SearchX } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useTicket } from '@/entities/ticket'
 import { isApiError } from '@/shared/api'
 import { routePaths } from '@/shared/config'
-import { breakpoints, useMediaQuery } from '@/shared/lib/media-query'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Chat } from './Chat'
-import { DetailsDrawer } from './DetailsDrawer'
-import { TicketDetails } from './TicketDetails'
-import { TicketHeader, type TicketTab } from './TicketHeader'
+import { ResidentCard } from './ResidentCard'
+import { TicketHeader } from './TicketHeader'
 
 function parseTicketId(value: string | undefined): number | null {
   const id = Number(value)
@@ -33,10 +30,6 @@ function TicketNotFound() {
 
 function TicketView({ id }: { id: number }) {
   const ticket = useTicket(id)
-  const isLg = useMediaQuery(breakpoints.lg)
-  const isXl = useMediaQuery(breakpoints.xl)
-  const [tab, setTab] = useState<TicketTab>('chat')
-  const [detailsOpen, setDetailsOpen] = useState(false)
 
   if (ticket.isPending) {
     return <div className="m-auto text-sm text-fg-3">Загрузка…</div>
@@ -54,33 +47,13 @@ function TicketView({ id }: { id: number }) {
     )
   }
 
-  const showChat = isLg || tab === 'chat'
+  // The chat is the product: header with actions, the resident pinned on top, then the dialogue.
   return (
-    <div className="flex min-w-0 flex-1">
-      <section className="flex min-w-0 flex-1 flex-col">
-        <TicketHeader
-          ticket={ticket.data}
-          tab={tab}
-          onTabChange={setTab}
-          onOpenDetails={() => setDetailsOpen(true)}
-        />
-        {showChat ? (
-          <Chat ticket={ticket.data} />
-        ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <TicketDetails ticket={ticket.data} />
-          </div>
-        )}
-      </section>
-      {isXl && (
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-line">
-          <TicketDetails ticket={ticket.data} />
-        </aside>
-      )}
-      <DetailsDrawer open={isLg && !isXl && detailsOpen} onClose={() => setDetailsOpen(false)}>
-        <TicketDetails ticket={ticket.data} />
-      </DetailsDrawer>
-    </div>
+    <section className="flex min-w-0 flex-1 flex-col">
+      <TicketHeader ticket={ticket.data} />
+      <ResidentCard ticket={ticket.data} />
+      <Chat ticket={ticket.data} />
+    </section>
   )
 }
 

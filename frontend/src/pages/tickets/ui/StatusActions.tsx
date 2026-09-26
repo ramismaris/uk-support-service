@@ -1,91 +1,70 @@
 import { Button } from '@maxhub/max-ui'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import type { TicketDetail, TicketStatus } from '@/entities/ticket'
-import { animations, LottieAnimation } from '@/shared/ui/lottie'
-import { statusActionLabel } from '../lib/status-actions'
+import { primaryStatusAction, statusActionLabel } from '../lib/status-actions'
 import { useChangeStatus } from '../model/use-change-status'
+import { useCloseWithUndo } from '../model/use-close-with-undo'
+import { usePendingClose } from '../model/pending-close'
+import { ActionsMenu } from './ActionsMenu'
 import { RejectDialog } from './RejectDialog'
 
-const CLOSED_HOLD = 400
-
-function ClosedCelebration({ onDone }: { onDone: () => void }) {
-  return (
-    <motion.div
-      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-overlay backdrop-blur-sm"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <div className="flex flex-col items-center gap-2 rounded-2xl bg-card px-6 py-4">
-        <LottieAnimation
-          src={animations.closed}
-          speed={1.2}
-          className="size-24"
-          onComplete={() => setTimeout(onDone, CLOSED_HOLD)}
-        />
-        <span className="text-sm font-medium">Обращение закрыто</span>
-      </div>
-    </motion.div>
-  )
-}
-
+// One primary next step in the chat header; everything else behind "⋯".
 export function StatusActions({ ticket }: { ticket: TicketDetail }) {
   const change = useChangeStatus(ticket.id)
+  const closeWithUndo = useCloseWithUndo(ticket.id)
+  const closing = usePendingClose((state) => state.ticketId === ticket.id)
   const [rejecting, setRejecting] = useState(false)
-  const [justClosed, setJustClosed] = useState(false)
 
   const run = (status: TicketStatus) => {
     if (status === 'REJECTED') {
       setRejecting(true)
-      return
+    } else if (status === 'CLOSED') {
+      closeWithUndo()
+    } else {
+      change.mutate({ status, comment: null })
     }
-    change.mutate(
-      { status, comment: null },
-      { onSuccess: () => setJustClosed(status === 'CLOSED') },
-    )
   }
 
+  const primary = primaryStatusAction(ticket.status, ticket.allowed_statuses)
+  const secondary = ticket.allowed_statuses.filter((status) => status !== primary)
+  const busy = change.isPending || closing
+
   return (
-    <>
-      {/* Outside the buttons: after closing, a manager has no actions left but still sees this. */}
-      <AnimatePresence>
-        {justClosed && <ClosedCelebration onDone={() => setJustClosed(false)} />}
-      </AnimatePresence>
-      {ticket.allowed_statuses.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-2">
-            {ticket.allowed_statuses.map((status) => (
-              <Button
-                key={status}
-                size="small"
-                variant={status === 'REJECTED' ? 'secondary' : 'primary'}
-                disabled={change.isPending}
-                onClick={() => run(status)}
-              >
-                {statusActionLabel(ticket.status, status)}
-              </Button>
-            ))}
-          </div>
-          {change.error && (
-            <p role="alert" className="text-sm text-negative">
-              {change.error.message}
-            </p>
-          )}
-          <RejectDialog
-            open={rejecting}
-            pending={change.isPending}
-            serverError={change.error?.message}
-            onClose={() => setRejecting(false)}
-            onConfirm={(reason) =>
-              change.mutate(
-                { status: 'REJECTED', comment: reason },
-                { onSuccess: () => setRejecting(false) },
-              )
-            }
-          />
-        </div>
+    <div className="relative flex shrink-0 items-center gap-1">
+      {primary && (
+        <Button size="small" disabled={busy} onClick={() => run(primary)}>
+          {statusActionLabel(ticket.status, primary)}
+        </Button>
       )}
-    </>
+      <ActionsMenu
+        disabled={busy}
+        actions={secondary.map((status) => ({
+          key: status,
+          label: statusActionLabel(ticket.status, status),
+          destructive: status === 'REJECTED',
+          onSelect: () => run(status),
+        }))}
+      />
+      {change.error && !rejecting && (
+        <p
+          role="alert"
+          className="absolute top-full right-0 z-20 mt-1 max-w-72 rounded-xl border border-line bg-card px-3 py-2 text-sm text-negative"
+        >
+          {change.error.message}
+        </p>
+      )}
+      <RejectDialog
+        open={rejecting}
+        pending={change.isPending}
+        serverError={change.error?.message}
+        onClose={() => setRejecting(false)}
+        onConfirm={(reason) =>
+          change.mutate(
+            { status: 'REJECTED', comment: reason },
+            { onSuccess: () => setRejecting(false) },
+          )
+        }
+      />
+    </div>
   )
 }

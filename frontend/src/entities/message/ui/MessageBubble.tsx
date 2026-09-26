@@ -33,12 +33,10 @@ function Attachment({ file }: { file: MessageFile }) {
 export function MessageBubble({ message }: { message: Message }) {
   if (message.sender_type === 'SYSTEM') {
     return (
-      <div className="flex justify-center py-1">
-        <span className="max-w-[85%] rounded-2xl bg-fill px-3 py-1 text-center text-[13px] leading-[18px] text-fg-2">
-          {systemText(message.text)}
-          <span className="ml-1.5 text-fg-3">{formatDateTime(message.created_at)}</span>
-        </span>
-      </div>
+      // Quiet line, not a bubble: it is what the bot told the resident, not part of the dialogue.
+      <p className="mx-auto max-w-[85%] py-0.5 text-center text-xs leading-4 text-fg-3">
+        Бот → жильцу: {systemText(message.text)} · {formatDateTime(message.created_at)}
+      </p>
     )
   }
 

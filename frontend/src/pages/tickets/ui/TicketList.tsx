@@ -18,7 +18,17 @@ export function TicketList() {
 
   const body = () => {
     if (list.isPending) {
-      return <div className="p-6 text-center text-sm text-fg-3">Загрузка…</div>
+      return (
+        <div aria-busy="true" aria-label="Загрузка">
+          {[0, 1, 2, 3].map((row) => (
+            <div key={row} className="flex flex-col gap-2 border-b border-line px-3 py-3">
+              <div className="h-4 w-32 animate-pulse rounded bg-fill" />
+              <div className="h-4 w-full animate-pulse rounded bg-fill" />
+              <div className="h-3 w-48 animate-pulse rounded bg-fill" />
+            </div>
+          ))}
+        </div>
+      )
     }
     if (list.isError) {
       return (
@@ -61,11 +71,11 @@ export function TicketList() {
         {tickets.map((ticket) => (
           <TicketRow key={ticket.id} ticket={ticket} />
         ))}
-        <div className="flex flex-col items-center gap-2 p-4 text-xs text-fg-3">
-          <span>
-            {tickets.length} из {total}
-          </span>
-          {list.hasNextPage && (
+        {list.hasNextPage && (
+          <div className="flex flex-col items-center gap-2 p-4 text-xs text-fg-3">
+            <span>
+              {tickets.length} из {total}
+            </span>
             <Button
               variant="secondary"
               size="small"
@@ -74,8 +84,8 @@ export function TicketList() {
             >
               Показать ещё
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </>
     )
   }
