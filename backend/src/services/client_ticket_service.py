@@ -5,7 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.background import run_in_background
 from src.core.constants import TicketStatus, TicketType
-from src.core.exceptions import AppException, MessengerException, NotFoundException
+from src.core.exceptions import (
+    AppException,
+    ConflictException,
+    MessengerException,
+    NotFoundException,
+)
 from src.core.texts import (
     APARTMENT_INVALID,
     BUILDING_NOT_FOUND,
@@ -16,6 +21,8 @@ from src.core.texts import (
     PHONE_INVALID,
     PHOTO_NOT_IMAGE,
     RESIDENCE_NOT_FOUND,
+    TICKET_CLOSED_FOR_CLIENT,
+    TICKET_NOT_FOUND,
 )
 from src.models.building import Building
 from src.models.category import Category
@@ -30,6 +37,7 @@ from src.repositories.category_repository import CategoryRepository
 from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
+from src.services import ticket_rules
 from src.services.file_service import MAX_FILE_SIZE, FileService
 from src.services.notification_service import NotificationService, notify_staff_about_new_ticket
 
@@ -139,15 +147,78 @@ class ClientTicketService:
         if building is None or not building.is_active:
             raise NotFoundException(BUILDING_NOT_FOUND)
 
+        return await self._create_ticket(
+            client,
+            ticket_type=TicketType.REQUEST,
+            description=description,
+            category=category,
+            building=building,
+            apartment=apartment,
+            preferred_time=preferred_time,
+            photo_ids=photo_ids,
+        )
+
+    async def create_question(
+        self,
+        client: User,
+        *,
+        description: str,
+        photo_ids: list[int],
+    ) -> Ticket:
+        description = validate_description(description)
+
+        return await self._create_ticket(
+            client,
+            ticket_type=TicketType.QUESTION,
+            description=description,
+            category=None,
+            building=None,
+            apartment=None,
+            preferred_time=None,
+            photo_ids=photo_ids,
+        )
+
+    async def set_active_ticket(self, client: User, ticket_id: int) -> Ticket:
+        ticket = await self.tickets.get_by_id(ticket_id)
+        if ticket is None or ticket.client_id != client.id:
+            raise NotFoundException(TICKET_NOT_FOUND)
+        if not ticket_rules.is_open(ticket.status):
+            raise ConflictException(TICKET_CLOSED_FOR_CLIENT.format(ticket_id=ticket.id))
+
+        client.active_ticket_id = ticket.id
+        await self.db.commit()
+        return ticket
+
+    async def list_open_tickets(self, client: User) -> list[Ticket]:
+        return await self.tickets.list_by_client(client.id, statuses=ticket_rules.OPEN_STATUSES)
+
+    async def get_ticket(self, client: User, ticket_id: int) -> Ticket:
+        ticket = await self.tickets.get_by_id(ticket_id)
+        if ticket is None or ticket.client_id != client.id:
+            raise NotFoundException(TICKET_NOT_FOUND)
+        return ticket
+
+    async def _create_ticket(
+        self,
+        client: User,
+        *,
+        ticket_type: TicketType,
+        description: str,
+        category: Category | None,
+        building: Building | None,
+        apartment: str | None,
+        preferred_time: str | None,
+        photo_ids: list[int],
+    ) -> Ticket:
         files = await self.file_service.get_unattached(photo_ids)
 
         ticket = await self.tickets.create(
-            type=TicketType.REQUEST,
+            type=ticket_type,
             status=TicketStatus.NEW,
             client_id=client.id,
             description=description,
-            category_id=category.id,
-            building_id=building.id,
+            category_id=category.id if category is not None else None,
+            building_id=building.id if building is not None else None,
             apartment=apartment,
             contact_phone=client.phone,
             preferred_time=preferred_time,

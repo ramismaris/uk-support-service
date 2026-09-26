@@ -3,6 +3,9 @@ from types import SimpleNamespace
 from maxapi.types import CallbackButton, LinkButton, RequestContactButton
 
 from src.bot.keyboards import (
+    CHAT_CANCEL,
+    CHAT_CHOOSE_PREFIX,
+    CHAT_QUESTION,
     FORM_ADDRESS_ADD,
     FORM_ADDRESS_OK,
     FORM_ADDRESS_OTHER,
@@ -24,7 +27,9 @@ from src.bot.keyboards import (
     building_keyboard,
     cancel_keyboard,
     category_keyboard,
+    choose_ticket_keyboard,
     confirm_keyboard,
+    confirm_question_keyboard,
     main_menu_keyboard,
     payment_keyboard,
     phone_keyboard,
@@ -33,6 +38,7 @@ from src.bot.keyboards import (
     residences_keyboard,
     time_keyboard,
 )
+from src.core.constants import TicketType
 from src.schemas.content import PaymentContent
 
 
@@ -166,3 +172,48 @@ def test_confirm_keyboard_has_send_then_cancel():
     rows = confirm_keyboard().payload.buttons
 
     assert [row[0].payload for row in rows] == [FORM_SEND, FORM_CANCEL]
+
+
+def _ticket(ticket_type: TicketType, ticket_id: int, category_title: str | None):
+    category = None if category_title is None else SimpleNamespace(title=category_title)
+    return SimpleNamespace(type=ticket_type, id=ticket_id, category=category)
+
+
+def test_choose_ticket_keyboard_lists_tickets_then_question_then_cancel():
+    tickets = [
+        _ticket(TicketType.REQUEST, 1042, "Сантехника"),
+        _ticket(TicketType.QUESTION, 1051, None),
+    ]
+
+    rows = choose_ticket_keyboard(tickets, with_question=True).payload.buttons
+
+    assert [row[0].text for row in rows] == [
+        "№1042 · Сантехника",
+        "№1051 · Вопрос",
+        "Новый вопрос",
+        "Отменить",
+    ]
+    assert [row[0].payload for row in rows] == [
+        f"{CHAT_CHOOSE_PREFIX}1042",
+        f"{CHAT_CHOOSE_PREFIX}1051",
+        CHAT_QUESTION,
+        CHAT_CANCEL,
+    ]
+
+
+def test_choose_ticket_keyboard_without_question_has_no_question_row():
+    tickets = [_ticket(TicketType.REQUEST, 1042, "Сантехника")]
+
+    rows = choose_ticket_keyboard(tickets, with_question=False).payload.buttons
+
+    assert [row[0].payload for row in rows] == [
+        f"{CHAT_CHOOSE_PREFIX}1042",
+        CHAT_CANCEL,
+    ]
+
+
+def test_confirm_question_keyboard_has_yes_then_no():
+    rows = confirm_question_keyboard().payload.buttons
+
+    assert [row[0].text for row in rows] == ["Да", "Нет"]
+    assert [row[0].payload for row in rows] == [CHAT_QUESTION, CHAT_CANCEL]

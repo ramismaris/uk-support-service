@@ -3,6 +3,9 @@ from maxapi.types.attachments import AttachmentButton
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
 from src.core.texts import (
+    CHAT_NEW_QUESTION_BUTTON,
+    CHAT_NO_BUTTON,
+    CHAT_YES_BUTTON,
     FORM_ADDRESS_ADD_BUTTON,
     FORM_ADDRESS_OK_BUTTON,
     FORM_ADDRESS_OTHER_BUTTON,
@@ -13,6 +16,7 @@ from src.core.texts import (
     FORM_SEND_BUTTON,
     FORM_START_BUTTON,
     FORM_TIME_SKIP_BUTTON,
+    ticket_button_label,
 )
 from src.schemas.content import PaymentContent
 
@@ -37,6 +41,12 @@ FORM_TIME_SKIP = "form:time:skip"
 FORM_SEND = "form:send"
 
 FORM_PREFIX = "form:"
+
+CHAT_CHOOSE_PREFIX = "chat:choose:"
+CHAT_QUESTION = "chat:question"
+CHAT_CANCEL = "chat:cancel"
+
+CHAT_PREFIX = "chat:"
 
 
 def main_menu_keyboard() -> AttachmentButton:
@@ -140,4 +150,23 @@ def confirm_keyboard() -> AttachmentButton:
     builder = InlineKeyboardBuilder()
     builder.row(CallbackButton(text=FORM_SEND_BUTTON, payload=FORM_SEND))
     _cancel_row(builder)
+    return builder.as_markup()
+
+
+def choose_ticket_keyboard(tickets: list, *, with_question: bool) -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    for ticket in tickets:
+        category_title = ticket.category.title if ticket.category else None
+        label = ticket_button_label(ticket.type, ticket.id, category_title)
+        builder.row(CallbackButton(text=label, payload=f"{CHAT_CHOOSE_PREFIX}{ticket.id}"))
+    if with_question:
+        builder.row(CallbackButton(text=CHAT_NEW_QUESTION_BUTTON, payload=CHAT_QUESTION))
+    builder.row(CallbackButton(text=FORM_CANCEL_BUTTON, payload=CHAT_CANCEL))
+    return builder.as_markup()
+
+
+def confirm_question_keyboard() -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text=CHAT_YES_BUTTON, payload=CHAT_QUESTION))
+    builder.row(CallbackButton(text=CHAT_NO_BUTTON, payload=CHAT_CANCEL))
     return builder.as_markup()

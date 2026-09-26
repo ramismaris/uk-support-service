@@ -5,8 +5,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.core.constants import TicketStatus, TicketType
-from src.core.exceptions import AppException, MessengerException, NotFoundException
+from src.core.exceptions import (
+    AppException,
+    ConflictException,
+    MessengerException,
+    NotFoundException,
+)
 from src.core.texts import DESCRIPTION_LIMIT
+from src.services import ticket_rules
 from src.services.client_ticket_service import ClientTicketService, validate_description
 from src.services.file_service import MAX_FILE_SIZE
 
@@ -507,3 +513,195 @@ async def test_lists_delegate_to_repositories(env: SimpleNamespace) -> None:
 
     assert await env.service.list_residences(env.client) == [env.residence]
     env.residences.list_by_user.assert_awaited_once_with(env.client.id)
+
+
+async def _question(env: SimpleNamespace, **overrides):
+    params = {
+        "description": "Как передать показания?",
+        "photo_ids": [],
+    }
+    params.update(overrides)
+    return await env.service.create_question(env.client, **params)
+
+
+async def test_create_question_happy_path(env: SimpleNamespace) -> None:
+    photo = MagicMock()
+    photo.id = 1
+    photo.ticket_id = None
+    photo.message_id = None
+    env.file_service.get_unattached.return_value = [photo]
+    order: list[str] = []
+    env.db.commit.side_effect = lambda: order.append("commit")
+    env.notifications.send_status_card.side_effect = lambda ticket: order.append("card")
+
+    ticket = await _question(env, photo_ids=[1])
+
+    assert ticket is env.ticket
+    env.file_service.get_unattached.assert_awaited_once_with([1])
+    env.tickets.create.assert_awaited_once_with(
+        type=TicketType.QUESTION,
+        status=TicketStatus.NEW,
+        client_id=env.client.id,
+        description="Как передать показания?",
+        category_id=None,
+        building_id=None,
+        apartment=None,
+        contact_phone=env.client.phone,
+        preferred_time=None,
+    )
+    assert env.ticket.client is env.client
+    assert env.ticket.category is None
+    assert env.ticket.building is None
+    env.changes.create.assert_awaited_once_with(
+        env.ticket.id,
+        None,
+        TicketStatus.NEW,
+        changed_by_id=env.client.id,
+    )
+    assert photo.ticket_id == env.ticket.id
+    assert env.client.active_ticket_id == env.ticket.id
+    assert order == ["commit", "card"]
+    env.notifications.send_status_card.assert_awaited_once_with(env.ticket)
+    env.notify.assert_called_once_with(env.ticket.id)
+    env.run_bg.assert_called_once_with(
+        env.notify.return_value, name=f"notify-staff-{env.ticket.id}"
+    )
+    env.categories.get_by_id.assert_not_awaited()
+    env.buildings.get_by_id.assert_not_awaited()
+
+
+async def test_create_question_without_phone_stores_none(env: SimpleNamespace) -> None:
+    env.client.phone = None
+
+    await _question(env)
+
+    assert env.tickets.create.await_args.kwargs["contact_phone"] is None
+
+
+async def test_question_blank_description_rejected_writes_nothing(env: SimpleNamespace) -> None:
+    with pytest.raises(AppException) as exc:
+        await _question(env, description="   ")
+
+    assert exc.value.status_code == 400
+    _assert_no_writes(env)
+
+
+async def test_question_too_long_description_rejected_writes_nothing(env: SimpleNamespace) -> None:
+    with pytest.raises(AppException) as exc:
+        await _question(env, description="a" * (DESCRIPTION_LIMIT + 1))
+
+    assert exc.value.status_code == 400
+    _assert_no_writes(env)
+
+
+async def test_question_unknown_photo_rejected_writes_nothing(env: SimpleNamespace) -> None:
+    env.file_service.get_unattached.side_effect = AppException("Фото не найдено", status_code=400)
+
+    with pytest.raises(AppException) as exc:
+        await _question(env, photo_ids=[999])
+
+    assert exc.value.status_code == 400
+    env.file_service.get_unattached.assert_awaited_once_with([999])
+    _assert_no_writes(env)
+
+
+async def test_question_duplicate_photos_rejected_writes_nothing(env: SimpleNamespace) -> None:
+    env.file_service.get_unattached.side_effect = AppException("Фото повторяются", status_code=400)
+
+    with pytest.raises(AppException) as exc:
+        await _question(env, photo_ids=[5, 5])
+
+    assert exc.value.status_code == 400
+    env.file_service.get_unattached.assert_awaited_once_with([5, 5])
+    _assert_no_writes(env)
+
+
+def _ticket(ticket_id: int, client_id: int, status: TicketStatus) -> MagicMock:
+    ticket = MagicMock()
+    ticket.id = ticket_id
+    ticket.client_id = client_id
+    ticket.status = status
+    return ticket
+
+
+async def test_set_active_ticket_own_open(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id, TicketStatus.IN_PROGRESS)
+    env.tickets.get_by_id = AsyncMock(return_value=ticket)
+
+    result = await env.service.set_active_ticket(env.client, 1042)
+
+    assert result is ticket
+    assert env.client.active_ticket_id == 1042
+    env.db.commit.assert_awaited_once()
+
+
+async def test_set_active_ticket_foreign_rejected(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id + 1, TicketStatus.NEW)
+    env.tickets.get_by_id = AsyncMock(return_value=ticket)
+
+    with pytest.raises(NotFoundException):
+        await env.service.set_active_ticket(env.client, 1042)
+
+    env.db.commit.assert_not_awaited()
+
+
+async def test_set_active_ticket_missing_rejected(env: SimpleNamespace) -> None:
+    env.tickets.get_by_id = AsyncMock(return_value=None)
+
+    with pytest.raises(NotFoundException):
+        await env.service.set_active_ticket(env.client, 1042)
+
+    env.db.commit.assert_not_awaited()
+
+
+async def test_set_active_ticket_closed_rejected(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id, TicketStatus.CLOSED)
+    env.tickets.get_by_id = AsyncMock(return_value=ticket)
+
+    with pytest.raises(ConflictException) as exc:
+        await env.service.set_active_ticket(env.client, 1042)
+
+    assert exc.value.status_code == 409
+    assert str(ticket.id) in exc.value.message
+    env.db.commit.assert_not_awaited()
+
+
+async def test_list_open_tickets_delegates_with_open_statuses(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id, TicketStatus.WAITING_CLIENT)
+    env.tickets.list_by_client = AsyncMock(return_value=[ticket])
+
+    result = await env.service.list_open_tickets(env.client)
+
+    assert result == [ticket]
+    env.tickets.list_by_client.assert_awaited_once_with(
+        env.client.id, statuses=ticket_rules.OPEN_STATUSES
+    )
+
+
+async def test_get_ticket_returns_own(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id, TicketStatus.IN_PROGRESS)
+    env.tickets.get_by_id = AsyncMock(return_value=ticket)
+
+    assert await env.service.get_ticket(env.client, 1042) is ticket
+
+
+async def test_get_ticket_of_another_client_rejected(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id + 1, TicketStatus.NEW)
+    env.tickets.get_by_id = AsyncMock(return_value=ticket)
+
+    with pytest.raises(NotFoundException):
+        await env.service.get_ticket(env.client, 1042)
+
+
+async def test_get_ticket_missing_rejected(env: SimpleNamespace) -> None:
+    env.tickets.get_by_id = AsyncMock(return_value=None)
+
+    with pytest.raises(NotFoundException):
+        await env.service.get_ticket(env.client, 1042)
+
+
+async def test_get_ticket_returns_own_closed(env: SimpleNamespace) -> None:
+    ticket = _ticket(1042, env.client.id, TicketStatus.CLOSED)
+    env.tickets.get_by_id = AsyncMock(return_value=ticket)
+
+    assert await env.service.get_ticket(env.client, 1042) is ticket

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from maxapi.context import MemoryContext
 from maxapi.enums.attachment import AttachmentType
+from maxapi.enums.message_link_type import MessageLinkType
 from maxapi.filters import filter_attrs
 from maxapi.types import MessageCallback, MessageCreated, RequestContactButton
 
@@ -23,6 +24,7 @@ from src.bot.keyboards import (
     FORM_TIME_SKIP,
 )
 from src.bot.states import RequestForm
+from src.bot.utils import NOT_A_COMMAND
 from src.core.exceptions import AppException, MessengerException, NotFoundException
 from src.core.texts import (
     DESCRIPTION_LIMIT,
@@ -121,6 +123,7 @@ def _message(
     message.body = body
     if link_attachments is not None:
         link = MagicMock()
+        link.type = MessageLinkType.FORWARD
         link.message.attachments = link_attachments
         message.link = link
     else:
@@ -777,5 +780,5 @@ def test_not_a_command_filter_skips_commands() -> None:
     start = SimpleNamespace(message=SimpleNamespace(body=SimpleNamespace(text="/start")))
     text = SimpleNamespace(message=SimpleNamespace(body=SimpleNamespace(text="привет")))
 
-    assert filter_attrs(start, request_form._NOT_A_COMMAND) is False
-    assert filter_attrs(text, request_form._NOT_A_COMMAND) is True
+    assert filter_attrs(start, NOT_A_COMMAND) is False
+    assert filter_attrs(text, NOT_A_COMMAND) is True

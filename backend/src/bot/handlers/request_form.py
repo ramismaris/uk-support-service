@@ -33,7 +33,7 @@ from src.bot.keyboards import (
     time_keyboard,
 )
 from src.bot.states import RequestForm
-from src.core.constants import BIGINT_MAX
+from src.bot.utils import NOT_A_COMMAND, attachments, image_urls, message_text, parse_id
 from src.core.exceptions import AppException, NotFoundException
 from src.core.texts import (
     FORM_ADDRESS_OTHER_PROMPT,
@@ -63,48 +63,13 @@ from src.services.client_ticket_service import ClientTicketService, validate_des
 
 router = Router("request_form")
 
-# Commands are never treated as form input: /start must reach the menu and reset the form.
-_NOT_A_COMMAND = ~F.message.body.text.regexp(r"^/")
-
 
 def _service(db: AsyncSession) -> ClientTicketService:
     return ClientTicketService(db, get_messenger_provider(), get_storage_provider())
 
 
-def _parse_id(payload: str, prefix: str) -> int | None:
-    if not payload.startswith(prefix):
-        return None
-    raw = payload[len(prefix) :]
-    if not raw.isascii() or not raw.isdigit():
-        return None
-    value = int(raw)
-    if 1 <= value <= BIGINT_MAX:
-        return value
-    return None
-
-
-def _attachments(message) -> list:
-    items: list = []
-    if message.body is not None and message.body.attachments:
-        items.extend(message.body.attachments)
-    if message.link is not None and message.link.message.attachments:
-        items.extend(message.link.message.attachments)
-    return items
-
-
-def _image_urls(message) -> list[str]:
-    urls: list[str] = []
-    for attachment in _attachments(message):
-        if attachment.type != AttachmentType.IMAGE:
-            continue
-        url = getattr(attachment.payload, "url", None)
-        if url:
-            urls.append(url)
-    return urls
-
-
 def _contact(message):
-    for attachment in _attachments(message):
+    for attachment in attachments(message):
         if attachment.type == AttachmentType.CONTACT:
             return attachment
     return None
@@ -118,12 +83,6 @@ def _is_own_contact(contact, user: User) -> bool:
 def _contact_phone(contact) -> str | None:
     vcf = getattr(contact.payload, "vcf", None)
     return vcf.phone if vcf is not None else None
-
-
-def _message_text(message) -> str:
-    if message.body is None or message.body.text is None:
-        return ""
-    return message.body.text.strip()
 
 
 def _primary_residence(residences: list):
@@ -289,7 +248,7 @@ async def handle_form_cancel(
     await _edit(event, FORM_CANCELLED, main_menu_keyboard())
 
 
-@router.message_created(RequestForm.phone, _NOT_A_COMMAND)
+@router.message_created(RequestForm.phone, NOT_A_COMMAND)
 async def handle_phone(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
@@ -319,7 +278,7 @@ async def handle_phone(
 async def handle_category(
     event: MessageCallback, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    category_id = _parse_id(event.callback.payload, FORM_CATEGORY_PREFIX)
+    category_id = parse_id(event.callback.payload, FORM_CATEGORY_PREFIX)
     service = _service(db)
     categories = await service.list_categories()
     if category_id is None or not any(category.id == category_id for category in categories):
@@ -359,7 +318,7 @@ async def handle_address_add(
 async def handle_residence(
     event: MessageCallback, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    residence_id = _parse_id(event.callback.payload, FORM_RESIDENCE_PREFIX)
+    residence_id = parse_id(event.callback.payload, FORM_RESIDENCE_PREFIX)
     if residence_id is None:
         await event.ack(notification=OUTDATED_BUTTON_TEXT)
         return
@@ -378,7 +337,7 @@ async def handle_residence(
 async def handle_building(
     event: MessageCallback, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    building_id = _parse_id(event.callback.payload, FORM_BUILDING_PREFIX)
+    building_id = parse_id(event.callback.payload, FORM_BUILDING_PREFIX)
     service = _service(db)
     buildings = await service.list_buildings()
     if building_id is None or not any(building.id == building_id for building in buildings):
@@ -388,7 +347,7 @@ async def handle_building(
     await _ask_apartment(event, context)
 
 
-@router.message_created(RequestForm.apartment, _NOT_A_COMMAND)
+@router.message_created(RequestForm.apartment, NOT_A_COMMAND)
 async def handle_apartment(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
@@ -398,7 +357,7 @@ async def handle_apartment(
         await _ask_building(event, context, service)
         return
     try:
-        residence = await service.add_residence(user, building_id, _message_text(event.message))
+        residence = await service.add_residence(user, building_id, message_text(event.message))
     except NotFoundException:
         await _ask_building(event, context, service)
         return
@@ -409,12 +368,12 @@ async def handle_apartment(
     await _ask_description(event, context)
 
 
-@router.message_created(RequestForm.description, _NOT_A_COMMAND)
+@router.message_created(RequestForm.description, NOT_A_COMMAND)
 async def handle_description(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
     try:
-        description = validate_description(_message_text(event.message))
+        description = validate_description(message_text(event.message))
     except AppException as exc:
         await event.message.answer(exc.message, attachments=[cancel_keyboard()])
         return
@@ -422,12 +381,12 @@ async def handle_description(
     await _ask_photos(event, context)
 
 
-@router.message_created(RequestForm.photos, _NOT_A_COMMAND)
+@router.message_created(RequestForm.photos, NOT_A_COMMAND)
 async def handle_photos(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
     photo_ids = list((await context.get_data()).get("photo_ids", []))
-    urls = _image_urls(event.message)
+    urls = image_urls(event.message)
     if not urls:
         await event.message.answer(FORM_PHOTOS_PROMPT, attachments=[_photos_keyboard(photo_ids)])
         return
@@ -471,11 +430,11 @@ async def handle_photos_skip(
     await _ask_time(event, context)
 
 
-@router.message_created(RequestForm.preferred_time, _NOT_A_COMMAND)
+@router.message_created(RequestForm.preferred_time, NOT_A_COMMAND)
 async def handle_time(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    await context.update_data(preferred_time=_message_text(event.message) or None)
+    await context.update_data(preferred_time=message_text(event.message) or None)
     await _ask_confirm(event, context, _service(db))
 
 
@@ -510,7 +469,7 @@ async def handle_send(
     await _edit(event, FORM_SENT.format(ticket_id=ticket.id))
 
 
-@router.message_created(RequestForm, _NOT_A_COMMAND)
+@router.message_created(RequestForm, NOT_A_COMMAND)
 async def handle_unexpected_message(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:

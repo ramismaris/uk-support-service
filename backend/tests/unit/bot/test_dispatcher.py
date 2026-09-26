@@ -3,9 +3,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.bot import dispatcher
+from src.bot.handlers.chat import router as chat_router
 from src.bot.handlers.menu import router as menu_router
 from src.bot.handlers.request_form import router as request_form_router
 from src.bot.handlers.start import router as start_router
+
+
+def test_routers_registered_in_order():
+    assert dispatcher.dp.routers == [
+        start_router,
+        request_form_router,
+        chat_router,
+        menu_router,
+    ]
 
 
 def test_menu_router_registered_after_start_router():
@@ -16,6 +26,13 @@ def test_request_form_router_registered_before_menu_router():
     assert dispatcher.dp.routers.index(request_form_router) < dispatcher.dp.routers.index(
         menu_router
     )
+
+
+def test_chat_router_between_form_and_menu():
+    assert dispatcher.dp.routers.index(chat_router) > dispatcher.dp.routers.index(
+        request_form_router
+    )
+    assert dispatcher.dp.routers.index(chat_router) < dispatcher.dp.routers.index(menu_router)
 
 
 async def test_stop_bot_closes_session_when_polling_failed():

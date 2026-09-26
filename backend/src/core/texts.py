@@ -50,6 +50,26 @@ TICKET_CLOSED_FOR_STAFF = "Обращение закрыто — написат�
 TICKET_CLOSED_FOR_CLIENT = "Обращение №{ticket_id} уже закрыто"
 TICKET_REPLY_BUTTON = "Ответить"
 
+CHAT_SENT = "Сообщение добавлено к {label}."
+CHAT_WRITE_PROMPT = "Напишите сообщение по {label}."
+CHAT_WRITE_NOTIFICATION = "Пишите — сообщение уйдёт сотруднику"
+CHAT_FINISH_CURRENT = "Сначала закончите или отмените текущее действие"
+CHAT_UNSUPPORTED = "Пока я принимаю только текст и фото."
+CHAT_PHOTOS_FAILED = "Часть фото не удалось добавить."
+CHAT_PHOTOS_ALL_FAILED = "Не удалось получить фото. Попробуйте ещё раз."
+CHAT_CHOOSE_TICKET = "К какой заявке относится сообщение?"
+CHAT_OFFER_QUESTION = "Открытых заявок нет. Создать вопрос с этим текстом?"
+CHAT_TEXT_REQUIRED = (
+    "Открытых заявок нет. Чтобы задать вопрос, напишите его текстом. "
+    "Чтобы сообщить о проблеме, нажмите «Подать заявку»."
+)
+CHAT_NOT_SENT = "Сообщение не отправлено."
+QUESTION_SENT = "Вопрос №{ticket_id} отправлен."
+
+CHAT_NEW_QUESTION_BUTTON = "Новый вопрос"
+CHAT_YES_BUTTON = "Да"
+CHAT_NO_BUTTON = "Нет"
+
 
 def format_address(building_address: str, apartment: str) -> str:
     return f"{building_address}, кв. {apartment}"
@@ -139,6 +159,18 @@ def client_message_staff_text(
         lines.append(shorten_description(text))
 
     return "\n".join(lines)
+
+
+def ticket_dative(ticket_type: TicketType, ticket_id: int) -> str:
+    if ticket_type == TicketType.QUESTION:
+        return f"вопросу №{ticket_id}"
+    return f"заявке №{ticket_id}"
+
+
+def ticket_button_label(ticket_type: TicketType, ticket_id: int, category_title: str | None) -> str:
+    if ticket_type == TicketType.QUESTION:
+        return f"№{ticket_id} · Вопрос"
+    return f"№{ticket_id} · {category_title}"
 
 
 # Client request form (bot)
