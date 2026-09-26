@@ -1,4 +1,4 @@
-import { FileText, Info } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { formatDateTime, formatFileSize } from '@/shared/lib/format'
 import { systemText } from '../lib/system-text'
 import type { Message, MessageFile } from '../model/types'
@@ -33,9 +33,11 @@ function Attachment({ file }: { file: MessageFile }) {
 export function MessageBubble({ message }: { message: Message }) {
   if (message.sender_type === 'SYSTEM') {
     return (
-      <div className="mx-auto flex max-w-[85%] items-start gap-1.5 rounded-2xl bg-neutral-200/60 px-3 py-1.5 text-xs text-neutral-600 dark:bg-neutral-800/80 dark:text-neutral-300">
-        <Info size={14} strokeWidth={2} className="mt-px shrink-0 opacity-70" />
-        <span>{systemText(message.text)}</span>
+      <div className="flex justify-center py-1">
+        <span className="max-w-[85%] rounded-2xl bg-fill px-3 py-1 text-center text-[13px] leading-[18px] text-fg-2">
+          {systemText(message.text)}
+          <span className="ml-1.5 text-fg-3">{formatDateTime(message.created_at)}</span>
+        </span>
       </div>
     )
   }

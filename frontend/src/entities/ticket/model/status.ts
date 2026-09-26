@@ -8,12 +8,13 @@ export const statusLabels: Record<TicketStatus, string> = {
   REJECTED: 'Отклонено',
 }
 
-export const statusTones: Record<TicketStatus, string> = {
-  NEW: 'bg-brand/10 text-brand',
-  IN_PROGRESS: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  WAITING_CLIENT: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
-  CLOSED: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  REJECTED: 'bg-neutral-500/15 text-neutral-600 dark:text-neutral-400',
+// Colour is information: only the dot is tinted, the label stays quiet.
+export const statusDots: Record<TicketStatus, string> = {
+  NEW: 'bg-brand',
+  IN_PROGRESS: 'bg-attention',
+  WAITING_CLIENT: 'bg-waiting',
+  CLOSED: 'bg-positive',
+  REJECTED: 'bg-quiet',
 }
 
 export const ticketTypeLabels: Record<TicketType, string> = {

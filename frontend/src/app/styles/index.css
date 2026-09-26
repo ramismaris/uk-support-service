@@ -7,7 +7,8 @@
 @custom-variant dark (&:where([data-color-scheme='dark'], [data-color-scheme='dark'] *));
 
 :root {
-  --brand: #2d7ff9;
+  /* Accent of the УК; Max's own blue until the panel theme (Ф11) sets it. */
+  --brand: #007aff;
   /* Like Max itself: San Francisco on Apple devices, Roboto everywhere else (bundled, no CDN). */
   --app-font: -apple-system, BlinkMacSystemFont, 'Roboto Variable', Roboto, sans-serif;
 }
@@ -15,6 +16,19 @@
 @theme inline {
   --color-brand: var(--brand);
   --font-sans: var(--app-font);
+  /* Max UI tokens (light/dark set by the MaxUI provider), so our blocks share its palette. */
+  --color-surface: var(--background-surface);
+  --color-layer: var(--background-primary);
+  --color-layer-2: var(--background-secondary);
+  --color-fill: var(--background-tertiary);
+  --color-fg: var(--text-primary);
+  --color-fg-2: var(--text-secondary);
+  --color-fg-3: var(--text-tertiary);
+  --color-positive: var(--icon-positive);
+  --color-negative: var(--text-negative);
+  --color-attention: #ff832a;
+  --color-waiting: var(--promo-text-step-1);
+  --color-quiet: var(--icon-tertiary);
 }
 
 /* Unlayered, so it wins over the maxui layer: Max UI components use the same font as the rest. */
