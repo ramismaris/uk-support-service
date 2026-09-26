@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
-from src.core.constants import ButtonType, TicketStatus, TicketType
+import pytest
+
+from src.core.constants import ButtonType, TicketStatus, TicketType, UserRole
 from src.core.exceptions import MessengerException
 from src.models.building import Building
 from src.models.category import Category
@@ -44,6 +46,7 @@ def _service(
     *,
     tickets: MagicMock | None = None,
     files: MagicMock | None = None,
+    messages: MagicMock | None = None,
     status_changes: MagicMock | None = None,
     users: MagicMock | None = None,
 ) -> NotificationService:
@@ -55,6 +58,10 @@ def _service(
         patch(
             "src.services.notification_service.FileRepository",
             return_value=files or MagicMock(),
+        ),
+        patch(
+            "src.services.notification_service.MessageRepository",
+            return_value=messages or MagicMock(),
         ),
         patch(
             "src.services.notification_service.StatusChangeRepository",
@@ -206,6 +213,144 @@ async def test_notify_staff_omits_photo_line_without_photos() -> None:
 
     text = messenger.send_message.await_args.args[1]
     assert "📎" not in text
+
+
+def _message(*, text: str | None = "Здравствуйте, когда мастер?", files: int = 0) -> MagicMock:
+    message = MagicMock()
+    message.id = 77
+    message.ticket_id = 1042
+    message.text = text
+    message.files = [MagicMock() for _ in range(files)]
+    return message
+
+
+async def test_update_status_card_edits_with_markdown() -> None:
+    ticket = _ticket(status=TicketStatus.IN_PROGRESS)
+    ticket.status_message_max_id = "mid-42"
+    messenger = AsyncMock()
+    status_changes = MagicMock()
+    status_changes.list_by_ticket = AsyncMock(
+        return_value=[
+            StatusChange(
+                ticket_id=1042,
+                from_status=TicketStatus.NEW,
+                to_status=TicketStatus.IN_PROGRESS,
+                created_at=datetime(2026, 9, 25, 9, 30, tzinfo=UTC),
+            )
+        ]
+    )
+    service = _service(AsyncMock(), messenger, status_changes=status_changes)
+
+    await service.update_status_card(ticket)
+
+    expected = (
+        "**Заявка №1042** · Сантехника\n"
+        "ул. Ленина, 12, кв. 45\n"
+        "\n"
+        "🟢 В работе — 25.09 12:30\n"
+        "⚪ Закрыта"
+    )
+    messenger.edit_message.assert_awaited_once_with("mid-42", expected, markdown=True)
+
+
+async def test_update_status_card_without_message_id_does_nothing() -> None:
+    ticket = _ticket()
+    ticket.status_message_max_id = None
+    messenger = AsyncMock()
+    status_changes = MagicMock()
+    status_changes.list_by_ticket = AsyncMock()
+    service = _service(AsyncMock(), messenger, status_changes=status_changes)
+
+    await service.update_status_card(ticket)
+
+    messenger.edit_message.assert_not_awaited()
+    status_changes.list_by_ticket.assert_not_awaited()
+
+
+async def test_notify_staff_client_message_sends_to_assignee_only() -> None:
+    ticket = _ticket()
+    ticket.assignee = _staff(10, 1000)
+    ticket.assignee.role = UserRole.MANAGER
+    ticket.assignee.is_blocked = False
+    messages = MagicMock()
+    messages.get_by_id = AsyncMock(return_value=_message(files=2))
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(11, 1001)])
+    messenger = AsyncMock()
+    service = _service(AsyncMock(), messenger, tickets=tickets, messages=messages, users=users)
+
+    await service.notify_staff_client_message(77)
+
+    expected = "💬 Заявка №1042 · Мария Иванова\n📎 Фото: 2\n\nЗдравствуйте, когда мастер?"
+    messenger.send_message.assert_awaited_once_with(
+        1000,
+        expected,
+        buttons=[[Button("Открыть", ButtonType.OPEN_APP, "ticket_1042")]],
+    )
+    users.list_staff.assert_not_awaited()
+
+
+async def test_notify_staff_client_message_without_assignee_falls_back_to_all_staff() -> None:
+    ticket = _ticket()
+    messages = MagicMock()
+    messages.get_by_id = AsyncMock(return_value=_message())
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(10, 1000), _staff(11, 1001)])
+    messenger = AsyncMock()
+    service = _service(AsyncMock(), messenger, tickets=tickets, messages=messages, users=users)
+
+    await service.notify_staff_client_message(77)
+
+    assert messenger.send_message.await_count == 2
+
+
+@pytest.mark.parametrize(
+    ("role", "is_blocked"),
+    [(UserRole.CLIENT, False), (UserRole.MANAGER, True)],
+)
+async def test_notify_staff_client_message_ignores_ineligible_assignee(
+    role: UserRole, is_blocked: bool
+) -> None:
+    ticket = _ticket()
+    ticket.assignee = _staff(10, 1000)
+    ticket.assignee.role = role
+    ticket.assignee.is_blocked = is_blocked
+    messages = MagicMock()
+    messages.get_by_id = AsyncMock(return_value=_message())
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(11, 1001)])
+    messenger = AsyncMock()
+    service = _service(AsyncMock(), messenger, tickets=tickets, messages=messages, users=users)
+
+    await service.notify_staff_client_message(77)
+
+    users.list_staff.assert_awaited_once()
+    messenger.send_message.assert_awaited_once()
+    assert messenger.send_message.await_args.args[0] == 1001
+
+
+async def test_notify_staff_client_message_survives_one_failing_recipient() -> None:
+    ticket = _ticket()
+    messages = MagicMock()
+    messages.get_by_id = AsyncMock(return_value=_message())
+    tickets = MagicMock()
+    tickets.get_by_id = AsyncMock(return_value=ticket)
+    users = MagicMock()
+    users.list_staff = AsyncMock(return_value=[_staff(10, 1000), _staff(11, 1001)])
+    messenger = AsyncMock()
+    messenger.send_message.side_effect = [MessengerException(), None]
+    service = _service(AsyncMock(), messenger, tickets=tickets, messages=messages, users=users)
+
+    await service.notify_staff_client_message(77)
+
+    assert messenger.send_message.await_count == 2
+    assert messenger.send_message.await_args_list[1].args[0] == 1001
 
 
 async def test_notify_staff_question_has_no_category_or_address() -> None:

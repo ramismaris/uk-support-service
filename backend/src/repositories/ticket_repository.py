@@ -55,6 +55,34 @@ class TicketRepository:
         result = await self.db.execute(select(Ticket).where(Ticket.id == ticket_id))
         return result.scalar_one_or_none()
 
+    async def get_by_id_for_update(self, ticket_id: int) -> Ticket | None:
+        result = await self.db.execute(
+            select(Ticket)
+            .where(Ticket.id == ticket_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_status_message_max_id(self, max_message_id: str) -> Ticket | None:
+        result = await self.db.execute(
+            select(Ticket).where(Ticket.status_message_max_id == max_message_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list_by_client(
+        self,
+        client_id: int,
+        *,
+        statuses: Iterable[TicketStatus],
+    ) -> list[Ticket]:
+        result = await self.db.execute(
+            select(Ticket)
+            .where(Ticket.client_id == client_id, Ticket.status.in_(statuses))
+            .order_by(Ticket.created_at.desc(), Ticket.id.desc())
+        )
+        return list(result.scalars().all())
+
     async def list(
         self,
         *,

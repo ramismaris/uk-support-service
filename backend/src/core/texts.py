@@ -35,6 +35,21 @@ PHOTO_NOT_IMAGE = "Можно прикрепить только фото"
 PHONE_INVALID = "Проверьте номер телефона"
 RESIDENCE_NOT_FOUND = "Адрес не найден"
 
+# Chat
+
+MESSAGE_LIMIT = 3000
+MESSAGE_FILES_MAX = 10
+
+MESSAGE_EMPTY = "Напишите сообщение или приложите файл"
+MESSAGE_TOO_LONG = f"Сообщение — не больше {MESSAGE_LIMIT} символов"
+MESSAGE_TOO_MANY_FILES = f"Можно приложить не больше {MESSAGE_FILES_MAX} файлов"
+MESSAGE_FILES_MIXED = "В одном сообщении — до 10 фото или один документ"
+
+TICKET_NOT_FOUND = "Обращение не найдено"
+TICKET_CLOSED_FOR_STAFF = "Обращение закрыто — написать клиенту нельзя"
+TICKET_CLOSED_FOR_CLIENT = "Обращение №{ticket_id} уже закрыто"
+TICKET_REPLY_BUTTON = "Ответить"
+
 
 def format_address(building_address: str, apartment: str) -> str:
     return f"{building_address}, кв. {apartment}"
@@ -80,6 +95,49 @@ def new_ticket_staff_text(
 
     lines.append("")
     lines.append(shorten_description(description))
+    return "\n".join(lines)
+
+
+def staff_message_client_text(
+    *,
+    ticket_id: int,
+    ticket_type: TicketType,
+    text: str | None,
+) -> str:
+    if ticket_type == TicketType.QUESTION:
+        header = f"💬 Вопрос №{ticket_id}"
+    else:
+        header = f"💬 Заявка №{ticket_id}"
+
+    if text is None:
+        return header
+    return f"{header}\n\n{text}"
+
+
+def client_message_staff_text(
+    *,
+    ticket_id: int,
+    ticket_type: TicketType,
+    client_first_name: str,
+    client_last_name: str | None,
+    text: str | None,
+    photos_count: int,
+) -> str:
+    if ticket_type == TicketType.QUESTION:
+        header = f"💬 Вопрос №{ticket_id}"
+    else:
+        header = f"💬 Заявка №{ticket_id}"
+
+    client_name = " ".join(part for part in (client_first_name, client_last_name) if part)
+    lines = [f"{header} · {client_name}"]
+
+    if photos_count:
+        lines.append(f"📎 Фото: {photos_count}")
+
+    if text is not None:
+        lines.append("")
+        lines.append(shorten_description(text))
+
     return "\n".join(lines)
 
 

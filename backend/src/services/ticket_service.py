@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import TicketStatus
 from src.core.exceptions import NotFoundException
+from src.core.texts import TICKET_NOT_FOUND
 from src.models.file import File
 from src.models.status_change import StatusChange
 from src.models.ticket import Ticket
@@ -51,7 +52,7 @@ class TicketService:
     async def get_for_staff(self, ticket_id: int) -> tuple[Ticket, list[File], list[StatusChange]]:
         ticket = await self.tickets.get_by_id(ticket_id)
         if ticket is None:
-            raise NotFoundException("Обращение не найдено")
+            raise NotFoundException(TICKET_NOT_FOUND)
         files = await self.files.list_by_ticket(ticket_id)
         history = await self.status_changes.list_by_ticket(ticket_id)
         return ticket, files, history

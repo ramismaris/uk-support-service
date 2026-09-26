@@ -4,14 +4,19 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
-from src.core.constants import ButtonType
+from src.core.constants import ButtonType, UserRole
 from src.core.exceptions import MessengerException
-from src.core.texts import STAFF_NEW_TICKET_BUTTON, new_ticket_staff_text
+from src.core.texts import (
+    STAFF_NEW_TICKET_BUTTON,
+    client_message_staff_text,
+    new_ticket_staff_text,
+)
 from src.db.session import AsyncSessionLocal
 from src.models.ticket import Ticket
 from src.providers.factory import get_messenger_provider
 from src.providers.messenger_provider import Button, MessengerProvider
 from src.repositories.file_repository import FileRepository
+from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
 from src.repositories.user_repository import UserRepository
@@ -26,6 +31,7 @@ class NotificationService:
         self.messenger = messenger
         self.tickets = TicketRepository(db)
         self.files = FileRepository(db)
+        self.messages = MessageRepository(db)
         self.status_changes = StatusChangeRepository(db)
         self.users = UserRepository(db)
 
@@ -38,6 +44,42 @@ class NotificationService:
         if message_id is not None:
             ticket.status_message_max_id = message_id
             await self.db.commit()
+
+    async def update_status_card(self, ticket: Ticket) -> None:
+        if ticket.status_message_max_id is None:
+            return
+        history = await self.status_changes.list_by_ticket(ticket.id)
+        text = build_status_card(ticket, history, ZoneInfo(settings.timezone))
+        await self.messenger.edit_message(ticket.status_message_max_id, text, markdown=True)
+
+    async def notify_staff_client_message(self, message_id: int) -> None:
+        message = await self.messages.get_by_id(message_id)
+        ticket = await self.tickets.get_by_id(message.ticket_id)
+        text = client_message_staff_text(
+            ticket_id=ticket.id,
+            ticket_type=ticket.type,
+            client_first_name=ticket.client.first_name,
+            client_last_name=ticket.client.last_name,
+            text=message.text,
+            photos_count=len(message.files),
+        )
+        buttons = [[Button(STAFF_NEW_TICKET_BUTTON, ButtonType.OPEN_APP, f"ticket_{ticket.id}")]]
+
+        assignee = ticket.assignee
+        if (
+            assignee is not None
+            and assignee.role in (UserRole.MANAGER, UserRole.ADMIN)
+            and not assignee.is_blocked
+        ):
+            recipients = [assignee]
+        else:
+            recipients = await self.users.list_staff()
+
+        for staff in recipients:
+            try:
+                await self.messenger.send_message(staff.max_user_id, text, buttons=buttons)
+            except MessengerException:
+                logger.warning("Failed to notify staff user %s", staff.id)
 
     async def notify_staff_new_ticket(self, ticket_id: int) -> None:
         ticket = await self.tickets.get_by_id(ticket_id)
@@ -66,3 +108,9 @@ async def notify_staff_about_new_ticket(ticket_id: int) -> None:
     async with AsyncSessionLocal() as db:
         service = NotificationService(db, get_messenger_provider())
         await service.notify_staff_new_ticket(ticket_id)
+
+
+async def notify_staff_about_client_message(message_id: int) -> None:
+    async with AsyncSessionLocal() as db:
+        service = NotificationService(db, get_messenger_provider())
+        await service.notify_staff_client_message(message_id)

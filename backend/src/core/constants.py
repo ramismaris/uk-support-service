@@ -40,6 +40,10 @@ class ButtonType(StrEnum):
     OPEN_APP = "OPEN_APP"
 
 
+# Callback payload of the «Ответить» button under a staff message; the bot makes that ticket active.
+CHAT_TICKET_PREFIX = "chat:ticket:"
+
+
 class ContentKey(StrEnum):
     WELCOME = "WELCOME"
     EMERGENCY = "EMERGENCY"

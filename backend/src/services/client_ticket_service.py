@@ -14,10 +14,7 @@ from src.core.texts import (
     DESCRIPTION_REQUIRED,
     DESCRIPTION_TOO_LONG,
     PHONE_INVALID,
-    PHOTO_ALREADY_ATTACHED,
-    PHOTO_NOT_FOUND,
     PHOTO_NOT_IMAGE,
-    PHOTOS_DUPLICATED,
     RESIDENCE_NOT_FOUND,
 )
 from src.models.building import Building
@@ -30,7 +27,6 @@ from src.providers.messenger_provider import MessengerProvider
 from src.providers.storage_provider import StorageProvider
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
-from src.repositories.file_repository import FileRepository
 from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.ticket_repository import TicketRepository
@@ -64,7 +60,7 @@ class ClientTicketService:
         self.messenger = messenger
         self.storage = storage
         self.tickets = TicketRepository(db)
-        self.files = FileRepository(db)
+        self.file_service = FileService(db, storage)
         self.status_changes = StatusChangeRepository(db)
         self.categories = CategoryRepository(db)
         self.buildings = BuildingRepository(db)
@@ -117,7 +113,7 @@ class ClientTicketService:
         data, mime = await self.messenger.download_file(url, MAX_FILE_SIZE)
         if not mime.startswith("image/"):
             raise AppException(PHOTO_NOT_IMAGE, status_code=400)
-        return await FileService(self.db, self.storage).save(data, mime)
+        return await self.file_service.save(data, mime)
 
     async def create_request(
         self,
@@ -143,17 +139,7 @@ class ClientTicketService:
         if building is None or not building.is_active:
             raise NotFoundException(BUILDING_NOT_FOUND)
 
-        if len(set(photo_ids)) != len(photo_ids):
-            raise AppException(PHOTOS_DUPLICATED, status_code=400)
-
-        files = await self.files.list_by_ids(photo_ids)
-        files_by_id = {file.id: file for file in files}
-        for photo_id in photo_ids:
-            file = files_by_id.get(photo_id)
-            if file is None:
-                raise AppException(PHOTO_NOT_FOUND, status_code=400)
-            if file.ticket_id is not None or file.message_id is not None:
-                raise AppException(PHOTO_ALREADY_ATTACHED, status_code=400)
+        files = await self.file_service.get_unattached(photo_ids)
 
         ticket = await self.tickets.create(
             type=TicketType.REQUEST,

@@ -25,9 +25,6 @@ def env() -> SimpleNamespace:
     tickets = MagicMock()
     tickets.create = AsyncMock(return_value=ticket)
 
-    files = MagicMock()
-    files.list_by_ids = AsyncMock(return_value=[])
-
     changes = MagicMock()
     changes.create = AsyncMock()
 
@@ -70,9 +67,6 @@ def env() -> SimpleNamespace:
             patch("src.services.client_ticket_service.TicketRepository", return_value=tickets)
         )
         stack.enter_context(
-            patch("src.services.client_ticket_service.FileRepository", return_value=files)
-        )
-        stack.enter_context(
             patch(
                 "src.services.client_ticket_service.StatusChangeRepository",
                 return_value=changes,
@@ -111,6 +105,7 @@ def env() -> SimpleNamespace:
             )
         )
         service = ClientTicketService(db, messenger, storage)
+        service.file_service.get_unattached = AsyncMock(return_value=[])
 
         yield SimpleNamespace(
             db=db,
@@ -118,7 +113,7 @@ def env() -> SimpleNamespace:
             storage=storage,
             tickets=tickets,
             ticket=ticket,
-            files=files,
+            file_service=service.file_service,
             changes=changes,
             category=category,
             categories=categories,
@@ -188,7 +183,7 @@ async def test_create_request_happy_path(env: SimpleNamespace) -> None:
     photo_two.id = 2
     photo_two.ticket_id = None
     photo_two.message_id = None
-    env.files.list_by_ids.return_value = [photo_one, photo_two]
+    env.file_service.get_unattached.return_value = [photo_one, photo_two]
     order: list[str] = []
     env.db.commit.side_effect = lambda: order.append("commit")
     env.notifications.send_status_card.side_effect = lambda ticket: order.append("card")
@@ -196,7 +191,7 @@ async def test_create_request_happy_path(env: SimpleNamespace) -> None:
     ticket = await _request(env, photo_ids=[1, 2])
 
     assert ticket is env.ticket
-    env.files.list_by_ids.assert_awaited_once_with([1, 2])
+    env.file_service.get_unattached.assert_awaited_once_with([1, 2])
     env.tickets.create.assert_awaited_once_with(
         type=TicketType.REQUEST,
         status=TicketStatus.NEW,
@@ -309,49 +304,50 @@ async def test_inactive_building_rejected_writes_nothing(env: SimpleNamespace) -
 
 
 async def test_unknown_photo_rejected_writes_nothing(env: SimpleNamespace) -> None:
-    env.files.list_by_ids.return_value = []
+    env.file_service.get_unattached.side_effect = AppException("Фото не найдено", status_code=400)
 
     with pytest.raises(AppException) as exc:
         await _request(env, photo_ids=[999])
 
     assert exc.value.status_code == 400
+    env.file_service.get_unattached.assert_awaited_once_with([999])
     _assert_no_writes(env)
 
 
 async def test_attached_photo_rejected_writes_nothing(env: SimpleNamespace) -> None:
-    attached = MagicMock()
-    attached.id = 5
-    attached.ticket_id = 99
-    attached.message_id = None
-    env.files.list_by_ids.return_value = [attached]
+    env.file_service.get_unattached.side_effect = AppException(
+        "Фото уже прикреплено", status_code=400
+    )
 
     with pytest.raises(AppException) as exc:
         await _request(env, photo_ids=[5])
 
     assert exc.value.status_code == 400
+    env.file_service.get_unattached.assert_awaited_once_with([5])
     _assert_no_writes(env)
 
 
 async def test_photo_attached_to_message_rejected_writes_nothing(env: SimpleNamespace) -> None:
-    attached = MagicMock()
-    attached.id = 5
-    attached.ticket_id = None
-    attached.message_id = 9
-    env.files.list_by_ids.return_value = [attached]
+    env.file_service.get_unattached.side_effect = AppException(
+        "Фото уже прикреплено", status_code=400
+    )
 
     with pytest.raises(AppException) as exc:
         await _request(env, photo_ids=[5])
 
     assert exc.value.status_code == 400
+    env.file_service.get_unattached.assert_awaited_once_with([5])
     _assert_no_writes(env)
 
 
 async def test_duplicate_photos_rejected_writes_nothing(env: SimpleNamespace) -> None:
+    env.file_service.get_unattached.side_effect = AppException("Фото повторяются", status_code=400)
+
     with pytest.raises(AppException) as exc:
         await _request(env, photo_ids=[5, 5])
 
     assert exc.value.status_code == 400
-    env.files.list_by_ids.assert_not_awaited()
+    env.file_service.get_unattached.assert_awaited_once_with([5, 5])
     _assert_no_writes(env)
 
 

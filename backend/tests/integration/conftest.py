@@ -1,6 +1,7 @@
 import os
 from collections.abc import AsyncIterator
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
@@ -61,6 +62,11 @@ async def clean_db() -> AsyncIterator[None]:
 async def db() -> AsyncIterator[AsyncSession]:
     async with _SessionFactory() as session:
         yield session
+
+
+@pytest.fixture
+def session_factory() -> async_sessionmaker[AsyncSession]:
+    return _SessionFactory
 
 
 @pytest_asyncio.fixture
