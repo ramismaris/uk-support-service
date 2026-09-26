@@ -160,7 +160,8 @@ export function UserCard() {
         <span className="font-semibold">Пользователь</span>
       </header>
       {user ? (
-        <UserDetails user={user} />
+        // Keyed: a pending change or its error must not carry over to the next user.
+        <UserDetails key={user.id} user={user} />
       ) : users.isPending ? (
         <div className="m-auto text-sm text-fg-3">Загрузка…</div>
       ) : (

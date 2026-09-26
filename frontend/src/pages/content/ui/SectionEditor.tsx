@@ -34,6 +34,37 @@ interface FormProps {
   onSaved: (saved: boolean) => void
 }
 
+function PhoneInput({
+  value,
+  label,
+  placeholder,
+  inputMode,
+  error,
+  onChange,
+}: {
+  value: string
+  label: string
+  placeholder: string
+  inputMode?: 'tel'
+  error?: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <input
+        value={value}
+        aria-label={label}
+        aria-invalid={error ? true : undefined}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-w-0 rounded-xl bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-fg-3 focus:ring-2 focus:ring-brand/40"
+      />
+      {error && <span className="text-sm text-negative">{error}</span>}
+    </div>
+  )
+}
+
 function PhonesField({
   phones,
   errors,
@@ -52,18 +83,20 @@ function PhonesField({
       {phones.map((phone, index) => (
         <div key={index} className="flex items-start gap-2">
           <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row">
-            <input
+            <PhoneInput
               value={phone.title}
+              label="Подпись"
               placeholder="Подпись, например «Диспетчер»"
-              onChange={(event) => update(index, { title: event.target.value })}
-              className="min-w-0 flex-1 rounded-xl bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-fg-3 focus:ring-2 focus:ring-brand/40"
+              error={errors[`phones.${index}.title`]}
+              onChange={(title) => update(index, { title })}
             />
-            <input
+            <PhoneInput
               value={phone.phone}
+              label="Номер"
               placeholder="+7 900 000-00-00"
               inputMode="tel"
-              onChange={(event) => update(index, { phone: event.target.value })}
-              className="min-w-0 flex-1 rounded-xl bg-fill px-3 py-2.5 text-[15px] outline-none placeholder:text-fg-3 focus:ring-2 focus:ring-brand/40"
+              error={errors[`phones.${index}.phone`]}
+              onChange={(value) => update(index, { phone: value })}
             />
           </div>
           <button
@@ -76,11 +109,6 @@ function PhonesField({
           </button>
         </div>
       ))}
-      {phones.some(
-        (_, index) => errors[`phones.${index}.title`] || errors[`phones.${index}.phone`],
-      ) && (
-        <span className="text-sm text-negative">Заполните подпись и номер у каждого телефона</span>
-      )}
       {errors.phones && <span className="text-sm text-negative">{errors.phones}</span>}
       {phones.length < MAX_PHONES && (
         <button

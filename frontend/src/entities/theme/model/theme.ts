@@ -33,10 +33,14 @@ export function applyTheme(theme: BrandTheme): void {
   document.documentElement.style.setProperty('--brand', theme.primaryColor)
   document.title = `${theme.companyName} — панель`
   // The login screen cannot fetch the theme, so it reads this. The logo link expires in an hour.
-  localStorage.setItem(
-    CACHE_KEY,
-    JSON.stringify({ companyName: theme.companyName, primaryColor: theme.primaryColor }),
-  )
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ companyName: theme.companyName, primaryColor: theme.primaryColor }),
+    )
+  } catch {
+    // Storage can be disabled (some WebViews); the theme still applies, only the cache is lost.
+  }
 }
 
 export function readCachedTheme(): BrandTheme {

@@ -4,6 +4,7 @@ export type FieldErrors = Record<string, string>
 
 const TEXT_LIMIT = 3000
 const BUTTON_LIMIT = 64
+const LINK_LIMIT = 2048
 const PHONES_LIMIT = 10
 const PHONE_TITLE_LIMIT = 50
 const PHONE_LIMIT = 30
@@ -33,7 +34,13 @@ export function validateSection<S extends Section>(section: S, draft: Drafts[S])
   }
   if (section === 'payment') {
     const payment = draft as Drafts['payment']
-    add('url', LINK.test(payment.url) ? null : 'Ссылка должна начинаться с http:// или https://')
+    // The backend strips spaces around the link before checking it.
+    const url = payment.url.trim()
+    if (url.length > LINK_LIMIT) {
+      add('url', `Не длиннее ${LINK_LIMIT} символов`)
+    } else {
+      add('url', LINK.test(url) ? null : 'Ссылка должна начинаться с http:// или https://')
+    }
     add('buttonText', required(payment.buttonText, BUTTON_LIMIT, 'Заполните текст кнопки'))
   }
   if (section === 'contacts') {

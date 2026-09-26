@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { applyTheme, DEFAULT_THEME, readCachedTheme, themeFromResponse } from './theme'
 
 afterEach(() => {
+  vi.restoreAllMocks()
   localStorage.clear()
   document.documentElement.style.removeProperty('--brand')
   document.title = ''
@@ -37,6 +38,16 @@ describe('applyTheme', () => {
       companyName: 'УК Центр',
       primaryColor: '#00a36c',
     })
+  })
+
+  it('still applies the theme when storage is unavailable', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('denied', 'SecurityError')
+    })
+    expect(() =>
+      applyTheme({ companyName: 'УК Центр', primaryColor: '#00a36c', logoUrl: null }),
+    ).not.toThrow()
+    expect(document.documentElement.style.getPropertyValue('--brand')).toBe('#00a36c')
   })
 })
 

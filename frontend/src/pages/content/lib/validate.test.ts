@@ -57,4 +57,12 @@ describe('validateSection', () => {
       'phones.0.phone': 'Не длиннее 30 символов',
     })
   })
+
+  it('trims the payment link and limits it', () => {
+    const payment = (url: string) => ({ text: 'Оплата', url, buttonText: 'Оплатить' })
+    expect(validateSection('payment', payment('  https://pay.ru '))).toEqual({})
+    expect(validateSection('payment', payment(`https://pay.ru/${'a'.repeat(2034)}`))).toEqual({
+      url: 'Не длиннее 2048 символов',
+    })
+  })
 })
