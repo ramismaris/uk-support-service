@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import { isAdmin, isClient, isStaff } from '@/entities/user'
 import { ContentLayout, SectionEditor } from '@/pages/content'
+import { UserCard, UsersIndex, UsersLayout } from '@/pages/users'
 import { ClientHomePage } from '@/pages/client-home'
 import { LoginPage } from '@/pages/login'
 import { NotFoundPage } from '@/pages/not-found'
@@ -38,6 +39,18 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <SectionEditor /> },
               { path: routePaths.contentSection, element: <SectionEditor /> },
+            ],
+          },
+          {
+            path: routePaths.users,
+            element: (
+              <RequireRole allow={isAdmin}>
+                <UsersLayout />
+              </RequireRole>
+            ),
+            children: [
+              { index: true, element: <UsersIndex /> },
+              { path: routePaths.user, element: <UserCard /> },
             ],
           },
           {
