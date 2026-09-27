@@ -1,5 +1,6 @@
 import { FileText } from 'lucide-react'
 import { formatDateTime, formatFileSize } from '@/shared/lib/format'
+import { MaxText } from '@/shared/ui/max-text'
 import { isPhoto } from '../lib/photo'
 import { systemText } from '../lib/system-text'
 import type { Message, MessageFile } from '../model/types'
@@ -70,7 +71,13 @@ export function MessageBubble({
             {documents.map((file) => (
               <Document key={file.id} file={file} />
             ))}
-            {message.text && <p className="break-words whitespace-pre-wrap">{message.text}</p>}
+            {message.text &&
+              // Staff replies go to Max as markdown; residents' messages come as plain text.
+              (fromStaff ? (
+                <MaxText text={message.text} />
+              ) : (
+                <p className="break-words whitespace-pre-wrap">{message.text}</p>
+              ))}
             <div className="self-end text-[11px] opacity-60">{time}</div>
           </div>
         )}

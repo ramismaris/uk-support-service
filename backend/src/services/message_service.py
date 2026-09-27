@@ -109,7 +109,7 @@ class MessageService:
             staff_message_client_text(ticket_id=ticket.id, ticket_type=ticket.type, text=text),
             buttons=buttons,
             files=files,
-            markdown=False,
+            markdown=True,
         )
 
         ticket = await self.tickets.get_by_id_for_update(ticket_id)

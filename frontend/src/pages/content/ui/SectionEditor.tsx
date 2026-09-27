@@ -182,7 +182,7 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
         )}
         <TextField
           label="Текст"
-          multiline
+          formatting
           value={draft.text}
           limit={3000}
           error={visibleErrors.text}

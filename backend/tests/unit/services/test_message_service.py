@@ -189,7 +189,8 @@ async def test_send_staff_message_text_only(env: SimpleNamespace) -> None:
         "💬 Заявка №1042\n\nМастер придёт завтра",
         buttons=[[REPLY_BUTTON]],
         files=[],
-        markdown=False,
+        # Staff can format replies like the admin formats bot texts.
+        markdown=True,
     )
     env.messages.create.assert_awaited_once_with(
         env.ticket.id,

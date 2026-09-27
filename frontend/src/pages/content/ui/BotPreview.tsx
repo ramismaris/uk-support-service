@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react'
+import { MaxText } from '@/shared/ui/max-text'
 import type { BotPreview as Preview } from '../lib/preview'
 
 // How the resident sees the section in Max: a bot message with inline buttons under it.
@@ -12,13 +13,14 @@ export function BotPreview({ preview, section }: { preview: Preview; section: st
             {preview.photoUrl && (
               <img src={preview.photoUrl} alt="" className="max-h-48 w-full object-cover" />
             )}
-            <p
-              className={`px-3 py-2 text-[15px] leading-5 whitespace-pre-wrap ${
-                preview.text.trim() ? '' : 'text-fg-3'
-              }`}
-            >
-              {preview.text.trim() ? preview.text : `Текст раздела «${section}»`}
-            </p>
+            {preview.text.trim() ? (
+              <MaxText
+                text={preview.text}
+                className="px-3 py-2 text-[15px] leading-5 [&_a]:text-brand"
+              />
+            ) : (
+              <p className="px-3 py-2 text-[15px] leading-5 text-fg-3">Текст раздела «{section}»</p>
+            )}
           </div>
           {preview.buttons.map((button, index) => (
             <span

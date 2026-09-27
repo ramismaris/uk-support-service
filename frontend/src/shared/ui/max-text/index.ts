@@ -1,0 +1,1 @@
+export { MaxText } from './MaxText'

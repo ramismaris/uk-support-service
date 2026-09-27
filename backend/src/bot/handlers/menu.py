@@ -4,6 +4,7 @@ from functools import partial
 
 from maxapi import Router
 from maxapi.context import BaseContext
+from maxapi.enums.parse_mode import ParseMode
 from maxapi.exceptions import MaxApiError
 from maxapi.filters import F
 from maxapi.filters.command import CommandStart
@@ -94,26 +95,32 @@ def _log_photo_rejected(exc: MaxApiError) -> None:
     )
 
 
+# Texts the admin writes in the panel go out as markdown; the bot's own lists stay plain,
+# so a resident's "*" or "_" in a ticket title is not taken for formatting.
 async def _send_welcome(
     send: Callable[..., Awaitable[object]], text: str, attachments: list[Attachment]
 ) -> None:
     try:
-        await send(text=text, attachments=attachments)
+        await send(text=text, attachments=attachments, format=ParseMode.MARKDOWN)
     except MaxApiError as exc:
         if not _has_photo(attachments):
             raise
         _log_photo_rejected(exc)
-        await send(text=text, attachments=[main_menu_keyboard()])
+        await send(text=text, attachments=[main_menu_keyboard()], format=ParseMode.MARKDOWN)
 
 
-async def _edit(event: MessageCallback, text: str, attachments: list[Attachment]) -> None:
+async def _edit(
+    event: MessageCallback, text: str, attachments: list[Attachment], *, markdown: bool = False
+) -> None:
     try:
-        await event.edit(text=text, attachments=attachments)
+        await event.edit(
+            text=text, attachments=attachments, format=ParseMode.MARKDOWN if markdown else None
+        )
     except MaxApiError as exc:
         if not _has_photo(attachments):
             raise
         _log_photo_rejected(exc)
-        await _edit(event, text, [main_menu_keyboard()])
+        await _edit(event, text, [main_menu_keyboard()], markdown=markdown)
     except ValueError:
         await event.ack(notification=OUTDATED_BUTTON_TEXT)
 
@@ -136,14 +143,14 @@ async def handle_start(event: MessageCreated, context: BaseContext, db: AsyncSes
 async def handle_emergency(event: MessageCallback, db: AsyncSession) -> None:
     content = await ContentService(db).get_emergency()
     text = content.text if content is not None else SECTION_EMPTY_TEXT
-    await _edit(event, text, [back_keyboard()])
+    await _edit(event, text, [back_keyboard()], markdown=True)
 
 
 @router.message_callback(F.callback.payload == MENU_SERVICES)
 async def handle_services(event: MessageCallback, db: AsyncSession) -> None:
     content = await ContentService(db).get_services()
     text = content.text if content is not None else SECTION_EMPTY_TEXT
-    await _edit(event, text, [back_keyboard()])
+    await _edit(event, text, [back_keyboard()], markdown=True)
 
 
 @router.message_callback(F.callback.payload == MENU_PAYMENT)
@@ -152,7 +159,7 @@ async def handle_payment(event: MessageCallback, db: AsyncSession) -> None:
     if content is None:
         await _edit(event, SECTION_EMPTY_TEXT, [back_keyboard()])
         return
-    await _edit(event, content.text, [payment_keyboard(content)])
+    await _edit(event, content.text, [payment_keyboard(content)], markdown=True)
 
 
 @router.message_callback(F.callback.payload == MENU_TICKETS)
@@ -170,13 +177,13 @@ async def handle_question(event: MessageCallback, db: AsyncSession) -> None:
     if content is None:
         await _edit(event, QUESTION_SECTION_DEFAULT, [contacts_keyboard()])
         return
-    await _edit(event, _contacts_text(content), [contacts_keyboard()])
+    await _edit(event, _contacts_text(content), [contacts_keyboard()], markdown=True)
 
 
 @router.message_callback(F.callback.payload == MENU_MAIN)
 async def handle_main(event: MessageCallback, db: AsyncSession) -> None:
     text, attachments = await _welcome(db)
-    await _edit(event, text, attachments)
+    await _edit(event, text, attachments, markdown=True)
 
 
 @router.message_callback(F.callback.payload.regexp(rf"^{MENU_PREFIX}"))

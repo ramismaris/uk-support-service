@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from maxapi.enums.parse_mode import ParseMode
 from maxapi.enums.upload_type import UploadType
 from maxapi.exceptions import MaxApiError
 from maxapi.types import BotStarted, MessageCallback, MessageCreated
@@ -511,3 +512,50 @@ async def test_question_missing_block_shows_default(content_service: MagicMock) 
     assert event.edit.await_args.kwargs["text"] == QUESTION_SECTION_DEFAULT
     rows = _keyboard_rows(event.edit.await_args.kwargs["attachments"][0])
     assert [row[0].payload for row in rows] == ["question:write", "menu:main"]
+
+
+@pytest.mark.parametrize(
+    "handler",
+    [menu.handle_emergency, menu.handle_services, menu.handle_payment, menu.handle_question],
+)
+async def test_admin_sections_go_out_as_markdown(content_service: MagicMock, handler: object):
+    event = _message_callback()
+
+    await handler(event, MagicMock())
+
+    assert event.edit.await_args.kwargs["format"] == ParseMode.MARKDOWN
+
+
+async def test_welcome_goes_out_as_markdown(welcome_service: MagicMock):
+    started = _bot_started()
+    start = _message_created()
+    main = _message_callback("menu:main")
+
+    await menu.handle_bot_started(started, _context(), MagicMock())
+    await menu.handle_start(start, _context(), MagicMock())
+    await menu.handle_main(main, MagicMock())
+
+    assert started.bot.send_message.await_args.kwargs["format"] == ParseMode.MARKDOWN
+    assert start.message.answer.await_args.kwargs["format"] == ParseMode.MARKDOWN
+    assert main.edit.await_args.kwargs["format"] == ParseMode.MARKDOWN
+
+
+async def test_welcome_keeps_markdown_when_retried_without_photo(welcome_service: MagicMock):
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="token"
+    )
+    event = _message_created()
+    event.message.answer = AsyncMock(side_effect=[MaxApiError(code=400, raw={}), None])
+
+    await menu.handle_start(event, _context(), MagicMock())
+
+    assert event.message.answer.await_args.kwargs["format"] == ParseMode.MARKDOWN
+
+
+async def test_my_tickets_stay_plain_text(client_service: MagicMock):
+    client_service.list_tickets.return_value = [_ticket(1042)]
+    event = _message_callback("menu:tickets")
+
+    await menu.handle_my_tickets(event, MagicMock(), MagicMock())
+
+    assert event.edit.await_args.kwargs.get("format") is None
