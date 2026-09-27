@@ -4,11 +4,13 @@ import '../styles/index.css'
 import '../session/api-session'
 import { applyTheme, readCachedTheme } from '@/entities/theme'
 import { AppProviders } from './AppProviders'
+import { showScrollbarsWhileScrolling } from './scrollbars'
 import { reloadOnStaleBuild } from './stale-build'
 
 // Last known company colour and name before the first paint; the real theme loads after sign-in.
 applyTheme(readCachedTheme())
 reloadOnStaleBuild()
+showScrollbarsWhileScrolling()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

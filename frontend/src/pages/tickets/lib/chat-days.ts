@@ -21,3 +21,13 @@ export function groupByDay<T extends { at: string }>(items: T[]): ChatDay<T>[] {
   }
   return days
 }
+
+// Which day the floating date at the top shows while scrolling (like Telegram): the day that
+// fills the top of the view, but only once its own separator has scrolled out of sight.
+export function floatingDayIndex(separatorTops: number[], scrollTop: number): number | null {
+  const index = separatorTops.findLastIndex((top) => top <= scrollTop)
+  if (index === -1 || separatorTops[index] === scrollTop) {
+    return null
+  }
+  return index
+}

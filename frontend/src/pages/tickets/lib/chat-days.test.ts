@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupByDay } from './chat-days'
+import { floatingDayIndex, groupByDay } from './chat-days'
 
 const at = (day: number, hour: number) => new Date(2026, 8, day, hour, 0).toISOString()
 
@@ -17,5 +17,24 @@ describe('groupByDay', () => {
 
   it('gives nothing for an empty chat', () => {
     expect(groupByDay([])).toEqual([])
+  })
+})
+
+describe('floatingDayIndex', () => {
+  // Offsets of each day's separator from the top of the chat content.
+  const tops = [0, 400, 900]
+
+  it('names the day whose messages are at the top of the view', () => {
+    expect(floatingDayIndex(tops, 500)).toBe(1)
+    expect(floatingDayIndex(tops, 1200)).toBe(2)
+  })
+
+  it('shows nothing while the day separator itself is still in view', () => {
+    expect(floatingDayIndex(tops, 0)).toBeNull()
+    expect(floatingDayIndex(tops, 400)).toBeNull()
+  })
+
+  it('shows nothing for an empty chat', () => {
+    expect(floatingDayIndex([], 100)).toBeNull()
   })
 })

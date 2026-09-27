@@ -8,7 +8,7 @@ import { formatDayLabel, formatTime } from '@/shared/lib/format'
 import { useBrandColor } from '@/entities/theme'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
-import { groupByDay } from '../lib/chat-days'
+import { floatingDayIndex, groupByDay } from '../lib/chat-days'
 import { chatPhotos } from '../lib/chat-photos'
 import { buildTimeline, type TimelineItem } from '../lib/timeline'
 import { firstUnreadMessageId } from '../lib/unread-divider'
@@ -17,6 +17,10 @@ import { Composer } from './Composer'
 import { PhotoViewer } from './PhotoViewer'
 
 const NEAR_BOTTOM = 80
+// The floating date hides this long after scrolling stops, as in Telegram.
+const FLOATING_DATE_MS = 1000
+// Pill height: its separator counts as gone once it slides under the floating one.
+const SEPARATOR_OFFSET = 8
 
 function TimelineEvent({ item }: { item: Extract<TimelineItem, { kind: 'event' }> }) {
   return (
@@ -46,6 +50,27 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   const list = useMemo(() => messages.data ?? [], [messages.data])
   const timeline = useMemo(() => buildTimeline(list, ticket.history), [list, ticket.history])
   const days = useMemo(() => groupByDay(timeline), [timeline])
+  const [floatingDate, setFloatingDate] = useState<string | null>(null)
+  const floatingTimer = useRef<number | undefined>(undefined)
+
+  const showFloatingDate = (element: HTMLElement) => {
+    const separators = element.querySelectorAll<HTMLElement>('[data-day-separator]')
+    const tops = Array.from(separators, (separator) => separator.offsetTop)
+    const index = floatingDayIndex(tops, element.scrollTop + SEPARATOR_OFFSET)
+    setFloatingDate(index === null ? null : (separators[index]?.dataset.daySeparator ?? null))
+    window.clearTimeout(floatingTimer.current)
+    floatingTimer.current = window.setTimeout(() => setFloatingDate(null), FLOATING_DATE_MS)
+  }
+
+  useEffect(() => () => window.clearTimeout(floatingTimer.current), [])
+  // Our own jumps to the latest message are not the user scrolling: no floating date for them.
+  const ownScroll = useRef(false)
+  const pinToBottom = (element: HTMLElement) => {
+    if (element.scrollTop !== element.scrollHeight - element.clientHeight) {
+      ownScroll.current = true
+      element.scrollTop = element.scrollHeight
+    }
+  }
   const residentName = [ticket.client.first_name, ticket.client.last_name].filter(Boolean).join(' ')
   const photos = useMemo(() => chatPhotos(list, residentName), [list, residentName])
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
@@ -66,7 +91,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   useLayoutEffect(() => {
     const element = scroller.current
     if (element && stickToBottom.current) {
-      element.scrollTop = element.scrollHeight
+      pinToBottom(element)
     }
   }, [timeline.length, ticket.id])
 
@@ -74,21 +99,43 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   const brandColor = useBrandColor()
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* Like Telegram: while scrolling, the day at the top shows here, then fades away. */}
+      <AnimatePresence>
+        {floatingDate && (
+          <motion.div
+            key="floating-date"
+            className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <span className="rounded-full bg-black/35 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              {floatingDate}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div
         ref={scroller}
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-surface px-4 py-3"
+        className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-surface px-4 py-3"
         // Photos get their height only once loaded; keep the chat pinned to the bottom meanwhile.
         onLoadCapture={() => {
           const element = scroller.current
           if (element && stickToBottom.current) {
-            element.scrollTop = element.scrollHeight
+            pinToBottom(element)
           }
         }}
         onScroll={(event) => {
           const element = event.currentTarget
           stickToBottom.current =
             element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM
+          if (ownScroll.current) {
+            ownScroll.current = false
+          } else {
+            showFloatingDate(element)
+          }
         }}
       >
         {messages.isPending && <div className="m-auto text-sm text-fg-3">Загрузка…</div>}
@@ -106,8 +153,10 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
           <div className={`flex flex-col gap-2 ${list.length > 0 ? 'mt-auto' : ''}`}>
             {days.map((day) => (
               <section key={day.key} className="flex flex-col gap-2">
-                {/* Like Telegram: the date sticks to the top while its day is on screen. */}
-                <div className="pointer-events-none sticky top-0 z-10 flex justify-center py-1">
+                <div
+                  data-day-separator={formatDayLabel(day.at)}
+                  className="flex justify-center py-1"
+                >
                   <span className="rounded-full bg-black/35 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
                     {formatDayLabel(day.at)}
                   </span>

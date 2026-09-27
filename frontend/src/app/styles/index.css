@@ -80,3 +80,16 @@
     background: #17181c;
   }
 }
+
+@layer base {
+  /* Scrollbars like Telegram: thin and invisible until the pointer is over the area or it
+     scrolls (data-scrolling, set by entrypoint/scrollbars.ts). Phones use overlay bars anyway. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  *:hover,
+  [data-scrolling] {
+    scrollbar-color: color-mix(in srgb, var(--text-tertiary) 55%, transparent) transparent;
+  }
+}
