@@ -84,6 +84,8 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
             {timeline.map((item) => (
               <motion.div
                 key={item.key}
+                // Like Max on wide screens: the background spans the pane, messages keep a column.
+                className="mx-auto w-full max-w-3xl"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
