@@ -9,6 +9,14 @@
 	@page not path /assets/*
 	header @page Cache-Control "no-cache"
 
-	try_files {path} /index.html
-	file_server
+	# A missing build file is a 404, not index.html: a tab from before a deploy then gets a clean
+	# load error for its old chunk and reloads (see app/entrypoint/stale-build.ts).
+	handle /assets/* {
+		file_server
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
 }
