@@ -91,7 +91,7 @@ function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
   }
 
   return (
-    <div className="grid gap-8 p-4 lg:p-6 xl:grid-cols-[minmax(0,36rem)_20rem]">
+    <div className="mx-auto grid w-full max-w-[61rem] gap-8 p-4 lg:p-6 xl:grid-cols-[minmax(0,36rem)_20rem]">
       <form
         className="flex max-w-xl flex-col gap-6"
         onSubmit={(event) => {
@@ -250,9 +250,11 @@ export function AppearancePage() {
 
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-      <header className="flex items-center gap-2 border-b border-line px-3 py-3 lg:px-6">
-        <NavMenuButton />
-        <h1 className="text-lg font-semibold">Оформление</h1>
+      <header className="border-b border-line px-3 py-3 lg:px-6">
+        <div className="mx-auto flex w-full max-w-[58rem] items-center gap-2">
+          <NavMenuButton />
+          <h1 className="text-lg font-semibold">Оформление</h1>
+        </div>
       </header>
       {body()}
     </section>

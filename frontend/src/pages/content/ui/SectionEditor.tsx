@@ -163,7 +163,8 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
   const preview = botPreview(section, draft as never)
 
   return (
-    <div className="grid gap-6 p-4 lg:p-6 xl:grid-cols-[minmax(0,42rem)_20rem]">
+    // On wide screens the form and the preview stay together in the middle, as does the title.
+    <div className="mx-auto grid w-full max-w-[66.5rem] gap-6 p-4 lg:p-6 xl:grid-cols-[minmax(0,42rem)_20rem]">
       <form
         className="flex max-w-2xl flex-col gap-5"
         onSubmit={(event) => {
@@ -288,15 +289,17 @@ export function SectionEditor() {
   const saved = draftsFromContent(content.data)[section]
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-      <header className="flex items-center gap-2 border-b border-line px-3 py-3 lg:px-6">
-        <Link
-          to={routePaths.content}
-          aria-label="К разделам"
-          className="-ml-1 rounded-full p-1 hover:bg-hover lg:hidden"
-        >
-          <ChevronLeft size={20} strokeWidth={2} />
-        </Link>
-        <h1 className="text-lg font-semibold">{sectionTitles[section]}</h1>
+      <header className="border-b border-line px-3 py-3 lg:px-6">
+        <div className="mx-auto flex w-full max-w-[63.5rem] items-center gap-2">
+          <Link
+            to={routePaths.content}
+            aria-label="К разделам"
+            className="-ml-1 rounded-full p-1 hover:bg-hover lg:hidden"
+          >
+            <ChevronLeft size={20} strokeWidth={2} />
+          </Link>
+          <h1 className="text-lg font-semibold">{sectionTitles[section]}</h1>
+        </div>
       </header>
       {/* Remount on section change and after saving, so the draft starts from the saved data. */}
       <SectionForm

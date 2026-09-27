@@ -6,7 +6,7 @@ import { isApiError } from '@/shared/api'
 import { routePaths } from '@/shared/config'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Chat } from './Chat'
-import { ResidentCard } from './ResidentCard'
+import { ResidentCard, ResidentPanel } from './ResidentCard'
 import { TicketHeader } from './TicketHeader'
 
 function parseTicketId(value: string | undefined): number | null {
@@ -49,11 +49,14 @@ function TicketView({ id }: { id: number }) {
 
   // The chat is the product: header with actions, the resident pinned on top, then the dialogue.
   return (
-    <section className="flex min-w-0 flex-1 flex-col">
-      <TicketHeader ticket={ticket.data} />
-      <ResidentCard ticket={ticket.data} />
-      <Chat ticket={ticket.data} />
-    </section>
+    <div className="flex min-w-0 flex-1">
+      <section className="flex min-w-0 flex-1 flex-col">
+        <TicketHeader ticket={ticket.data} />
+        <ResidentCard ticket={ticket.data} />
+        <Chat ticket={ticket.data} />
+      </section>
+      <ResidentPanel ticket={ticket.data} />
+    </div>
   )
 }
 

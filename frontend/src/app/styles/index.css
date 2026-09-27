@@ -13,6 +13,11 @@
   --app-font: -apple-system, BlinkMacSystemFont, 'Roboto Variable', Roboto, sans-serif;
 }
 
+@theme {
+  /* Wide monitors: the ticket gets a third column with the resident details. */
+  --breakpoint-3xl: 100rem;
+}
+
 @theme inline {
   --color-brand: var(--brand);
   --font-sans: var(--app-font);

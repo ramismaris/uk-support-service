@@ -11,17 +11,77 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+function resident(ticket: TicketDetail) {
+  return {
+    name: [ticket.client.first_name, ticket.client.last_name].filter(Boolean).join(' '),
+    address: ticket.building
+      ? `${ticket.building.address}${ticket.apartment ? `, кв. ${ticket.apartment}` : ''}`
+      : null,
+  }
+}
+
+function ResidentDetails({ ticket }: { ticket: TicketDetail }) {
+  const phone = ticket.contact_phone
+  return (
+    <div className="flex flex-col gap-2">
+      {phone && (
+        <Row label="Телефон">
+          <a
+            className="inline-flex items-center gap-1.5 text-brand"
+            href={`tel:+${phone.replace(/^\+/, '')}`}
+          >
+            <Phone size={14} strokeWidth={2} />
+            {phone}
+          </a>
+        </Row>
+      )}
+      <Row label="Тип">
+        {ticketTypeLabels[ticket.type]}
+        {ticket.category && ` · ${ticket.category.title}`}
+      </Row>
+      {ticket.preferred_time && <Row label="Удобное время">{ticket.preferred_time}</Row>}
+      <Row label="Ведёт">{ticket.assignee?.first_name ?? 'Пока никто'}</Row>
+      {ticket.rating !== null && (
+        <Row label="Оценка">
+          <span className="inline-flex gap-0.5" aria-label={`${ticket.rating} из 5`}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <Star
+                key={value}
+                size={14}
+                strokeWidth={2}
+                className={
+                  value <= (ticket.rating ?? 0) ? 'fill-attention text-attention' : 'text-mute'
+                }
+              />
+            ))}
+          </span>
+        </Row>
+      )}
+      {ticket.files.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pt-1">
+          {ticket.files.map((file) => (
+            <a key={file.id} href={file.url} target="_blank" rel="noreferrer" className="shrink-0">
+              <img
+                src={file.url}
+                alt={file.original_name ?? 'Фото'}
+                className="size-20 rounded-lg object-cover"
+                loading="lazy"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Pinned above the chat like a pinned message in Max: who, where, what — details on demand.
 export function ResidentCard({ ticket }: { ticket: TicketDetail }) {
   const [open, setOpen] = useState(false)
-  const name = [ticket.client.first_name, ticket.client.last_name].filter(Boolean).join(' ')
-  const address = ticket.building
-    ? `${ticket.building.address}${ticket.apartment ? `, кв. ${ticket.apartment}` : ''}`
-    : null
-  const phone = ticket.contact_phone
+  const { name, address } = resident(ticket)
 
   return (
-    <section className="border-b border-line bg-layer px-4 py-2.5">
+    <section className="border-b border-line bg-layer px-4 py-2.5 3xl:hidden">
       <button
         type="button"
         aria-expanded={open}
@@ -45,62 +105,25 @@ export function ResidentCard({ ticket }: { ticket: TicketDetail }) {
       </button>
 
       {open && (
-        <div className="mt-3 flex flex-col gap-2 pb-1">
-          {phone && (
-            <Row label="Телефон">
-              <a
-                className="inline-flex items-center gap-1.5 text-brand"
-                href={`tel:+${phone.replace(/^\+/, '')}`}
-              >
-                <Phone size={14} strokeWidth={2} />
-                {phone}
-              </a>
-            </Row>
-          )}
-          <Row label="Тип">
-            {ticketTypeLabels[ticket.type]}
-            {ticket.category && ` · ${ticket.category.title}`}
-          </Row>
-          {ticket.preferred_time && <Row label="Удобное время">{ticket.preferred_time}</Row>}
-          <Row label="Ведёт">{ticket.assignee?.first_name ?? 'Пока никто'}</Row>
-          {ticket.rating !== null && (
-            <Row label="Оценка">
-              <span className="inline-flex gap-0.5" aria-label={`${ticket.rating} из 5`}>
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <Star
-                    key={value}
-                    size={14}
-                    strokeWidth={2}
-                    className={
-                      value <= (ticket.rating ?? 0) ? 'fill-attention text-attention' : 'text-mute'
-                    }
-                  />
-                ))}
-              </span>
-            </Row>
-          )}
-          {ticket.files.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pt-1">
-              {ticket.files.map((file) => (
-                <a
-                  key={file.id}
-                  href={file.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0"
-                >
-                  <img
-                    src={file.url}
-                    alt={file.original_name ?? 'Фото'}
-                    className="size-20 rounded-lg object-cover"
-                    loading="lazy"
-                  />
-                </a>
-              ))}
-            </div>
-          )}
+        <div className="mt-3 pb-1">
+          <ResidentDetails ticket={ticket} />
         </div>
       )}
     </section>
+  )
+}
+
+// Wide monitors: the same details as a column beside the chat, always open.
+export function ResidentPanel({ ticket }: { ticket: TicketDetail }) {
+  const { name, address } = resident(ticket)
+  return (
+    <aside className="hidden w-96 shrink-0 flex-col gap-4 overflow-y-auto border-l border-line bg-layer p-5 3xl:flex">
+      <div>
+        <h2 className="text-lg font-semibold">{name}</h2>
+        {address && <p className="text-sm text-fg-2">{address}</p>}
+      </div>
+      <p className="text-sm break-words whitespace-pre-wrap">{ticket.description}</p>
+      <ResidentDetails ticket={ticket} />
+    </aside>
   )
 }
