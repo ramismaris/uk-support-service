@@ -40,7 +40,7 @@ export function ConfirmDialog({
     <dialog
       ref={dialog}
       onClose={onCancel}
-      className="m-auto w-full max-w-sm rounded-2xl bg-layer p-0 text-fg backdrop:bg-overlay"
+      className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-layer p-0 text-fg backdrop:bg-overlay"
     >
       <div className="flex flex-col gap-3 p-5">
         <h2 className="text-lg font-semibold">{title}</h2>
@@ -50,7 +50,8 @@ export function ConfirmDialog({
             {error}
           </p>
         )}
-        <div className="flex justify-end gap-2 pt-1">
+        {/* Buttons keep their full labels and wrap instead of cutting to "Отме…". */}
+        <div className="flex flex-wrap justify-end gap-2 pt-1 *:shrink-0">
           <Button type="button" variant="secondary" onClick={onCancel}>
             Отмена
           </Button>

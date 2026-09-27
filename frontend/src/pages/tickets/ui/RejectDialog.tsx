@@ -37,7 +37,7 @@ export function RejectDialog({
     <dialog
       ref={dialog}
       onClose={onClose}
-      className="m-auto w-full max-w-md rounded-2xl bg-layer p-0 text-fg backdrop:bg-overlay"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-layer p-0 text-fg backdrop:bg-overlay"
     >
       <form
         method="dialog"
@@ -64,7 +64,7 @@ export function RejectDialog({
             {(touched && error) || serverError}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2 *:shrink-0">
           <Button type="button" variant="secondary" onClick={onClose}>
             Отмена
           </Button>
