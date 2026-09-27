@@ -25,8 +25,12 @@ export function TicketRow({ ticket }: { ticket: TicketListItem }) {
       }
     >
       <div className="flex items-center gap-2">
+        {ticket.unread && (
+          <span className="size-2 shrink-0 rounded-full bg-brand">
+            <span className="sr-only">Непрочитано</span>
+          </span>
+        )}
         <span className={ticket.unread ? 'font-semibold' : 'font-medium'}>№{ticket.id}</span>
-        {ticket.unread && <span className="sr-only">Непрочитано</span>}
         <span className="truncate text-sm text-fg-3">
           {ticket.category?.title ?? ticketTypeLabels[ticket.type]}
         </span>

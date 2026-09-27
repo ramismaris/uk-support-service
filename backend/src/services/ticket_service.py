@@ -55,6 +55,9 @@ class TicketService:
         )
         return tickets, total
 
+    async def count_unread(self) -> int:
+        return await self.tickets.count_unread(statuses=ticket_rules.OPEN_STATUSES)
+
     async def get_for_staff(self, ticket_id: int) -> tuple[Ticket, list[File], list[StatusChange]]:
         ticket = await self.tickets.get_by_id(ticket_id)
         if ticket is None:

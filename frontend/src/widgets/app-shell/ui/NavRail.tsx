@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router'
+import { useUnreadCount } from '@/entities/ticket'
 import { getDisplayName, roleLabels, type User } from '@/entities/user'
+import { unreadBadge } from '../lib/unread'
 import { isNavItemActive, visibleNavItems } from '../model/nav'
 import { BrandMark } from './BrandMark'
 import { LogoutButton } from './LogoutButton'
@@ -17,6 +19,7 @@ function initials(user: User): string {
 export function NavRail({ user }: { user: User }) {
   const who = `${getDisplayName(user)} · ${roleLabels[user.role]}`
   const { pathname } = useLocation()
+  const unread = unreadBadge(useUnreadCount().data ?? 0)
   return (
     <aside className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-line py-3 lg:flex">
       <div className="mb-2">
@@ -32,13 +35,21 @@ export function NavRail({ user }: { user: User }) {
               title={item.label}
               aria-label={item.label}
               aria-current={isNavItemActive(item, pathname) ? 'page' : undefined}
-              className={`flex size-10 items-center justify-center rounded-xl transition-colors ${
+              className={`relative flex size-10 items-center justify-center rounded-xl transition-colors ${
                 isNavItemActive(item, pathname)
                   ? 'bg-brand/12 text-brand'
                   : 'text-fg-2 hover:bg-hover'
               }`}
             >
               <Icon size={22} strokeWidth={2} />
+              {item.key === 'tickets' && unread && (
+                <span
+                  aria-label={`Непрочитанных: ${unread}`}
+                  className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-brand px-1 text-[11px] leading-none font-semibold text-white ring-2 ring-surface"
+                >
+                  {unread}
+                </span>
+              )}
             </Link>
           )
         })}

@@ -540,6 +540,34 @@ async def test_unread_stays_false_when_client_message_already_seen(
     assert card.json()["unread"] is False
 
 
+async def test_unread_count_counts_open_tickets_with_unseen_client_messages(
+    client: AsyncClient, db: AsyncSession, base: SimpleNamespace
+) -> None:
+    url = "/api/v1/staff/tickets/unread-count"
+    before = (await client.get(url, headers=_auth(base.manager_token))).json()["count"]
+    unread_id = await _create_ticket(db, base, status=TicketStatus.IN_PROGRESS)
+    await _set_last_client_message_at(db, unread_id, NOW)
+    seen_id = await _create_ticket(db, base, status=TicketStatus.IN_PROGRESS)
+    await _set_last_client_message_at(db, seen_id, NOW - timedelta(minutes=5), staff_seen_at=NOW)
+    closed_id = await _create_ticket(db, base, status=TicketStatus.CLOSED)
+    await _set_last_client_message_at(db, closed_id, NOW)
+
+    resp = await client.get(url, headers=_auth(base.manager_token))
+
+    assert resp.status_code == 200
+    assert resp.json() == {"count": before + 1}
+
+    await client.post(f"/api/v1/staff/tickets/{unread_id}/read", headers=_auth(base.manager_token))
+    after = await client.get(url, headers=_auth(base.manager_token))
+    assert after.json() == {"count": before}
+
+
+async def test_unread_count_requires_staff(client: AsyncClient, base: SimpleNamespace) -> None:
+    resp = await client.get("/api/v1/staff/tickets/unread-count")
+
+    assert resp.status_code == 401
+
+
 async def test_mark_read_unknown_ticket_returns_404(
     client: AsyncClient, base: SimpleNamespace
 ) -> None:

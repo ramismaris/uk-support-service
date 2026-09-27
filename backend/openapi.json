@@ -844,6 +844,32 @@
         }
       }
     },
+    "/api/v1/staff/tickets/unread-count": {
+      "get": {
+        "tags": [
+          "staff"
+        ],
+        "summary": "Unread Count",
+        "operationId": "unread_count_api_v1_staff_tickets_unread_count_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/staff/tickets/{ticket_id}": {
       "get": {
         "tags": [
@@ -2166,6 +2192,19 @@
           "user"
         ],
         "title": "TokenResponse"
+      },
+      "UnreadCountResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "title": "UnreadCountResponse"
       },
       "UserResponse": {
         "properties": {

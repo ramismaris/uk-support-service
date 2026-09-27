@@ -32,6 +32,14 @@ export function useTicketList(filters: TicketFilters) {
   })
 }
 
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: ticketKeys.unreadCount(),
+    queryFn: () => unwrap(api.GET('/api/v1/staff/tickets/unread-count')),
+    select: (data) => data.count,
+  })
+}
+
 export function useTicket(id: number) {
   return useQuery({
     queryKey: ticketKeys.detail(id),

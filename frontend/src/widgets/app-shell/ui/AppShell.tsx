@@ -1,10 +1,36 @@
+import { useEffect } from 'react'
 import { Outlet } from 'react-router'
 import { useMe } from '@/entities/session'
+import { useUnreadCount } from '@/entities/ticket'
+import { withUnreadCount } from '../lib/unread'
 import { NavDrawer } from './NavDrawer'
 import { NavRail } from './NavRail'
 
+// The theme rewrites the title on its own schedule, so the count re-applies after every change.
+function useUnreadTitle(count: number) {
+  useEffect(() => {
+    const apply = () => {
+      const next = withUnreadCount(document.title, count)
+      if (next !== document.title) {
+        document.title = next
+      }
+    }
+    apply()
+    const title = document.querySelector('title')
+    const observer = new MutationObserver(apply)
+    if (title) {
+      observer.observe(title, { childList: true })
+    }
+    return () => {
+      observer.disconnect()
+      document.title = withUnreadCount(document.title, 0)
+    }
+  }, [count])
+}
+
 export function AppShell() {
   const { data: user } = useMe()
+  useUnreadTitle(useUnreadCount().data ?? 0)
   if (!user) {
     return null
   }

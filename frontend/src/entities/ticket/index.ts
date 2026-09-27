@@ -6,6 +6,7 @@ export {
   nextPageOffset,
   useTicket,
   useTicketList,
+  useUnreadCount,
 } from './api/queries'
 export { statusLabels, ticketTypeLabels } from './model/status'
 export type {

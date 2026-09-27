@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router'
+import { useUnreadCount } from '@/entities/ticket'
 import { getDisplayName, roleLabels, type User } from '@/entities/user'
+import { unreadBadge } from '../lib/unread'
 import { isNavItemActive, visibleNavItems, type VisibleNavItem } from '../model/nav'
 import { BrandMark } from './BrandMark'
 import { LogoutButton } from './LogoutButton'
@@ -7,6 +9,7 @@ import { LogoutButton } from './LogoutButton'
 function NavEntry({ item, onNavigate }: { item: VisibleNavItem; onNavigate?: () => void }) {
   const Icon = item.icon
   const active = isNavItemActive(item, useLocation().pathname)
+  const unread = unreadBadge(useUnreadCount().data ?? 0)
   return (
     <Link
       to={item.to}
@@ -18,6 +21,14 @@ function NavEntry({ item, onNavigate }: { item: VisibleNavItem; onNavigate?: () 
     >
       <Icon size={20} strokeWidth={2} className="shrink-0" />
       {item.label}
+      {item.key === 'tickets' && unread && (
+        <span
+          aria-label={`Непрочитанных: ${unread}`}
+          className="ml-auto rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white"
+        >
+          {unread}
+        </span>
+      )}
     </Link>
   )
 }

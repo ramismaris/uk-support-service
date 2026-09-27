@@ -71,3 +71,7 @@ class TicketDetailResponse(TicketListItemResponse):
     files: list[FileResponse]
     history: list[StatusChangeResponse]
     allowed_statuses: list[TicketStatus]
+
+
+class UnreadCountResponse(BaseModel):
+    count: int

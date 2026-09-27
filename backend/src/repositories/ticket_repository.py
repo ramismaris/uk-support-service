@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import TicketPriority, TicketStatus, TicketType
@@ -126,6 +126,19 @@ class TicketRepository:
             assignee_id=assignee_id,
         )
         result = await self.db.execute(select(func.count()).select_from(query.subquery()))
+        return result.scalar_one()
+
+    async def count_unread(self, *, statuses: Iterable[TicketStatus]) -> int:
+        # Same rule as ticket_rules.is_unread, in SQL.
+        query = select(func.count()).where(
+            Ticket.status.in_(statuses),
+            Ticket.last_client_message_at.is_not(None),
+            or_(
+                Ticket.staff_seen_at.is_(None),
+                Ticket.last_client_message_at > Ticket.staff_seen_at,
+            ),
+        )
+        result = await self.db.execute(query)
         return result.scalar_one()
 
     def _filtered(

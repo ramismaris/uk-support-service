@@ -10,6 +10,7 @@ import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { chatPhotos } from '../lib/chat-photos'
 import { buildTimeline, type TimelineItem } from '../lib/timeline'
+import { firstUnreadMessageId } from '../lib/unread-divider'
 import { useMarkRead } from '../model/use-mark-read'
 import { Composer } from './Composer'
 import { PhotoViewer } from './PhotoViewer'
@@ -49,6 +50,11 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const openPhoto = (fileId: number) =>
     setViewerIndex(photos.findIndex((photo) => photo.file.id === fileId))
+  // Fixed when the chat opens: opening marks it read, and the divider must not jump away.
+  const [unreadFrom, setUnreadFrom] = useState<number | null | undefined>(undefined)
+  if (unreadFrom === undefined && messages.isSuccess) {
+    setUnreadFrom(firstUnreadMessageId(list, ticket.unread))
+  }
   const lastClientMessageId = list.findLast((m) => m.sender_type === 'CLIENT')?.id
 
   // The chat is on screen: mark it read when it opens and when the resident writes again.
@@ -104,6 +110,13 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
+                {item.kind === 'message' && item.message.id === unreadFrom && (
+                  <div className="flex items-center gap-3 py-2 text-xs font-medium text-brand">
+                    <span className="h-px flex-1 bg-brand/30" />
+                    Новые сообщения
+                    <span className="h-px flex-1 bg-brand/30" />
+                  </div>
+                )}
                 {item.kind === 'message' ? (
                   <MessageBubble message={item.message} onOpenPhoto={openPhoto} />
                 ) : (

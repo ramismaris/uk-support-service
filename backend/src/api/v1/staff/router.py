@@ -21,6 +21,7 @@ from src.schemas.ticket import (
     StatusChangeResponse,
     TicketDetailResponse,
     TicketListItemResponse,
+    UnreadCountResponse,
 )
 from src.services.file_service import MAX_FILE_SIZE
 from src.services.message_service import MessageService, UploadedFile
@@ -60,6 +61,15 @@ async def list_tickets(
         total=total,
         items=[TicketListItemResponse.model_validate(ticket) for ticket in tickets],
     )
+
+
+# Declared before /tickets/{ticket_id}, which would otherwise take the path.
+@router.get("/tickets/unread-count", response_model=UnreadCountResponse)
+async def unread_count(
+    staff: StaffUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UnreadCountResponse:
+    return UnreadCountResponse(count=await TicketService(db).count_unread())
 
 
 @router.get("/tickets/{ticket_id}", response_model=TicketDetailResponse)

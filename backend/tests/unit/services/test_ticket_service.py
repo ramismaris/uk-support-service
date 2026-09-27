@@ -199,3 +199,13 @@ async def test_mark_read_missing_ticket_raises_and_publishes_nothing(
 
     db.commit.assert_not_awaited()
     publish.assert_not_awaited()
+
+
+async def test_count_unread_counts_only_open_tickets(
+    tickets_repo: MagicMock, files_repo: MagicMock, changes_repo: MagicMock
+) -> None:
+    tickets_repo.count_unread = AsyncMock(return_value=3)
+    service = _service(AsyncMock(), tickets_repo, files_repo, changes_repo)
+
+    assert await service.count_unread() == 3
+    tickets_repo.count_unread.assert_awaited_once_with(statuses=ticket_rules.OPEN_STATUSES)
