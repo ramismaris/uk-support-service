@@ -69,6 +69,23 @@ jobs:
           git fetch --tags --force origin
           git checkout --detach "$2"
           cd deploy
-          docker compose up -d --build --remove-orphans --wait --wait-timeout 300
-          docker image prune -f
+          # The server may only have the legacy docker-compose v1.
+          if docker compose version > /dev/null 2>&1; then compose="docker compose"; else compose="docker-compose"; fi
+          # Build while the old containers still serve. docker-compose v1 breaks on recreating
+          # containers with a newer engine (KeyError: 'ContainerConfig'), so remove them first;
+          # volumes stay.
+          $compose build
+          $compose down --remove-orphans
+          $compose up -d
+          # v1 has no --wait: poll the API until it answers.
+          for _ in $(seq 60); do
+            if $compose exec -T api python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" 2> /dev/null; then
+              docker image prune -f
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "api did not become healthy"
+          $compose logs --tail 50 api
+          exit 1
           EOF
