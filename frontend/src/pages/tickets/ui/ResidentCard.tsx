@@ -1,6 +1,6 @@
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, Phone, Star } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { isPhoto } from '@/entities/message'
 import { ticketTypeLabels, type TicketDetail } from '@/entities/ticket'
 import { PhotoViewer } from './PhotoViewer'
@@ -105,22 +105,55 @@ function ResidentDetails({ ticket }: { ticket: TicketDetail }) {
 // Pinned above the chat like a pinned message in Max: who, where, what — details on demand.
 export function ResidentCard({ ticket }: { ticket: TicketDetail }) {
   const [open, setOpen] = useState(false)
+  const root = useRef<HTMLElement>(null)
+  const summary = useRef<HTMLParagraphElement>(null)
+  // The full description goes into the details only when the one-line summary cuts it.
+  const [cut, setCut] = useState(false)
   const { name, address } = resident(ticket)
 
+  // The details drop over the chat, so a click outside or Esc puts them away.
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element
+      // The photo viewer opens from the details in a portal; using it keeps them open.
+      if (!root.current?.contains(target) && !target.closest('[role="dialog"]')) {
+        setOpen(false)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !document.querySelector('[role="dialog"]')) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
   return (
-    <section className="border-b border-line bg-layer px-4 py-2.5 3xl:hidden">
+    <section ref={root} className="relative z-20 border-b border-line bg-layer 3xl:hidden">
       <button
         type="button"
         aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-start gap-3 text-left"
+        onClick={() => {
+          const element = summary.current
+          setCut(element !== null && element.scrollHeight > element.clientHeight)
+          setOpen(!open)
+        }}
+        className="flex w-full items-start gap-3 px-4 py-2.5 text-left"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
             <span className="font-medium">{name}</span>
             {address && <span className="text-fg-2">{address}</span>}
           </div>
-          <p className={`mt-0.5 text-sm text-fg-2 ${open ? '' : 'line-clamp-1'}`}>
+          <p ref={summary} className="mt-0.5 line-clamp-1 text-sm text-fg-2">
             {ticket.description}
           </p>
         </div>
@@ -131,11 +164,21 @@ export function ResidentCard({ ticket }: { ticket: TicketDetail }) {
         />
       </button>
 
-      {open && (
-        <div className="mt-3 pb-1">
-          <ResidentDetails ticket={ticket} />
-        </div>
-      )}
+      {/* Over the chat, not in the flow: opening the details does not push the messages. */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="absolute inset-x-0 top-full flex max-h-[60dvh] flex-col gap-3 overflow-y-auto border-b border-line bg-layer px-4 pt-1 pb-4 shadow-lg"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            {cut && <p className="text-sm break-words whitespace-pre-wrap">{ticket.description}</p>}
+            <ResidentDetails ticket={ticket} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }
