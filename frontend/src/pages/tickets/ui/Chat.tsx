@@ -4,10 +4,11 @@ import { MessageCircle } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MessageBubble, useMessages } from '@/entities/message'
 import type { TicketDetail } from '@/entities/ticket'
-import { formatDateTime } from '@/shared/lib/format'
+import { formatDayLabel, formatTime } from '@/shared/lib/format'
 import { useBrandColor } from '@/entities/theme'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
+import { groupByDay } from '../lib/chat-days'
 import { chatPhotos } from '../lib/chat-photos'
 import { buildTimeline, type TimelineItem } from '../lib/timeline'
 import { firstUnreadMessageId } from '../lib/unread-divider'
@@ -22,8 +23,7 @@ function TimelineEvent({ item }: { item: Extract<TimelineItem, { kind: 'event' }
     <p className="py-0.5 text-center text-xs leading-4 text-fg-3">
       {item.actor && <span className="text-fg-2">{item.actor} · </span>}
       {item.text}
-      {item.comment && <span className="text-fg-2"> «{item.comment}»</span>} ·{' '}
-      {formatDateTime(item.at)}
+      {item.comment && <span className="text-fg-2"> «{item.comment}»</span>} · {formatTime(item.at)}
     </p>
   )
 }
@@ -45,6 +45,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   const stickToBottom = useRef(true)
   const list = useMemo(() => messages.data ?? [], [messages.data])
   const timeline = useMemo(() => buildTimeline(list, ticket.history), [list, ticket.history])
+  const days = useMemo(() => groupByDay(timeline), [timeline])
   const residentName = [ticket.client.first_name, ticket.client.last_name].filter(Boolean).join(' ')
   const photos = useMemo(() => chatPhotos(list, residentName), [list, residentName])
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
@@ -103,31 +104,41 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
           // Like messengers: a short chat sits at the bottom, next to the composer.
           // With no messages yet the empty state stays in the middle instead.
           <div className={`flex flex-col gap-2 ${list.length > 0 ? 'mt-auto' : ''}`}>
-            <AnimatePresence initial={false}>
-              {timeline.map((item) => (
-                <motion.div
-                  key={item.key}
-                  // Like Max on wide screens: the background spans the pane, messages keep a column.
-                  className="mx-auto w-full max-w-3xl"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
-                  {item.kind === 'message' && item.message.id === unreadFrom && (
-                    <div className="flex items-center gap-3 py-2 text-xs font-medium text-brand">
-                      <span className="h-px flex-1 bg-brand/30" />
-                      Новые сообщения
-                      <span className="h-px flex-1 bg-brand/30" />
-                    </div>
-                  )}
-                  {item.kind === 'message' ? (
-                    <MessageBubble message={item.message} onOpenPhoto={openPhoto} />
-                  ) : (
-                    <TimelineEvent item={item} />
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {days.map((day) => (
+              <section key={day.key} className="flex flex-col gap-2">
+                {/* Like Telegram: the date sticks to the top while its day is on screen. */}
+                <div className="pointer-events-none sticky top-0 z-10 flex justify-center py-1">
+                  <span className="rounded-full bg-black/35 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                    {formatDayLabel(day.at)}
+                  </span>
+                </div>
+                <AnimatePresence initial={false}>
+                  {day.items.map((item) => (
+                    <motion.div
+                      key={item.key}
+                      // Like Max on wide screens: the background spans the pane, messages keep a column.
+                      className="mx-auto w-full max-w-3xl"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
+                      {item.kind === 'message' && item.message.id === unreadFrom && (
+                        <div className="flex items-center gap-3 py-2 text-xs font-medium text-brand">
+                          <span className="h-px flex-1 bg-brand/30" />
+                          Новые сообщения
+                          <span className="h-px flex-1 bg-brand/30" />
+                        </div>
+                      )}
+                      {item.kind === 'message' ? (
+                        <MessageBubble message={item.message} onOpenPhoto={openPhoto} />
+                      ) : (
+                        <TimelineEvent item={item} />
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </section>
+            ))}
           </div>
         )}
         {messages.isSuccess && list.length === 0 && (

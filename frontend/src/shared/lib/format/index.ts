@@ -1,2 +1,2 @@
 export { formatFileSize } from './file-size'
-export { formatDateTime, formatRelativeTime } from './time'
+export { dayKey, formatDateTime, formatDayLabel, formatRelativeTime, formatTime } from './time'

@@ -1,5 +1,5 @@
 import { FileText } from 'lucide-react'
-import { formatDateTime, formatFileSize } from '@/shared/lib/format'
+import { formatFileSize, formatTime } from '@/shared/lib/format'
 import { MaxText } from '@/shared/ui/max-text'
 import { isPhoto } from '../lib/photo'
 import { systemText } from '../lib/system-text'
@@ -32,7 +32,7 @@ export function MessageBubble({
     return (
       // Quiet line, not a bubble: it is what the bot told the resident, not part of the dialogue.
       <p className="mx-auto max-w-[85%] py-0.5 text-center text-xs leading-4 text-fg-3">
-        Бот → жильцу: {systemText(message.text)} · {formatDateTime(message.created_at)}
+        Бот → жильцу: {systemText(message.text)} · {formatTime(message.created_at)}
       </p>
     )
   }
@@ -40,7 +40,8 @@ export function MessageBubble({
   const fromStaff = message.sender_type === 'STAFF'
   const photos = message.files.filter(isPhoto)
   const documents = message.files.filter((file) => !isPhoto(file))
-  const time = formatDateTime(message.created_at)
+  // The day is on the separator above; the bubble keeps only the time (like Telegram).
+  const time = formatTime(message.created_at)
   // Like Telegram: a photo without a caption carries its time on top of the picture.
   const timeOverPhoto = photos.length > 0 && documents.length === 0 && !message.text
   // Like Telegram: the time sits at the end of the last line and wraps below only when the

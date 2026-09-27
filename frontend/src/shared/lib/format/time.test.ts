@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateTime, formatRelativeTime } from './time'
+import { dayKey, formatDateTime, formatDayLabel, formatRelativeTime, formatTime } from './time'
 
 // Local-time dates keep the tests independent of the machine's timezone.
 const now = new Date(2026, 8, 26, 15, 30)
@@ -39,5 +39,33 @@ describe('formatDateTime', () => {
 
   it('shows day, month and time on other days', () => {
     expect(formatDateTime(iso(2026, 8, 20, 18, 45), now)).toBe('20 сент., 18:45')
+  })
+})
+
+describe('formatTime', () => {
+  it('shows hours and minutes only, as in a chat bubble', () => {
+    expect(formatTime(iso(2026, 8, 20, 18, 45))).toBe('18:45')
+  })
+})
+
+describe('formatDayLabel', () => {
+  it('names today and yesterday', () => {
+    expect(formatDayLabel(iso(2026, 8, 26, 1, 0), now)).toBe('Сегодня')
+    expect(formatDayLabel(iso(2026, 8, 25, 23, 59), now)).toBe('Вчера')
+  })
+
+  it('shows the full day and month this year', () => {
+    expect(formatDayLabel(iso(2026, 8, 20, 12, 0), now)).toBe('20 сентября')
+  })
+
+  it('adds the year for previous years', () => {
+    expect(formatDayLabel(iso(2025, 11, 31, 12, 0), now)).toBe('31 декабря 2025')
+  })
+})
+
+describe('dayKey', () => {
+  it('is the same within a local day and differs across midnight', () => {
+    expect(dayKey(iso(2026, 8, 26, 0, 1))).toBe(dayKey(iso(2026, 8, 26, 23, 59)))
+    expect(dayKey(iso(2026, 8, 26, 23, 59))).not.toBe(dayKey(iso(2026, 8, 27, 0, 0)))
   })
 })

@@ -49,3 +49,28 @@ export function formatDateTime(iso: string, now: Date = new Date()): string {
   const time = timeFormat.format(date)
   return isSameDay(date, now) ? time : `${dayMonthFormat.format(date)}, ${time}`
 }
+
+// Time only: the day is shown once, above the day's messages (like Telegram).
+export function formatTime(iso: string): string {
+  return timeFormat.format(new Date(iso))
+}
+
+const dayLongFormat = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
+
+export function formatDayLabel(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso)
+  if (isSameDay(date, now)) {
+    return 'Сегодня'
+  }
+  if (isYesterday(date, now)) {
+    return 'Вчера'
+  }
+  const day = dayLongFormat.format(date)
+  return date.getFullYear() === now.getFullYear() ? day : `${day} ${date.getFullYear()}`
+}
+
+// The local calendar day, for grouping messages by it.
+export function dayKey(iso: string): string {
+  const date = new Date(iso)
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
