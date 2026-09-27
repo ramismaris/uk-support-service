@@ -285,6 +285,8 @@ FORM_CANCELLED = "Заявка отменена."
 
 # Client menu (bot)
 
+MAIN_MENU_BUTTON = "Главное меню"
+
 MY_TICKETS_BUTTON = "Мои заявки"
 QUESTION_BUTTON = "Задать вопрос"
 

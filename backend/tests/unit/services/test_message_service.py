@@ -22,6 +22,7 @@ from src.services.message_service import MessageService, UploadedFile
 from src.services.ticket_rules import OPEN_STATUSES, ToTicket
 
 REPLY_BUTTON = Button("Ответить", ButtonType.CALLBACK, "chat:ticket:1042")
+MENU_ROW = [Button("Главное меню", ButtonType.CALLBACK, "menu:start")]
 
 
 def _upload(data: bytes = b"data", mime: str = "image/webp", filename: str | None = "a.webp"):
@@ -187,7 +188,7 @@ async def test_send_staff_message_text_only(env: SimpleNamespace) -> None:
     env.messenger.send_message.assert_awaited_once_with(
         env.client.max_user_id,
         "💬 Заявка №1042\n\nМастер придёт завтра",
-        buttons=[[REPLY_BUTTON]],
+        buttons=[[REPLY_BUTTON], MENU_ROW],
         files=[],
         # Staff can format replies like the admin formats bot texts.
         markdown=True,

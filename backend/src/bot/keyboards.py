@@ -4,7 +4,7 @@ from maxapi.types.attachments import AttachmentButton
 from maxapi.types.attachments.upload import AttachmentPayload, AttachmentUpload
 from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 
-from src.core.constants import CHAT_TICKET_PREFIX
+from src.core.constants import CHAT_TICKET_PREFIX, MENU_START
 from src.core.texts import (
     CHAT_NEW_QUESTION_BUTTON,
     CHAT_NO_BUTTON,
@@ -19,6 +19,7 @@ from src.core.texts import (
     FORM_SEND_BUTTON,
     FORM_START_BUTTON,
     FORM_TIME_SKIP_BUTTON,
+    MAIN_MENU_BUTTON,
     MY_TICKETS_BUTTON,
     MY_TICKETS_WRITE_BUTTON,
     QUESTION_BUTTON,
@@ -115,6 +116,12 @@ def contacts_keyboard() -> AttachmentButton:
 def question_cancel_keyboard() -> AttachmentButton:
     builder = InlineKeyboardBuilder()
     builder.row(CallbackButton(text=FORM_CANCEL_BUTTON, payload=QUESTION_CANCEL))
+    return builder.as_markup()
+
+
+def menu_button_keyboard() -> AttachmentButton:
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text=MAIN_MENU_BUTTON, payload=MENU_START))
     return builder.as_markup()
 
 

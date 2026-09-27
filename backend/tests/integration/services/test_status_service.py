@@ -15,6 +15,8 @@ from src.repositories.ticket_repository import TicketRepository
 from src.repositories.user_repository import UserRepository
 from src.services.status_service import StatusService
 
+MENU_ROW = [Button("Главное меню", ButtonType.CALLBACK, "menu:start")]
+
 
 class _FakeMessenger:
     def __init__(self) -> None:
@@ -167,12 +169,13 @@ async def test_full_status_flow_end_to_end(db: AsyncSession) -> None:
         (closed_text, "mid-4", None),
     ]
 
-    assert messenger.sent[0]["buttons"] is None
+    assert messenger.sent[0]["buttons"] == [MENU_ROW]
     assert messenger.sent[2]["buttons"] == [
         [
             Button("Да", ButtonType.CALLBACK, f"resolved:yes:{ticket.id}"),
             Button("Нет", ButtonType.CALLBACK, f"resolved:no:{ticket.id}"),
-        ]
+        ],
+        MENU_ROW,
     ]
 
 

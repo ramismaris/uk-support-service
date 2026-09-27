@@ -14,6 +14,7 @@ from src.bot.keyboards import (
     confirm_question_keyboard,
     main_menu_keyboard,
 )
+from src.bot.prompts import end_dialog, show_prompt
 from src.bot.states import ChatStates
 from src.bot.utils import NOT_A_COMMAND, image_urls, message_text, parse_id
 from src.core.constants import CHAT_TICKET_PREFIX
@@ -108,7 +109,7 @@ async def handle_free_message(
         file_ids, _ = await _save_photos(client_service, urls)
         await context.update_data(text=text, file_ids=file_ids, max_message_id=mid)
         await context.set_state(ChatStates.confirm_question)
-        await event.message.answer(CHAT_OFFER_QUESTION, attachments=[confirm_question_keyboard()])
+        await show_prompt(event, context, CHAT_OFFER_QUESTION, confirm_question_keyboard())
         return
 
     if isinstance(decision, ToTicket):
@@ -142,9 +143,11 @@ async def handle_free_message(
     tickets = await client_service.list_open_tickets(user)
     by_id = {ticket.id: ticket for ticket in tickets}
     ordered = [by_id[ticket_id] for ticket_id in decision.ticket_ids if ticket_id in by_id]
-    await event.message.answer(
+    await show_prompt(
+        event,
+        context,
         CHAT_CHOOSE_TICKET,
-        attachments=[choose_ticket_keyboard(ordered, with_question=bool(text))],
+        choose_ticket_keyboard(ordered, with_question=bool(text)),
     )
 
 
@@ -156,12 +159,14 @@ async def handle_pending_message(
     if state == ChatStates.choose_ticket:
         data = await context.get_data()
         tickets = await _client_service(db).list_open_tickets(user)
-        await event.message.answer(
+        await show_prompt(
+            event,
+            context,
             CHAT_CHOOSE_TICKET,
-            attachments=[choose_ticket_keyboard(tickets, with_question=bool(data.get("text")))],
+            choose_ticket_keyboard(tickets, with_question=bool(data.get("text"))),
         )
     elif state == ChatStates.confirm_question:
-        await event.message.answer(CHAT_OFFER_QUESTION, attachments=[confirm_question_keyboard()])
+        await show_prompt(event, context, CHAT_OFFER_QUESTION, confirm_question_keyboard())
 
 
 @router.message_callback(
@@ -184,11 +189,11 @@ async def handle_choose_ticket(
             max_message_id=data.get("max_message_id"),
         )
     except AppException as exc:
-        await context.clear()
+        await end_dialog(event, context)
         await _edit(event, exc.message)
         return
     ticket = await _client_service(db).get_ticket(user, ticket_id)
-    await context.clear()
+    await end_dialog(event, context)
     await _edit(event, CHAT_SENT.format(label=ticket_dative(ticket.type, ticket.id)))
 
 
@@ -208,10 +213,10 @@ async def handle_question(
             photo_ids=list(data.get("file_ids", [])),
         )
     except AppException as exc:
-        await context.clear()
+        await end_dialog(event, context)
         await _edit(event, exc.message)
         return
-    await context.clear()
+    await end_dialog(event, context)
     await _edit(event, QUESTION_SENT.format(ticket_id=ticket.id))
 
 
@@ -221,7 +226,7 @@ async def handle_question(
     ChatStates.confirm_question,
 )
 async def handle_cancel(event: MessageCallback, context: BaseContext) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     await _edit(event, CHAT_NOT_SENT)
 
 

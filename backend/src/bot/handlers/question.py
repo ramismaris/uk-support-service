@@ -12,6 +12,7 @@ from src.bot.keyboards import (
     main_menu_keyboard,
     question_cancel_keyboard,
 )
+from src.bot.prompts import end_dialog, show_prompt
 from src.bot.states import QuestionForm
 from src.bot.utils import NOT_A_COMMAND, image_urls, message_text
 from src.core.exceptions import AppException
@@ -44,9 +45,9 @@ async def _edit(event: MessageCallback, text: str, keyboard: AttachmentButton) -
 
 @router.message_callback(F.callback.payload == QUESTION_WRITE)
 async def handle_write(event: MessageCallback, context: BaseContext) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     await context.set_state(QuestionForm.text)
-    await _edit(event, QUESTION_PROMPT, question_cancel_keyboard())
+    await show_prompt(event, context, QUESTION_PROMPT, question_cancel_keyboard())
 
 
 @router.message_created(QuestionForm.text, NOT_A_COMMAND)
@@ -55,12 +56,12 @@ async def handle_question(
 ) -> None:
     text = message_text(event.message)
     if not text:
-        await event.message.answer(QUESTION_TEXT_REQUIRED, attachments=[question_cancel_keyboard()])
+        await show_prompt(event, context, QUESTION_TEXT_REQUIRED, question_cancel_keyboard())
         return
     try:
         description = validate_description(text)
     except AppException as exc:
-        await event.message.answer(exc.message, attachments=[question_cancel_keyboard()])
+        await show_prompt(event, context, exc.message, question_cancel_keyboard())
         return
 
     service = _service(db)
@@ -77,9 +78,9 @@ async def handle_question(
     try:
         ticket = await service.create_question(user, description=description, photo_ids=file_ids)
     except AppException as exc:
-        await event.message.answer(exc.message, attachments=[question_cancel_keyboard()])
+        await show_prompt(event, context, exc.message, question_cancel_keyboard())
         return
-    await context.clear()
+    await end_dialog(event, context)
     await event.message.answer(QUESTION_SENT.format(ticket_id=ticket.id))
     if failed:
         await event.message.answer(CHAT_PHOTOS_FAILED)
@@ -87,7 +88,7 @@ async def handle_question(
 
 @router.message_callback(F.callback.payload == QUESTION_CANCEL, QuestionForm.text)
 async def handle_cancel(event: MessageCallback, context: BaseContext) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     await _edit(event, QUESTION_CANCELLED, main_menu_keyboard())
 
 

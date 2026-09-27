@@ -3,7 +3,7 @@ from maxapi.filters import F
 from maxapi.types import MessageCallback
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.bot.keyboards import RATE_PREFIX, main_menu_keyboard, rating_keyboard
+from src.bot.keyboards import RATE_PREFIX, main_menu_keyboard, menu_button_keyboard, rating_keyboard
 from src.bot.utils import parse_id
 from src.core.constants import RESOLVED_NO_PREFIX, RESOLVED_YES_PREFIX
 from src.core.exceptions import AppException
@@ -85,7 +85,7 @@ async def handle_rate(event: MessageCallback, db: AsyncSession, user: User) -> N
     except AppException as exc:
         await event.ack(notification=exc.message)
         return
-    await _edit(event, RATE_THANKS)
+    await _edit(event, RATE_THANKS, [menu_button_keyboard()])
 
 
 @router.message_callback(F.callback.payload.regexp(rf"^{RESOLVED_NO_PREFIX}"))
@@ -100,7 +100,11 @@ async def handle_resolved_no(event: MessageCallback, db: AsyncSession, user: Use
     except AppException as exc:
         await _edit(event, exc.message, [main_menu_keyboard()])
         return
-    await _edit(event, REOPENED_TEXT.format(label=ticket_genitive(ticket.type, ticket.id)))
+    await _edit(
+        event,
+        REOPENED_TEXT.format(label=ticket_genitive(ticket.type, ticket.id)),
+        [menu_button_keyboard()],
+    )
 
 
 @router.message_callback(F.callback.payload.regexp(r"^resolved:"))

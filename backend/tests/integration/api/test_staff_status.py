@@ -182,7 +182,12 @@ async def test_full_cycle_take_wait_close(
 
     close_buttons = messenger.sent[-1]["buttons"]
     assert close_buttons is not None
-    assert [button.text for row in close_buttons for button in row] == ["Да", "Нет"]
+    assert [button.text for row in close_buttons for button in row] == [
+        "Да",
+        "Нет",
+        "Главное меню",
+    ]
+    assert [button.payload for row in close_buttons for button in row][-1] == "menu:start"
 
     assert {edit["message_id"] for edit in messenger.edited} == {"card-1"}
     assert len(messenger.edited) == 3

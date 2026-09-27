@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from maxapi.context import MemoryContext
 from maxapi.enums.parse_mode import ParseMode
 from maxapi.enums.upload_type import UploadType
 from maxapi.exceptions import MaxApiError
@@ -9,8 +10,9 @@ from maxapi.types import BotStarted, MessageCallback, MessageCreated
 from maxapi.types.attachments.upload import AttachmentUpload
 
 from src.bot.handlers import menu
-from src.core.constants import TicketStatus, TicketType
+from src.core.constants import MENU_START, TicketStatus, TicketType
 from src.core.texts import (
+    MAIN_MENU_BUTTON,
     MY_TICKETS_EMPTY,
     OUTDATED_BUTTON_TEXT,
     QUESTION_SECTION_DEFAULT,
@@ -27,10 +29,23 @@ from src.schemas.content import (
 from src.services.welcome_service import WelcomeMessage
 
 
+def _sent(mid: str = "mid-answer") -> SimpleNamespace:
+    return SimpleNamespace(message=SimpleNamespace(body=SimpleNamespace(mid=mid)))
+
+
+def _bot() -> MagicMock:
+    bot = MagicMock()
+    bot.edit_message = AsyncMock(return_value=SimpleNamespace(success=True))
+    bot.send_message = AsyncMock()
+    return bot
+
+
 def _message_created() -> MagicMock:
     event = MagicMock(spec=MessageCreated)
+    event.bot = _bot()
     message = MagicMock()
-    message.answer = AsyncMock()
+    message.answer = AsyncMock(return_value=_sent())
+    message.body.mid = "mid-incoming"
     event.message = message
     return event
 
@@ -38,8 +53,7 @@ def _message_created() -> MagicMock:
 def _bot_started() -> MagicMock:
     event = MagicMock(spec=BotStarted)
     event.chat_id = 7
-    event.bot = MagicMock()
-    event.bot.send_message = AsyncMock()
+    event.bot = _bot()
     return event
 
 
@@ -47,16 +61,19 @@ def _message_callback(payload: str = "menu:emergency") -> MagicMock:
     event = MagicMock(spec=MessageCallback)
     event.edit = AsyncMock()
     event.ack = AsyncMock()
+    event.bot = _bot()
+    message = MagicMock()
+    message.body.mid = "mid-pressed"
+    event.message = message
     callback = MagicMock()
     callback.payload = payload
+    callback.user.user_id = 42
     event.callback = callback
     return event
 
 
-def _context() -> MagicMock:
-    context = MagicMock()
-    context.clear = AsyncMock()
-    return context
+def _context() -> MemoryContext:
+    return MemoryContext(chat_id=7, user_id=42)
 
 
 def _keyboard_rows(attachment: object) -> list[list[object]]:
@@ -119,7 +136,7 @@ async def test_start_sends_welcome_with_main_menu(welcome_service: MagicMock):
 
     await menu.handle_start(event, context, MagicMock())
 
-    context.clear.assert_awaited_once()
+    assert await context.get_state() is None
     welcome_service.get_message.assert_awaited_once()
     kwargs = event.message.answer.await_args.kwargs
     assert kwargs["text"] == "Добро пожаловать"
@@ -184,7 +201,7 @@ async def test_bot_started_sends_welcome_with_main_menu(welcome_service: MagicMo
 
     await menu.handle_bot_started(event, context, MagicMock())
 
-    context.clear.assert_awaited_once()
+    assert await context.get_state() is None
     kwargs = event.bot.send_message.await_args.kwargs
     assert kwargs["chat_id"] == 7
     assert kwargs["text"] == "Добро пожаловать"
@@ -559,3 +576,92 @@ async def test_my_tickets_stay_plain_text(client_service: MagicMock):
     await menu.handle_my_tickets(event, MagicMock(), MagicMock())
 
     assert event.edit.await_args.kwargs.get("format") is None
+
+
+async def test_start_removes_stored_prompt_keyboard(welcome_service: MagicMock) -> None:
+    event = _message_created()
+    context = _context()
+    await context.set_state("state")
+    await context.update_data(prompt_mid="mid-old")
+
+    await menu.handle_start(event, context, MagicMock())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert await context.get_state() is None
+    assert await context.get_data() == {}
+
+
+async def test_bot_started_removes_stored_prompt_keyboard(welcome_service: MagicMock) -> None:
+    event = _bot_started()
+    context = _context()
+    await context.set_state("state")
+    await context.update_data(prompt_mid="mid-old")
+
+    await menu.handle_bot_started(event, context, MagicMock())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert await context.get_state() is None
+
+
+async def test_main_menu_acks_then_sends_new_welcome(welcome_service: MagicMock) -> None:
+    event = _message_callback(MENU_START)
+    context = _context()
+    await context.set_state("state")
+    await context.update_data(prompt_mid="mid-old")
+
+    await menu.handle_main_menu(event, context, MagicMock())
+
+    event.ack.assert_awaited_once_with(notification=MAIN_MENU_BUTTON)
+    names = [call[0] for call in event.mock_calls]
+    assert names.index("ack") < names.index("bot.send_message")
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert await context.get_state() is None
+    assert await context.get_data() == {}
+    event.edit.assert_not_awaited()
+    kwargs = event.bot.send_message.await_args.kwargs
+    assert kwargs["user_id"] == 42
+    assert kwargs["text"] == "Добро пожаловать"
+    assert kwargs["format"] == ParseMode.MARKDOWN
+    assert len(kwargs["attachments"]) == 1
+
+
+async def test_main_menu_sends_welcome_with_photo(welcome_service: MagicMock) -> None:
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _message_callback(MENU_START)
+
+    await menu.handle_main_menu(event, _context(), MagicMock())
+
+    attachments = event.bot.send_message.await_args.kwargs["attachments"]
+    assert len(attachments) == 2
+    assert isinstance(attachments[0], AttachmentUpload)
+    assert attachments[0].payload.token == "tok-1"
+    assert len(_keyboard_rows(attachments[1])) == 6
+    event.edit.assert_not_awaited()
+
+
+async def test_main_menu_retries_without_photo_when_max_rejects(
+    welcome_service: MagicMock,
+) -> None:
+    welcome_service.get_message.return_value = WelcomeMessage(
+        text="Добро пожаловать", photo_token="tok-1"
+    )
+    event = _message_callback(MENU_START)
+    event.bot.send_message = AsyncMock(side_effect=[MaxApiError(code=400, raw={}), None])
+
+    await menu.handle_main_menu(event, _context(), MagicMock())
+
+    assert event.bot.send_message.await_count == 2
+    first, second = event.bot.send_message.await_args_list
+    assert first.kwargs["user_id"] == 42
+    assert len(first.kwargs["attachments"]) == 2
+    assert second.kwargs["user_id"] == 42
+    assert len(second.kwargs["attachments"]) == 1
+    assert not isinstance(second.kwargs["attachments"][0], AttachmentUpload)
+
+
+def test_main_menu_handler_registered_before_unknown_menu() -> None:
+    funcs = [handler.func_event for handler in menu.router.event_handlers]
+
+    assert funcs.index(menu.handle_main_menu) < funcs.index(menu.handle_unknown_menu)

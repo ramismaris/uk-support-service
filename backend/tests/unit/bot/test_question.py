@@ -60,10 +60,21 @@ def _sticker_attachment() -> MagicMock:
     return attachment
 
 
+def _sent(mid: str = "mid-sent") -> SimpleNamespace:
+    return SimpleNamespace(message=SimpleNamespace(body=SimpleNamespace(mid=mid)))
+
+
+def _bot() -> MagicMock:
+    bot = MagicMock()
+    bot.edit_message = AsyncMock(return_value=SimpleNamespace(success=True))
+    return bot
+
+
 def _message(text: str | None = None, attachments: list | None = None) -> MagicMock:
     event = MagicMock(spec=MessageCreated)
+    event.bot = _bot()
     message = MagicMock()
-    message.answer = AsyncMock()
+    message.answer = AsyncMock(return_value=_sent())
     body = MagicMock()
     body.text = text
     body.attachments = attachments or []
@@ -77,6 +88,10 @@ def _callback(payload: str) -> MagicMock:
     event = MagicMock(spec=MessageCallback)
     event.edit = AsyncMock()
     event.ack = AsyncMock()
+    event.bot = _bot()
+    message = MagicMock()
+    message.body.mid = "mid-pressed"
+    event.message = message
     callback = MagicMock()
     callback.payload = payload
     event.callback = callback
@@ -117,9 +132,21 @@ async def test_write_clears_any_state_and_prompts(service: MagicMock) -> None:
     await question.handle_write(event, context)
 
     assert await context.get_state() == QuestionForm.text
-    assert await context.get_data() == {}
+    assert (await context.get_data())["prompt_mid"] == "mid-pressed"
+    assert "description" not in await context.get_data()
     assert _edit_text(event) == QUESTION_PROMPT
     assert [row[0].payload for row in _edit_rows(event)] == [QUESTION_CANCEL]
+
+
+async def test_write_removes_previous_prompt_keyboard(service: MagicMock) -> None:
+    event = _callback(QUESTION_WRITE)
+    context = _context()
+    await context.update_data(prompt_mid="mid-old")
+
+    await question.handle_write(event, context)
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-pressed"
 
 
 async def test_write_works_without_state(service: MagicMock) -> None:
@@ -145,6 +172,34 @@ async def test_text_only_creates_question(service: MagicMock) -> None:
     service.save_photo.assert_not_awaited()
     assert await context.get_state() is None
     assert _answer_texts(event) == [QUESTION_SENT.format(ticket_id=QUESTION_ID)]
+
+
+async def test_sent_question_removes_prompt_keyboard(service: MagicMock) -> None:
+    event = _message(text="Вопрос")
+    context = _context()
+    await context.set_state(QuestionForm.text)
+    await context.update_data(prompt_mid="mid-old")
+
+    await question.handle_question(event, context, _db(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert await context.get_state() is None
+    assert await context.get_data() == {}
+    assert _answer_texts(event) == [QUESTION_SENT.format(ticket_id=QUESTION_ID)]
+
+
+async def test_text_error_removes_previous_prompt_keyboard(service: MagicMock) -> None:
+    event = _message(text="   ")
+    event.message.answer.side_effect = [_sent("mid-new")]
+    context = _context()
+    await context.set_state(QuestionForm.text)
+    await context.update_data(prompt_mid="mid-old")
+
+    await question.handle_question(event, context, _db(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-new"
+    assert _answer_texts(event) == [QUESTION_TEXT_REQUIRED]
 
 
 async def test_text_with_photos_saves_them(service: MagicMock) -> None:
@@ -273,10 +328,13 @@ async def test_cancel_clears_state_and_shows_menu() -> None:
     event = _callback(QUESTION_CANCEL)
     context = _context()
     await context.set_state(QuestionForm.text)
+    await context.update_data(prompt_mid="mid-old")
 
     await question.handle_cancel(event, context)
 
     assert await context.get_state() is None
+    assert await context.get_data() == {}
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
     assert _edit_text(event) == QUESTION_CANCELLED
     assert _edit_rows(event)[0][0].payload == "form:start"
 

@@ -23,7 +23,7 @@ from src.bot.keyboards import (
     FORM_START,
     FORM_TIME_SKIP,
 )
-from src.bot.states import RequestForm
+from src.bot.states import QuestionForm, RequestForm
 from src.bot.utils import NOT_A_COMMAND
 from src.core.exceptions import AppException, MessengerException, NotFoundException
 from src.core.texts import (
@@ -99,10 +99,24 @@ def _context() -> MemoryContext:
     return MemoryContext(chat_id=7, user_id=42)
 
 
+def _sent(mid: str = "mid-sent") -> SimpleNamespace:
+    return SimpleNamespace(message=SimpleNamespace(body=SimpleNamespace(mid=mid)))
+
+
+def _bot() -> MagicMock:
+    bot = MagicMock()
+    bot.edit_message = AsyncMock(return_value=SimpleNamespace(success=True))
+    return bot
+
+
 def _callback(payload: str) -> MagicMock:
     event = MagicMock(spec=MessageCallback)
     event.edit = AsyncMock()
     event.ack = AsyncMock()
+    event.bot = _bot()
+    message = MagicMock()
+    message.body.mid = "mid-pressed"
+    event.message = message
     callback = MagicMock()
     callback.payload = payload
     event.callback = callback
@@ -113,11 +127,15 @@ def _message(
     text: str | None = None,
     attachments: list | None = None,
     link_attachments: list | None = None,
+    *,
+    mid: str = "mid-incoming",
 ) -> MagicMock:
     event = MagicMock(spec=MessageCreated)
+    event.bot = _bot()
     message = MagicMock()
-    message.answer = AsyncMock()
+    message.answer = AsyncMock(return_value=_sent())
     body = MagicMock()
+    body.mid = mid
     body.text = text
     body.attachments = attachments or []
     message.body = body
@@ -218,11 +236,26 @@ async def test_form_start_restarts_previous_form(service: MagicMock) -> None:
     event = _callback(FORM_START)
     context = _context()
     await context.set_state(RequestForm.confirm)
-    await context.update_data(description="старое")
+    await context.update_data(description="старое", prompt_mid="mid-old")
 
     await request_form.handle_form_start(event, context, MagicMock(), _user())
 
     assert "description" not in await context.get_data()
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+
+
+async def test_form_start_removes_question_prompt_keyboard(service: MagicMock) -> None:
+    event = _callback(FORM_START)
+    context = _context()
+    await context.set_state(QuestionForm.text)
+    await context.update_data(text="старый вопрос", prompt_mid="mid-question")
+
+    await request_form.handle_form_start(event, context, MagicMock(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-question", attachments=[])
+    data = await context.get_data()
+    assert "text" not in data
+    assert await context.get_state() == RequestForm.category
 
 
 async def test_own_contact_saves_phone_and_asks_category(service: MagicMock) -> None:
@@ -702,6 +735,7 @@ async def test_send_creates_request_and_clears_context(service: MagicMock) -> No
         description="Течёт кран",
         preferred_time="вечером",
         photo_ids=[1, 2],
+        prompt_mid="mid-old",
     )
     user = _user()
 
@@ -718,6 +752,7 @@ async def test_send_creates_request_and_clears_context(service: MagicMock) -> No
     )
     assert await context.get_state() is None
     assert await context.get_data() == {}
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
     assert _edit_text(event) == FORM_SENT.format(ticket_id=TICKET_ID)
     assert event.edit.await_args.kwargs["attachments"] == []
 
@@ -727,11 +762,15 @@ async def test_send_service_error_shows_message_and_menu(service: MagicMock) -> 
     event = _callback(FORM_SEND)
     context = _context()
     await context.set_state(RequestForm.confirm)
-    await context.update_data(category_id=99, building_id=10, apartment="45", description="x")
+    await context.update_data(
+        category_id=99, building_id=10, apartment="45", description="x", prompt_mid="mid-old"
+    )
 
     await request_form.handle_send(event, context, MagicMock(), _user())
 
     assert await context.get_state() is None
+    assert await context.get_data() == {}
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
     assert _edit_text(event) == "Категория не найдена"
     assert _edit_rows(event)[0][0].payload == FORM_START
 
@@ -740,11 +779,13 @@ async def test_cancel_clears_context_and_shows_menu(service: MagicMock) -> None:
     event = _callback(FORM_CANCEL)
     context = _context()
     await context.set_state(RequestForm.category)
+    await context.update_data(prompt_mid="mid-old")
 
     await request_form.handle_form_cancel(event, context, MagicMock(), _user())
 
     assert await context.get_state() is None
     assert await context.get_data() == {}
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
     assert _edit_text(event) == FORM_CANCELLED
     assert _edit_rows(event)[0][0].payload == FORM_START
 
@@ -760,12 +801,16 @@ async def test_stale_form_callback_acks(service: MagicMock) -> None:
 
 async def test_unexpected_message_in_category_repeats_prompt(service: MagicMock) -> None:
     event = _message(text="привет")
+    event.message.answer.side_effect = [_sent("mid-new")]
     context = _context()
     await context.set_state(RequestForm.category)
+    await context.update_data(prompt_mid="mid-old")
 
     await request_form.handle_unexpected_message(event, context, MagicMock(), _user())
 
     assert await context.get_state() == RequestForm.category
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-new"
     assert _answer_text(event) == FORM_CATEGORY_PROMPT
     assert [
         row[0].payload for row in _rows(event.message.answer.await_args.kwargs["attachments"][0])
@@ -774,6 +819,76 @@ async def test_unexpected_message_in_category_repeats_prompt(service: MagicMock)
         f"{FORM_CATEGORY_PREFIX}2",
         FORM_CANCEL,
     ]
+
+
+async def test_apartment_removes_previous_prompt_keyboard(service: MagicMock) -> None:
+    event = _message(text="45", mid="mid-apt")
+    event.message.answer.side_effect = [_sent("mid-desc")]
+    context = _context()
+    await context.set_state(RequestForm.apartment)
+    await context.update_data(building_id=10, prompt_mid="mid-old")
+
+    await request_form.handle_apartment(event, context, MagicMock(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-desc"
+    assert _answer_text(event) == FORM_DESCRIPTION_PROMPT
+
+
+async def test_invalid_apartment_removes_previous_prompt_keyboard(service: MagicMock) -> None:
+    service.add_residence.side_effect = AppException("Квартира — до 20 символов", status_code=400)
+    event = _message(text="?")
+    event.message.answer.side_effect = [_sent("mid-new")]
+    context = _context()
+    await context.set_state(RequestForm.apartment)
+    await context.update_data(building_id=10, prompt_mid="mid-old")
+
+    await request_form.handle_apartment(event, context, MagicMock(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-new"
+    assert _answer_text(event) == "Квартира — до 20 символов"
+    assert [row[0].payload for row in _answer_rows(event)] == [FORM_CANCEL]
+
+
+async def test_contact_answer_removes_phone_prompt_keyboard(service: MagicMock) -> None:
+    event = _message(attachments=[_contact_attachment(42, "79161234567")])
+    event.message.answer.side_effect = [_sent("mid-category")]
+    context = _context()
+    await context.set_state(RequestForm.phone)
+    await context.update_data(prompt_mid="mid-phone")
+
+    await request_form.handle_phone(event, context, MagicMock(), _user(phone=None))
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-phone", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-category"
+
+
+async def test_second_photo_message_removes_first_keyboard(service: MagicMock) -> None:
+    event = _message(attachments=[_image_attachment("https://i.oneme.ru/1")])
+    event.message.answer.side_effect = [_sent("mid-1"), _sent("mid-2")]
+    context = _context()
+    await context.set_state(RequestForm.photos)
+
+    await request_form.handle_photos(event, context, MagicMock(), _user())
+    await request_form.handle_photos(event, context, MagicMock(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-1", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-2"
+
+
+async def test_button_step_does_not_remove_pressed_prompt(service: MagicMock) -> None:
+    event = _callback(f"{FORM_BUILDING_PREFIX}10")
+    context = _context()
+    await context.set_state(RequestForm.building)
+    await context.update_data(prompt_mid="mid-pressed")
+
+    await request_form.handle_building(event, context, MagicMock(), _user())
+
+    event.edit.assert_awaited_once()
+    event.bot.edit_message.assert_not_awaited()
+    assert (await context.get_data())["prompt_mid"] == "mid-pressed"
+    assert await context.get_state() == RequestForm.apartment
 
 
 def test_not_a_command_filter_skips_commands() -> None:

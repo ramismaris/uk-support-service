@@ -29,7 +29,10 @@ from src.bot.keyboards import (
     payment_keyboard,
     photo_attachment,
 )
+from src.bot.prompts import end_dialog
+from src.core.constants import MENU_START
 from src.core.texts import (
+    MAIN_MENU_BUTTON,
     MY_TICKETS_EMPTY,
     MY_TICKETS_TITLE,
     OUTDATED_BUTTON_TEXT,
@@ -127,14 +130,14 @@ async def _edit(
 
 @router.bot_started()
 async def handle_bot_started(event: BotStarted, context: BaseContext, db: AsyncSession) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     text, attachments = await _welcome(db)
     await _send_welcome(partial(event.bot.send_message, chat_id=event.chat_id), text, attachments)
 
 
 @router.message_created(CommandStart())
 async def handle_start(event: MessageCreated, context: BaseContext, db: AsyncSession) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     text, attachments = await _welcome(db)
     await _send_welcome(event.message.answer, text, attachments)
 
@@ -184,6 +187,16 @@ async def handle_question(event: MessageCallback, db: AsyncSession) -> None:
 async def handle_main(event: MessageCallback, db: AsyncSession) -> None:
     text, attachments = await _welcome(db)
     await _edit(event, text, attachments, markdown=True)
+
+
+@router.message_callback(F.callback.payload == MENU_START)
+async def handle_main_menu(event: MessageCallback, context: BaseContext, db: AsyncSession) -> None:
+    await event.ack(notification=MAIN_MENU_BUTTON)
+    await end_dialog(event, context)
+    text, attachments = await _welcome(db)
+    await _send_welcome(
+        partial(event.bot.send_message, user_id=event.callback.user.user_id), text, attachments
+    )
 
 
 @router.message_callback(F.callback.payload.regexp(rf"^{MENU_PREFIX}"))

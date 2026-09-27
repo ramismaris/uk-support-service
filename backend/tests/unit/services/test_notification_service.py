@@ -25,6 +25,7 @@ from src.providers.noop_messenger_provider import NoopMessengerProvider
 from src.services.notification_service import NotificationService
 
 BUTTON = Button("Открыть", ButtonType.OPEN_APP, "ticket_1042")
+MENU_ROW = [Button("Главное меню", ButtonType.CALLBACK, "menu:start")]
 
 
 def _ticket(**overrides) -> Ticket:
@@ -134,7 +135,7 @@ async def test_send_status_message_in_progress_request(status_env) -> None:
     await env.service.send_status_message(ticket, None)
 
     text = "🟢 Статус заявки №1042: В работе."
-    env.messenger.send_message.assert_awaited_once_with(555, text, buttons=None)
+    env.messenger.send_message.assert_awaited_once_with(555, text, buttons=[MENU_ROW])
     env.messages.create.assert_awaited_once_with(
         ticket.id, SenderType.SYSTEM, text=text, max_message_id="mid-status-1"
     )
@@ -154,7 +155,7 @@ async def test_send_status_message_waiting_client_request(status_env) -> None:
     env.messenger.send_message.assert_awaited_once_with(
         555,
         "🟡 Статус заявки №1042: Нужен ваш ответ. Напишите его в этот чат.",
-        buttons=None,
+        buttons=[MENU_ROW],
     )
 
 
@@ -167,7 +168,7 @@ async def test_send_status_message_rejected_with_reason(status_env) -> None:
     env.messenger.send_message.assert_awaited_once_with(
         555,
         "🔴 Статус заявки №1042: Отклонена.\nПричина: Не наш профиль",
-        buttons=None,
+        buttons=[MENU_ROW],
     )
 
 
@@ -181,7 +182,8 @@ async def test_send_status_message_closed_request_has_resolved_buttons(status_en
         [
             Button("Да", ButtonType.CALLBACK, f"{RESOLVED_YES_PREFIX}{ticket.id}"),
             Button("Нет", ButtonType.CALLBACK, f"{RESOLVED_NO_PREFIX}{ticket.id}"),
-        ]
+        ],
+        MENU_ROW,
     ]
     env.messenger.send_message.assert_awaited_once_with(
         555,
@@ -210,7 +212,8 @@ async def test_send_status_message_question_uses_question_wording(status_env) ->
             [
                 Button("Да", ButtonType.CALLBACK, f"{RESOLVED_YES_PREFIX}1047"),
                 Button("Нет", ButtonType.CALLBACK, f"{RESOLVED_NO_PREFIX}1047"),
-            ]
+            ],
+            MENU_ROW,
         ],
     )
 
@@ -349,7 +352,9 @@ async def test_send_status_card_sends_markdown_and_stores_message_id() -> None:
         "⚪ В работе\n"
         "⚪ Закрыта"
     )
-    messenger.send_message.assert_awaited_once_with(555, expected, markdown=True)
+    messenger.send_message.assert_awaited_once_with(
+        555, expected, buttons=[MENU_ROW], markdown=True
+    )
     assert ticket.status_message_max_id == "mid-42"
     db.commit.assert_awaited_once()
 
@@ -489,7 +494,9 @@ async def test_update_status_card_edits_with_markdown() -> None:
         "🟢 В работе — 25.09 12:30\n"
         "⚪ Закрыта"
     )
-    messenger.edit_message.assert_awaited_once_with("mid-42", expected, markdown=True)
+    messenger.edit_message.assert_awaited_once_with(
+        "mid-42", expected, buttons=[MENU_ROW], markdown=True
+    )
 
 
 async def test_update_status_card_without_message_id_does_nothing() -> None:

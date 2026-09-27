@@ -37,6 +37,7 @@ from src.services import ticket_rules
 from src.services.events import publish_message_created, publish_ticket_updated
 from src.services.file_service import FileService
 from src.services.notification_service import (
+    MAIN_MENU_ROW,
     NotificationService,
     notify_staff_about_client_message,
 )
@@ -102,7 +103,8 @@ class MessageService:
             if token is not None
         ]
         buttons = [
-            [Button(TICKET_REPLY_BUTTON, ButtonType.CALLBACK, f"{CHAT_TICKET_PREFIX}{ticket.id}")]
+            [Button(TICKET_REPLY_BUTTON, ButtonType.CALLBACK, f"{CHAT_TICKET_PREFIX}{ticket.id}")],
+            MAIN_MENU_ROW,
         ]
         max_message_id = await self.messenger.send_message(
             ticket.client.max_user_id,

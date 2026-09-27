@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.core.constants import (
+    MENU_START,
     RESOLVED_NO_PREFIX,
     RESOLVED_YES_PREFIX,
     ButtonType,
@@ -14,6 +15,7 @@ from src.core.constants import (
 )
 from src.core.exceptions import MessengerException
 from src.core.texts import (
+    MAIN_MENU_BUTTON,
     RESOLVED_NO_BUTTON,
     RESOLVED_YES_BUTTON,
     STAFF_NEW_TICKET_BUTTON,
@@ -37,6 +39,8 @@ from src.services.status_card import build_status_card
 
 logger = logging.getLogger(__name__)
 
+MAIN_MENU_ROW = [Button(MAIN_MENU_BUTTON, ButtonType.CALLBACK, MENU_START)]
+
 
 class NotificationService:
     def __init__(self, db: AsyncSession, messenger: MessengerProvider):
@@ -52,7 +56,7 @@ class NotificationService:
         history = await self.status_changes.list_by_ticket(ticket.id)
         text = build_status_card(ticket, history, ZoneInfo(settings.timezone))
         message_id = await self.messenger.send_message(
-            ticket.client.max_user_id, text, markdown=True
+            ticket.client.max_user_id, text, buttons=[MAIN_MENU_ROW], markdown=True
         )
         if message_id is not None:
             ticket.status_message_max_id = message_id
@@ -63,11 +67,13 @@ class NotificationService:
             return
         history = await self.status_changes.list_by_ticket(ticket.id)
         text = build_status_card(ticket, history, ZoneInfo(settings.timezone))
-        await self.messenger.edit_message(ticket.status_message_max_id, text, markdown=True)
+        await self.messenger.edit_message(
+            ticket.status_message_max_id, text, buttons=[MAIN_MENU_ROW], markdown=True
+        )
 
     async def send_status_message(self, ticket: Ticket, comment: str | None) -> None:
         text = status_message_text(ticket.type, ticket.id, ticket.status, comment)
-        buttons = None
+        buttons = [MAIN_MENU_ROW]
         if ticket.status == TicketStatus.CLOSED:
             buttons = [
                 [
@@ -81,7 +87,8 @@ class NotificationService:
                         ButtonType.CALLBACK,
                         f"{RESOLVED_NO_PREFIX}{ticket.id}",
                     ),
-                ]
+                ],
+                MAIN_MENU_ROW,
             ]
         try:
             max_message_id = await self.messenger.send_message(

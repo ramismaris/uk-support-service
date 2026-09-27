@@ -39,6 +39,7 @@ from src.bot.keyboards import (
     confirm_question_keyboard,
     contacts_keyboard,
     main_menu_keyboard,
+    menu_button_keyboard,
     my_tickets_empty_keyboard,
     my_tickets_keyboard,
     payment_keyboard,
@@ -51,7 +52,7 @@ from src.bot.keyboards import (
     residences_keyboard,
     time_keyboard,
 )
-from src.core.constants import CHAT_TICKET_PREFIX, TicketStatus, TicketType
+from src.core.constants import CHAT_TICKET_PREFIX, MENU_START, TicketStatus, TicketType
 from src.schemas.content import PaymentContent
 
 
@@ -316,3 +317,12 @@ def test_rating_keyboard_has_scores_one_to_five_in_one_row():
         f"{RATE_PREFIX}1042:4",
         f"{RATE_PREFIX}1042:5",
     ]
+
+
+def test_menu_button_keyboard_has_main_menu_button():
+    rows = menu_button_keyboard().payload.buttons
+
+    assert len(rows) == 1
+    assert rows[0][0].text == "Главное меню"
+    assert rows[0][0].payload == MENU_START
+    assert isinstance(rows[0][0], CallbackButton)

@@ -2,7 +2,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.constants import TicketStatus, TicketType
+from src.core.constants import ButtonType, TicketStatus, TicketType
+from src.providers.messenger_provider import Button
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.file_repository import FileRepository
@@ -61,6 +62,9 @@ async def test_create_request_end_to_end(db: AsyncSession) -> None:
 
     messenger.send_message.assert_awaited_once()
     assert messenger.send_message.await_args.kwargs["markdown"] is True
+    assert messenger.send_message.await_args.kwargs["buttons"] == [
+        [Button("Главное меню", ButtonType.CALLBACK, "menu:start")]
+    ]
     run_bg.assert_called_once_with(notify.return_value, name=f"notify-staff-{ticket.id}")
 
 
@@ -109,4 +113,7 @@ async def test_create_question_end_to_end(db: AsyncSession) -> None:
     assert user.active_ticket_id == ticket.id
 
     messenger.send_message.assert_awaited_once()
+    assert messenger.send_message.await_args.kwargs["buttons"] == [
+        [Button("Главное меню", ButtonType.CALLBACK, "menu:start")]
+    ]
     run_bg.assert_called_once_with(notify.return_value, name=f"notify-staff-{ticket.id}")

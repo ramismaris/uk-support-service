@@ -7,13 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.handlers import resolution
 from src.bot.keyboards import FORM_START, RATE_PREFIX
-from src.core.constants import RESOLVED_NO_PREFIX, RESOLVED_YES_PREFIX, TicketType
+from src.core.constants import MENU_START, RESOLVED_NO_PREFIX, RESOLVED_YES_PREFIX, TicketType
 from src.core.exceptions import (
     ConflictException,
     ForbiddenException,
     NotFoundException,
 )
 from src.core.texts import (
+    MAIN_MENU_BUTTON,
     OUTDATED_BUTTON_TEXT,
     RATE_PROMPT,
     RATE_THANKS,
@@ -92,6 +93,7 @@ async def test_resolved_yes_asks_for_rating(services: SimpleNamespace) -> None:
         label=ticket_dative(TicketType.REQUEST, TICKET_ID)
     )
     rows = _edit_rows(event)
+    assert len(rows) == 1
     assert [button.text for button in rows[0]] == ["1", "2", "3", "4", "5"]
     assert [button.payload for button in rows[0]] == [
         f"{RATE_PREFIX}{TICKET_ID}:{score}" for score in range(1, 6)
@@ -155,6 +157,9 @@ async def test_rate_saves_score(services: SimpleNamespace) -> None:
 
     services.status.rate.assert_awaited_once_with(user, TICKET_ID, 5)
     assert _edit_text(event) == RATE_THANKS
+    assert [[(button.text, button.payload) for button in row] for row in _edit_rows(event)] == [
+        [(MAIN_MENU_BUTTON, MENU_START)]
+    ]
     event.ack.assert_not_awaited()
 
 
@@ -229,7 +234,9 @@ async def test_resolved_no_reopens_and_makes_active(services: SimpleNamespace) -
     assert _edit_text(event) == REOPENED_TEXT.format(
         label=ticket_genitive(TicketType.REQUEST, TICKET_ID)
     )
-    assert event.edit.await_args.kwargs["attachments"] == []
+    assert [[(button.text, button.payload) for button in row] for row in _edit_rows(event)] == [
+        [(MAIN_MENU_BUTTON, MENU_START)]
+    ]
     event.ack.assert_not_awaited()
 
 

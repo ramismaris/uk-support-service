@@ -82,6 +82,16 @@ def _sticker_attachment() -> MagicMock:
     return attachment
 
 
+def _sent(mid: str = "mid-answer") -> SimpleNamespace:
+    return SimpleNamespace(message=SimpleNamespace(body=SimpleNamespace(mid=mid)))
+
+
+def _bot() -> MagicMock:
+    bot = MagicMock()
+    bot.edit_message = AsyncMock(return_value=SimpleNamespace(success=True))
+    return bot
+
+
 def _message(
     text: str | None = None,
     attachments: list | None = None,
@@ -93,8 +103,9 @@ def _message(
     link_mid: str = "lm1",
 ) -> MagicMock:
     event = MagicMock(spec=MessageCreated)
+    event.bot = _bot()
     message = MagicMock()
-    message.answer = AsyncMock()
+    message.answer = AsyncMock(return_value=_sent())
     body = MagicMock()
     body.mid = mid
     body.text = text
@@ -118,6 +129,10 @@ def _callback(payload: str) -> MagicMock:
     event.edit = AsyncMock()
     event.ack = AsyncMock()
     event.send = AsyncMock()
+    event.bot = _bot()
+    message = MagicMock()
+    message.body.mid = "mid-pressed"
+    event.message = message
     callback = MagicMock()
     callback.payload = payload
     event.callback = callback
@@ -375,6 +390,7 @@ async def test_free_message_offer_question_with_text(services: SimpleNamespace) 
         "text": "Когда отключат воду?",
         "file_ids": [],
         "max_message_id": "m9",
+        "prompt_mid": "mid-answer",
     }
     assert _answer_texts(event) == [CHAT_OFFER_QUESTION]
     rows = _answer_rows(event)
@@ -409,6 +425,7 @@ async def test_free_message_ask_which_ticket_with_text(services: SimpleNamespace
 
     assert await context.get_state() == ChatStates.choose_ticket
     assert (await context.get_data())["max_message_id"] == "m5"
+    assert (await context.get_data())["prompt_mid"] == "mid-answer"
     assert _answer_texts(event) == [CHAT_CHOOSE_TICKET]
     rows = _answer_rows(event)
     assert [row[0].text for row in rows] == [
@@ -460,7 +477,9 @@ async def test_choose_ticket_sends_pending_message(services: SimpleNamespace) ->
     event = _callback(f"{CHAT_CHOOSE_PREFIX}{TICKET_ID}")
     context = _context()
     await context.set_state(ChatStates.choose_ticket)
-    await context.update_data(text="Привет", file_ids=[5], max_message_id="m7")
+    await context.update_data(
+        text="Привет", file_ids=[5], max_message_id="m7", prompt_mid="mid-pressed"
+    )
     user = _user()
 
     await chat.handle_choose_ticket(event, context, _db(), user)
@@ -473,6 +492,8 @@ async def test_choose_ticket_sends_pending_message(services: SimpleNamespace) ->
         max_message_id="m7",
     )
     assert await context.get_state() is None
+    assert await context.get_data() == {}
+    event.bot.edit_message.assert_not_awaited()
     assert _edit_text(event) == CHAT_SENT.format(label=ticket_dative(TicketType.REQUEST, TICKET_ID))
     assert event.edit.await_args.kwargs["attachments"] == []
 
@@ -539,7 +560,9 @@ async def test_question_creates_from_pending_message(services: SimpleNamespace) 
     event = _callback(CHAT_QUESTION)
     context = _context()
     await context.set_state(ChatStates.confirm_question)
-    await context.update_data(text="Когда отключат воду?", file_ids=[3, 4], max_message_id="m9")
+    await context.update_data(
+        text="Когда отключат воду?", file_ids=[3, 4], max_message_id="m9", prompt_mid="mid-pressed"
+    )
     user = _user()
 
     await chat.handle_question(event, context, _db(), user)
@@ -550,6 +573,8 @@ async def test_question_creates_from_pending_message(services: SimpleNamespace) 
         photo_ids=[3, 4],
     )
     assert await context.get_state() is None
+    assert await context.get_data() == {}
+    event.bot.edit_message.assert_not_awaited()
     assert _edit_text(event) == QUESTION_SENT.format(ticket_id=QUESTION_ID)
 
 
@@ -583,13 +608,32 @@ async def test_cancel_clears_state_and_edits() -> None:
     event = _callback(CHAT_CANCEL)
     context = _context()
     await context.set_state(ChatStates.choose_ticket)
-    await context.update_data(text="Привет", file_ids=[1], max_message_id="m9")
+    await context.update_data(
+        text="Привет", file_ids=[1], max_message_id="m9", prompt_mid="mid-pressed"
+    )
 
     await chat.handle_cancel(event, context)
 
     assert await context.get_state() is None
     assert await context.get_data() == {}
+    event.bot.edit_message.assert_not_awaited()
     assert _edit_text(event) == CHAT_NOT_SENT
+
+
+async def test_pending_message_removes_previous_prompt_keyboard(
+    services: SimpleNamespace,
+) -> None:
+    services.client.list_open_tickets.return_value = [_ticket(TICKET_ID)]
+    event = _message(text="ещё", mid="mid-incoming")
+    event.message.answer.side_effect = [_sent("mid-new")]
+    context = _context()
+    await context.set_state(ChatStates.choose_ticket)
+    await context.update_data(text="Привет", file_ids=[], max_message_id="m9", prompt_mid="mid-old")
+
+    await chat.handle_pending_message(event, context, _db(), _user())
+
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+    assert (await context.get_data())["prompt_mid"] == "mid-new"
 
 
 async def test_pending_message_in_choose_state_repeats_keyboard(

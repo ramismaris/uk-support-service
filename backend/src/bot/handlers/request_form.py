@@ -32,6 +32,7 @@ from src.bot.keyboards import (
     residences_keyboard,
     time_keyboard,
 )
+from src.bot.prompts import end_dialog, show_prompt
 from src.bot.states import RequestForm
 from src.bot.utils import NOT_A_COMMAND, attachments, image_urls, message_text, parse_id
 from src.core.exceptions import AppException, NotFoundException
@@ -121,10 +122,7 @@ async def _render(
     keyboard: AttachmentButton,
 ) -> None:
     await context.set_state(state)
-    if isinstance(event, MessageCallback):
-        await _edit(event, text, keyboard)
-    else:
-        await event.message.answer(text, attachments=[keyboard])
+    await show_prompt(event, context, text, keyboard)
 
 
 async def _ask_category(
@@ -232,7 +230,7 @@ async def _ask_confirm(
 async def handle_form_start(
     event: MessageCallback, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     service = _service(db)
     if not user.phone:
         await _render(event, context, RequestForm.phone, FORM_PHONE_PROMPT, phone_keyboard())
@@ -244,7 +242,7 @@ async def handle_form_start(
 async def handle_form_cancel(
     event: MessageCallback, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    await context.clear()
+    await end_dialog(event, context)
     await _edit(event, FORM_CANCELLED, main_menu_keyboard())
 
 
@@ -254,20 +252,20 @@ async def handle_phone(
 ) -> None:
     contact = _contact(event.message)
     if contact is None:
-        await event.message.answer(FORM_PHONE_PROMPT, attachments=[phone_keyboard()])
+        await show_prompt(event, context, FORM_PHONE_PROMPT, phone_keyboard())
         return
     if not _is_own_contact(contact, user):
-        await event.message.answer(FORM_PHONE_OWN_TEXT, attachments=[phone_keyboard()])
+        await show_prompt(event, context, FORM_PHONE_OWN_TEXT, phone_keyboard())
         return
     phone = _contact_phone(contact)
     if phone is None:
-        await event.message.answer(FORM_PHONE_PROMPT, attachments=[phone_keyboard()])
+        await show_prompt(event, context, FORM_PHONE_PROMPT, phone_keyboard())
         return
     service = _service(db)
     try:
         await service.set_phone(user, phone)
     except AppException as exc:
-        await event.message.answer(exc.message, attachments=[phone_keyboard()])
+        await show_prompt(event, context, exc.message, phone_keyboard())
         return
     await _ask_category(event, context, service)
 
@@ -362,7 +360,7 @@ async def handle_apartment(
         await _ask_building(event, context, service)
         return
     except AppException as exc:
-        await event.message.answer(exc.message, attachments=[cancel_keyboard()])
+        await show_prompt(event, context, exc.message, cancel_keyboard())
         return
     await context.update_data(building_id=residence.building_id, apartment=residence.apartment)
     await _ask_description(event, context)
@@ -375,7 +373,7 @@ async def handle_description(
     try:
         description = validate_description(message_text(event.message))
     except AppException as exc:
-        await event.message.answer(exc.message, attachments=[cancel_keyboard()])
+        await show_prompt(event, context, exc.message, cancel_keyboard())
         return
     await context.update_data(description=description)
     await _ask_photos(event, context)
@@ -388,7 +386,7 @@ async def handle_photos(
     photo_ids = list((await context.get_data()).get("photo_ids", []))
     urls = image_urls(event.message)
     if not urls:
-        await event.message.answer(FORM_PHOTOS_PROMPT, attachments=[_photos_keyboard(photo_ids)])
+        await show_prompt(event, context, FORM_PHOTOS_PROMPT, _photos_keyboard(photo_ids))
         return
 
     service = _service(db)
@@ -413,7 +411,7 @@ async def handle_photos(
         text = FORM_PHOTO_FAILED.format(count=len(photo_ids))
     else:
         text = FORM_PHOTOS_ADDED.format(count=len(photo_ids))
-    await event.message.answer(text, attachments=[_photos_keyboard(photo_ids)])
+    await show_prompt(event, context, text, _photos_keyboard(photo_ids))
 
 
 @router.message_callback(F.callback.payload == FORM_PHOTOS_DONE, RequestForm.photos)
@@ -462,10 +460,10 @@ async def handle_send(
             photo_ids=list(data.get("photo_ids", [])),
         )
     except AppException as exc:
-        await context.clear()
+        await end_dialog(event, context)
         await _edit(event, exc.message, main_menu_keyboard())
         return
-    await context.clear()
+    await end_dialog(event, context)
     await _edit(event, FORM_SENT.format(ticket_id=ticket.id))
 
 

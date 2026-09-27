@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.constants import SenderType, TicketStatus, TicketType, UserRole
+from src.core.constants import ButtonType, SenderType, TicketStatus, TicketType, UserRole
 from src.core.exceptions import MessengerException
 from src.core.security import hash_token
 from src.core.texts import MESSAGE_FILES_MIXED, TEXT_INVALID_CHARACTER
@@ -15,6 +15,7 @@ from src.models.message import Message
 from src.models.ticket import Ticket
 from src.providers.factory import get_messenger_provider, get_storage_provider
 from src.providers.local_storage_provider import LocalStorageProvider
+from src.providers.messenger_provider import Button
 from src.repositories.auth_token_repository import AuthTokenRepository
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
@@ -254,6 +255,10 @@ async def test_send_message_text_only(
     assert messenger.sent[0]["user_id"] == base.client.max_user_id
     assert "Заявка №" in messenger.sent[0]["text"]
     assert "Мастер придёт завтра" in messenger.sent[0]["text"]
+    assert messenger.sent[0]["buttons"] == [
+        [Button("Ответить", ButtonType.CALLBACK, f"chat:ticket:{ticket_id}")],
+        [Button("Главное меню", ButtonType.CALLBACK, "menu:start")],
+    ]
 
     card = await client.get(f"/api/v1/staff/tickets/{ticket_id}", headers=_auth(base.manager_token))
     assert card.status_code == 200
