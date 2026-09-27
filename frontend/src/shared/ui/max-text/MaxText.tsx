@@ -43,14 +43,26 @@ function renderInline(nodes: InlineNode[]): ReactNode {
 }
 
 // Text written with Max markdown, shown the way the resident sees it in the bot.
-export function MaxText({ text, className = '' }: { text: string; className?: string }) {
+// `trailing` goes at the end of the last line (a chat bubble puts its time there).
+export function MaxText({
+  text,
+  className = '',
+  trailing,
+}: {
+  text: string
+  className?: string
+  trailing?: ReactNode
+}) {
+  const blocks = parseMaxMarkdown(text)
   return (
     <div className={`break-words ${className}`}>
-      {parseMaxMarkdown(text).map((block, index) => {
+      {blocks.map((block, index) => {
+        const tail = index === blocks.length - 1 ? trailing : null
         if (block.type === 'heading') {
           return (
             <div key={index} className="text-[1.1em] font-semibold">
               {renderInline(block.children)}
+              {tail}
             </div>
           )
         }
@@ -58,6 +70,7 @@ export function MaxText({ text, className = '' }: { text: string; className?: st
           return (
             <div key={index} className="border-l border-current/40 pl-2 opacity-85">
               {renderInline(block.children)}
+              {tail}
             </div>
           )
         }
@@ -65,6 +78,7 @@ export function MaxText({ text, className = '' }: { text: string; className?: st
         return (
           <div key={index} className="min-h-[1lh]">
             {renderInline(block.children)}
+            {tail}
           </div>
         )
       })}

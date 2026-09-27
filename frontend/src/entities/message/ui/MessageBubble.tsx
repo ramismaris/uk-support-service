@@ -43,6 +43,13 @@ export function MessageBubble({
   const time = formatDateTime(message.created_at)
   // Like Telegram: a photo without a caption carries its time on top of the picture.
   const timeOverPhoto = photos.length > 0 && documents.length === 0 && !message.text
+  // Like Telegram: the time sits at the end of the last line and wraps below only when the
+  // line is full. An invisible copy reserves its place; the visible one is pinned to the corner.
+  const timeSpacer = (
+    <span aria-hidden className="invisible ml-2 inline-block text-[11px] leading-4">
+      {time}
+    </span>
+  )
 
   return (
     <div className={`flex ${fromStaff ? 'justify-end' : 'justify-start'}`}>
@@ -52,7 +59,9 @@ export function MessageBubble({
         } ${fromStaff ? 'rounded-br-md bg-brand text-white' : 'rounded-bl-md bg-layer'}`}
       >
         {fromStaff && message.author && (
-          <div className="px-3 pt-2 pb-1 text-xs font-medium opacity-80">
+          <div
+            className={`px-3 pt-1.5 text-xs font-medium opacity-80 ${photos.length > 0 ? 'pb-1.5' : ''}`}
+          >
             {message.author.first_name}
           </div>
         )}
@@ -67,18 +76,30 @@ export function MessageBubble({
           </div>
         )}
         {!timeOverPhoto && (
-          <div className="flex flex-col gap-2 px-3 py-2">
+          <div
+            className={`relative flex flex-col gap-2 px-3 pb-1.5 ${
+              fromStaff && message.author ? 'pt-0.5' : 'pt-1.5'
+            }`}
+          >
             {documents.map((file) => (
               <Document key={file.id} file={file} />
             ))}
-            {message.text &&
+            {message.text ? (
               // Staff replies go to Max as markdown; residents' messages come as plain text.
-              (fromStaff ? (
-                <MaxText text={message.text} />
+              fromStaff ? (
+                <MaxText text={message.text} trailing={timeSpacer} />
               ) : (
-                <p className="break-words whitespace-pre-wrap">{message.text}</p>
-              ))}
-            <div className="self-end text-[11px] opacity-60">{time}</div>
+                <p className="break-words whitespace-pre-wrap">
+                  {message.text}
+                  {timeSpacer}
+                </p>
+              )
+            ) : (
+              <div className="h-3" />
+            )}
+            <span className="absolute right-3 bottom-1 text-[11px] leading-4 opacity-60">
+              {time}
+            </span>
           </div>
         )}
       </div>
