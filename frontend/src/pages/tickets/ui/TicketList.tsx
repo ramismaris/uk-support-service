@@ -62,7 +62,6 @@ export function TicketList() {
               src={animations.emptyList}
               tint={brandColor}
               speed={0.6}
-              repeatDelay={1500}
               className="size-24"
             />
           }

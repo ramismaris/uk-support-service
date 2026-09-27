@@ -91,7 +91,7 @@ function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
   }
 
   return (
-    <div className="grid gap-8 p-4 lg:p-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-8 p-4 lg:p-6 xl:grid-cols-[minmax(0,36rem)_20rem]">
       <form
         className="flex max-w-xl flex-col gap-6"
         onSubmit={(event) => {
@@ -122,7 +122,7 @@ function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
 
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-1.5 text-sm font-medium">Фирменный цвет</legend>
-          <div role="radiogroup" aria-label="Готовые цвета" className="flex flex-wrap gap-2">
+          <div role="radiogroup" aria-label="Готовые цвета" className="flex flex-wrap gap-1.5">
             {PALETTE.map((color) => {
               const selected = color.hex === draft.primaryColor.toLowerCase()
               return (

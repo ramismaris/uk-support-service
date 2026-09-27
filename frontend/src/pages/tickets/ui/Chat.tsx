@@ -107,7 +107,6 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
                 src={animations.emptyChat}
                 tint={brandColor}
                 speed={0.7}
-                repeatDelay={1500}
                 className="size-32"
               />
             }

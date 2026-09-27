@@ -163,7 +163,7 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
   const preview = botPreview(section, draft as never)
 
   return (
-    <div className="grid gap-6 p-4 lg:p-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-6 p-4 lg:p-6 xl:grid-cols-[minmax(0,42rem)_20rem]">
       <form
         className="flex max-w-2xl flex-col gap-5"
         onSubmit={(event) => {

@@ -15,7 +15,6 @@ export function TicketsIndexPage() {
           src={animations.selectTicket}
           tint={brandColor}
           speed={0.7}
-          repeatDelay={1500}
           className="size-32"
         />
       }

@@ -19,8 +19,6 @@ interface LottieAnimationProps {
   src: string
   className?: string
   speed?: number
-  // Replays after this pause (ms); without it the animation plays once.
-  repeatDelay?: number
   // Called exactly once: when playback ends, or by a fallback timer if it never does.
   onComplete?: () => void
   // Repaints strokes and fills in this colour (the company's brand colour).
@@ -33,13 +31,11 @@ export function LottieAnimation({
   src,
   className,
   speed = 1,
-  repeatDelay,
   onComplete,
   tint,
 }: LottieAnimationProps) {
   // Reduced motion: the player shows the first frame and does not play.
   const reduced = useReducedMotion() ?? false
-  const repeatTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   // Callers pass inline callbacks; a ref keeps one completion (and one fallback timer) per mount.
   const onCompleteRef = useRef(onComplete)
   useEffect(() => {
@@ -59,8 +55,6 @@ export function LottieAnimation({
     )
     return () => clearTimeout(fallback)
   }, [hasOnComplete, reduced])
-
-  useEffect(() => () => clearTimeout(repeatTimer.current), [])
 
   const tintKey = tint ? `${src}|${tint}` : null
   const [tinted, setTinted] = useState<Tinted | null>(null)
@@ -93,16 +87,7 @@ export function LottieAnimation({
     if (!player) {
       return
     }
-    player.addEventListener('complete', () => {
-      completeRef.current()
-      if (repeatDelay !== undefined) {
-        clearTimeout(repeatTimer.current)
-        repeatTimer.current = setTimeout(() => {
-          player.stop()
-          player.play()
-        }, repeatDelay)
-      }
-    })
+    player.addEventListener('complete', () => completeRef.current())
   }
 
   return (
