@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RELOAD_GUARD_MS, shouldReloadForNewBuild } from './stale-build'
+import { isChunkLoadError, RELOAD_GUARD_MS, shouldReloadForNewBuild } from './stale-build'
 
 describe('shouldReloadForNewBuild', () => {
   it('reloads when there was no reload before', () => {
@@ -16,5 +16,23 @@ describe('shouldReloadForNewBuild', () => {
 
   it('treats a broken stored value as no reload', () => {
     expect(shouldReloadForNewBuild(Number.NaN, 1_000_000)).toBe(true)
+  })
+})
+
+describe('isChunkLoadError', () => {
+  it.each([
+    'Failed to fetch dynamically imported module: https://uk.example/assets/RichTextField-1.js',
+    'Importing a module script failed.',
+    'error loading dynamically imported module: https://uk.example/assets/a.js',
+    'Unable to preload CSS for /assets/a.css',
+  ])('recognises a chunk missing after a deploy: %s', (message) => {
+    expect(isChunkLoadError(new TypeError(message))).toBe(true)
+  })
+
+  it('does not take other errors for it', () => {
+    expect(
+      isChunkLoadError(new TypeError("Cannot read properties of undefined (reading 'id')")),
+    ).toBe(false)
+    expect(isChunkLoadError('Failed to fetch dynamically imported module')).toBe(false)
   })
 })

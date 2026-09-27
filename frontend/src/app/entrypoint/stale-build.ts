@@ -13,6 +13,19 @@ export function shouldReloadForNewBuild(lastReloadAt: number | null, now: number
   return now - lastReloadAt >= RELOAD_GUARD_MS
 }
 
+// How browsers word a failed dynamic import (Chrome, Safari, Firefox) and Vite a missing CSS.
+const CHUNK_ERRORS = [
+  'Failed to fetch dynamically imported module',
+  'Importing a module script failed',
+  'error loading dynamically imported module',
+  'Unable to preload CSS',
+]
+
+// React.lazy rethrows the failed import during render, where the route error page catches it.
+export function isChunkLoadError(error: unknown): boolean {
+  return error instanceof Error && CHUNK_ERRORS.some((message) => error.message.includes(message))
+}
+
 function readLastReload(): number | null {
   try {
     const value = sessionStorage.getItem(STORAGE_KEY)
@@ -22,19 +35,31 @@ function readLastReload(): number | null {
   }
 }
 
+// False when the page has just reloaded for this and the file is still missing.
+export function canReloadForNewBuild(): boolean {
+  return shouldReloadForNewBuild(readLastReload(), Date.now())
+}
+
+// Reloads once per guard window; returns false instead of looping.
+export function reloadForNewBuild(): boolean {
+  const now = Date.now()
+  if (!shouldReloadForNewBuild(readLastReload(), now)) {
+    return false
+  }
+  try {
+    sessionStorage.setItem(STORAGE_KEY, String(now))
+  } catch {
+    // Without storage the guard is off, but the reload itself still helps.
+  }
+  window.location.reload()
+  return true
+}
+
 export function reloadOnStaleBuild(): void {
   window.addEventListener('vite:preloadError', (event) => {
-    const now = Date.now()
-    if (!shouldReloadForNewBuild(readLastReload(), now)) {
-      return
+    if (reloadForNewBuild()) {
+      // Handled here: the failed import is not rethrown while the page reloads.
+      event.preventDefault()
     }
-    // Handled here: the failed import is not rethrown while the page reloads.
-    event.preventDefault()
-    try {
-      sessionStorage.setItem(STORAGE_KEY, String(now))
-    } catch {
-      // Without storage the guard is off, but the reload itself still helps.
-    }
-    window.location.reload()
   })
 }

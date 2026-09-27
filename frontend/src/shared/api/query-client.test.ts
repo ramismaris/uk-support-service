@@ -12,4 +12,8 @@ describe('shouldRetry', () => {
     expect(shouldRetry(1, new TypeError('Failed to fetch'))).toBe(true)
     expect(shouldRetry(2, new TypeError('Failed to fetch'))).toBe(false)
   })
+
+  it('retries a lost connection', () => {
+    expect(shouldRetry(0, new ApiError(0, 'Нет связи'))).toBe(true)
+  })
 })

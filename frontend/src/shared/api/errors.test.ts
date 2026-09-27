@@ -21,11 +21,37 @@ describe('unwrap', () => {
     await expect(unwrap(request)).rejects.toEqual(new ApiError(404, 'Пользователь не найден'))
   })
 
-  it('falls back to a generic message when detail is not a string', async () => {
-    const request = Promise.resolve({ error: { detail: [{ msg: 'x' }] }, response: response(422) })
+  it('falls back to a generic message when validation messages are not for people', async () => {
+    const request = Promise.resolve({
+      error: { detail: [{ msg: 'Field required' }] },
+      response: response(422),
+    })
     const error = await unwrap(request).catch((e: unknown) => e)
     expect(isApiError(error, 422)).toBe(true)
     expect((error as ApiError).message).toBe('Что-то пошло не так. Попробуйте ещё раз.')
+  })
+
+  it('shows the first Russian validation message, without the pydantic prefix', async () => {
+    const request = Promise.resolve({
+      error: { detail: [{ msg: 'Value error, Телефон указан неверно' }, { msg: 'Другое' }] },
+      response: response(422),
+    })
+    await expect(unwrap(request)).rejects.toEqual(new ApiError(422, 'Телефон указан неверно'))
+  })
+
+  it('turns a network failure into a readable error', async () => {
+    const error = await unwrap(Promise.reject(new TypeError('Failed to fetch'))).catch(
+      (e: unknown) => e,
+    )
+    expect(isApiError(error, 0)).toBe(true)
+    expect((error as ApiError).message).toBe(
+      'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.',
+    )
+  })
+
+  it('leaves a cancelled request as is', async () => {
+    const abort = new DOMException('aborted', 'AbortError')
+    await expect(unwrap(Promise.reject(abort))).rejects.toBe(abort)
   })
 })
 

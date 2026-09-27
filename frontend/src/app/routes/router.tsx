@@ -12,13 +12,15 @@ import { AppShell } from '@/widgets/app-shell'
 import { StaffRealtime } from '../realtime/StaffRealtime'
 import { RequireRole } from './RequireRole'
 import { RoleRedirect } from './RoleRedirect'
+import { RouteError } from './RouteError'
 import { SessionGate } from './SessionGate'
 
 export const router = createBrowserRouter([
-  { path: routePaths.login, element: <LoginPage /> },
+  { path: routePaths.login, element: <LoginPage />, errorElement: <RouteError /> },
   {
     path: routePaths.home,
     element: <SessionGate />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <RoleRedirect /> },
       {
@@ -31,6 +33,7 @@ export const router = createBrowserRouter([
         ),
         children: [
           {
+            errorElement: <RouteError inline />,
             path: routePaths.content,
             element: (
               <RequireRole allow={isAdmin}>
@@ -43,6 +46,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            errorElement: <RouteError inline />,
             path: routePaths.users,
             element: (
               <RequireRole allow={isAdmin}>
@@ -55,6 +59,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            errorElement: <RouteError inline />,
             path: routePaths.appearance,
             element: (
               <RequireRole allow={isAdmin}>
@@ -63,6 +68,7 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            errorElement: <RouteError inline />,
             element: <TicketsLayout />,
             children: [
               { index: true, element: <TicketsIndexPage /> },
@@ -81,5 +87,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
+  { path: '*', element: <NotFoundPage />, errorElement: <RouteError /> },
 ])
