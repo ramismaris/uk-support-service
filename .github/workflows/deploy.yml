@@ -1,7 +1,7 @@
 name: Deploy
 
-# Pushes to main only run the checks. The server is updated by a manual run
-# (Actions → Deploy → Run workflow, pick a branch or tag) or at once by a demo-* tag.
+# Pushes to main only run the checks. The server is updated by a manual run on main
+# (Actions → Deploy → Run workflow) or at once by a demo-* tag.
 on:
   push:
     branches: [main]
@@ -40,7 +40,10 @@ jobs:
 
   deploy:
     needs: [backend, frontend]
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/demo-')
+    # Only main or a demo tag reaches the server: a manual run on a feature branch just runs the checks.
+    if: >-
+      startsWith(github.ref, 'refs/tags/demo-') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     # One deploy at a time, on this job only: check-only runs of main must not queue behind it.
     concurrency:
