@@ -92,4 +92,37 @@
   [data-scrolling] {
     scrollbar-color: color-mix(in srgb, var(--text-tertiary) 55%, transparent) transparent;
   }
+
+  /* Chromium (Chrome, Edge, Max WebView) and Safari draw the bar from these rules instead:
+     a rounded thumb, no arrow buttons. Chromium ignores them while scrollbar-width/color are set,
+     so those go back to auto here; Firefox has no ::-webkit-scrollbar and keeps the rules above. */
+  @supports selector(::-webkit-scrollbar) {
+    *,
+    *:hover,
+    [data-scrolling] {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-button {
+      display: none;
+    }
+    ::-webkit-scrollbar-thumb {
+      border: 2px solid transparent;
+      border-radius: 9999px;
+      background-clip: content-box;
+      background-color: transparent;
+    }
+    *:hover::-webkit-scrollbar-thumb,
+    [data-scrolling]::-webkit-scrollbar-thumb {
+      background-color: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
+    }
+  }
 }
