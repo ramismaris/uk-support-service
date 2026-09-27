@@ -5,6 +5,15 @@
 		reverse_proxy api:8000
 	}
 
+	# Swagger; the backend serves it only with DEBUG=true, otherwise 404.
+	handle /docs {
+		reverse_proxy api:8000
+	}
+
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+
 	handle {
 		reverse_proxy web:80
 	}
