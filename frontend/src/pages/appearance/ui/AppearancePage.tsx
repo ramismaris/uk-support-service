@@ -16,6 +16,7 @@ import { NavMenuButton } from '@/widgets/app-shell'
 import { saveTheme } from '../api/save-theme'
 import { PALETTE } from '../lib/palette'
 import { NAME_LIMIT, validateTheme } from '../lib/validate'
+import { ColorPicker } from './ColorPicker'
 import { ThemePreview } from './ThemePreview'
 
 const SAVED_VISIBLE_MS = 2000
@@ -144,11 +145,11 @@ function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
               )
             })}
           </div>
-          <label className="flex items-center gap-2 self-start">
-            <span
-              aria-hidden
-              className="size-9 shrink-0 rounded-xl border border-line"
-              style={{ backgroundColor: colorValid ? draft.primaryColor : 'transparent' }}
+          <div className="flex items-center gap-2 self-start">
+            <ColorPicker
+              value={draft.primaryColor}
+              valid={colorValid}
+              onChange={(primaryColor) => patch({ primaryColor })}
             />
             <input
               value={draft.primaryColor}
@@ -162,7 +163,7 @@ function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
               }}
               className={`${control} w-32 font-mono uppercase`}
             />
-          </label>
+          </div>
           {visibleErrors.primaryColor && (
             <span className="text-sm text-negative">{visibleErrors.primaryColor}</span>
           )}
