@@ -1,6 +1,9 @@
+import { AnimatePresence } from 'framer-motion'
 import { ChevronDown, Phone, Star } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { isPhoto } from '@/entities/message'
 import { ticketTypeLabels, type TicketDetail } from '@/entities/ticket'
+import { PhotoViewer } from './PhotoViewer'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -18,6 +21,43 @@ function resident(ticket: TicketDetail) {
       ? `${ticket.building.address}${ticket.apartment ? `, кв. ${ticket.apartment}` : ''}`
       : null,
   }
+}
+
+// Photos from the request form: a grid of square previews, opened in the chat's photo viewer.
+function TicketPhotos({ ticket }: { ticket: TicketDetail }) {
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const author = resident(ticket).name
+  const photos = ticket.files
+    .filter(isPhoto)
+    .map((file) => ({ file, author, sentAt: ticket.created_at }))
+
+  return (
+    <>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1.5 pt-1">
+        {photos.map((photo, index) => (
+          <button
+            key={photo.file.id}
+            type="button"
+            aria-label={`Открыть фото ${index + 1} из ${photos.length}`}
+            className="aspect-square overflow-hidden rounded-lg bg-press transition-opacity hover:opacity-85"
+            onClick={() => setViewerIndex(index)}
+          >
+            <img src={photo.file.url} alt="" loading="lazy" className="size-full object-cover" />
+          </button>
+        ))}
+      </div>
+      <AnimatePresence>
+        {viewerIndex !== null && (
+          <PhotoViewer
+            photos={photos}
+            index={viewerIndex}
+            onIndexChange={setViewerIndex}
+            onClose={() => setViewerIndex(null)}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  )
 }
 
 function ResidentDetails({ ticket }: { ticket: TicketDetail }) {
@@ -57,20 +97,7 @@ function ResidentDetails({ ticket }: { ticket: TicketDetail }) {
           </span>
         </Row>
       )}
-      {ticket.files.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pt-1">
-          {ticket.files.map((file) => (
-            <a key={file.id} href={file.url} target="_blank" rel="noreferrer" className="shrink-0">
-              <img
-                src={file.url}
-                alt={file.original_name ?? 'Фото'}
-                className="size-20 rounded-lg object-cover"
-                loading="lazy"
-              />
-            </a>
-          ))}
-        </div>
-      )}
+      {ticket.files.length > 0 && <TicketPhotos ticket={ticket} />}
     </div>
   )
 }
