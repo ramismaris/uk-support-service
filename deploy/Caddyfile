@@ -1,20 +1,23 @@
+# While api or web restart during a deploy, keep retrying the upstream instead of answering 502.
+(retry) {
+	lb_try_duration 30s
+	lb_try_interval 250ms
+}
+
 {$DOMAIN} {
 	encode zstd gzip
 
-	handle /api/* {
-		reverse_proxy api:8000
-	}
-
-	# Swagger; the backend serves it only with DEBUG=true, otherwise 404.
-	handle /docs {
-		reverse_proxy api:8000
-	}
-
-	handle /openapi.json {
-		reverse_proxy api:8000
+	# /docs and /openapi.json: Swagger; the backend serves them only with DEBUG=true, otherwise 404.
+	@api path /api/* /docs /openapi.json
+	handle @api {
+		reverse_proxy api:8000 {
+			import retry
+		}
 	}
 
 	handle {
-		reverse_proxy web:80
+		reverse_proxy web:80 {
+			import retry
+		}
 	}
 }

@@ -71,12 +71,16 @@ jobs:
           cd deploy
           # The server may only have the legacy docker-compose v1.
           if docker compose version > /dev/null 2>&1; then compose="docker compose"; else compose="docker-compose"; fi
-          # Build while the old containers still serve. docker-compose v1 breaks on recreating
-          # containers with a newer engine (KeyError: 'ContainerConfig'), so remove them first;
-          # volumes stay.
+          # Build while the old containers still serve.
           $compose build
-          $compose down --remove-orphans
-          $compose up -d
+          # Replace only the app containers: db and caddy keep running, and caddy holds requests
+          # (lb_try_duration in the Caddyfile) until the new ones answer, so users get no 502.
+          # Removing instead of recreating also avoids docker-compose v1's
+          # KeyError: 'ContainerConfig' on newer engines.
+          $compose rm -sf api web
+          $compose up -d --remove-orphans
+          # The Caddyfile is a bind mount: apply its changes without restarting caddy.
+          $compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
           # v1 has no --wait: poll the API until it answers.
           for _ in $(seq 60); do
             if $compose exec -T api python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" 2> /dev/null; then
