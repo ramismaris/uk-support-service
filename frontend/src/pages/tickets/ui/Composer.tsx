@@ -1,9 +1,10 @@
-import { LoaderCircle, Paperclip, SendHorizontal, X } from 'lucide-react'
+import { LoaderCircle, Paperclip, SendHorizontal } from 'lucide-react'
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { formatFileSize } from '@/shared/lib/format'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
+import { pastedImages } from '../lib/attach'
 import { hasContent, MESSAGE_TEXT_LIMIT, validateMessage } from '../lib/message-rules'
 import { useSendMessage } from '../model/use-send-message'
+import { AttachDialog } from './AttachDialog'
 
 export function Composer({ ticketId }: { ticketId: number }) {
   const [text, setText] = useState('')
@@ -57,27 +58,6 @@ export function Composer({ ticketId }: { ticketId: number }) {
     <div className="border-t border-line px-3 py-2">
       {/* Same column as the messages above. */}
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
-        {files.length > 0 && (
-          <ul className="flex flex-wrap gap-2">
-            {files.map((file, index) => (
-              <li
-                key={`${file.name}-${index}`}
-                className="flex items-center gap-1 rounded-full bg-fill py-1 pr-1 pl-3 text-xs"
-              >
-                <span className="max-w-40 truncate">{file.name}</span>
-                <span className="text-fg-3">{formatFileSize(file.size)}</span>
-                <button
-                  type="button"
-                  aria-label={`Убрать ${file.name}`}
-                  className="rounded-full p-1 hover:bg-press"
-                  onClick={() => setFiles(files.filter((_, i) => i !== index))}
-                >
-                  <X size={12} strokeWidth={2} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
         <div className="flex items-end gap-1 rounded-3xl bg-fill p-1">
           <button
             type="button"
@@ -108,6 +88,13 @@ export function Composer({ ticketId }: { ticketId: number }) {
             className="max-h-36 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-5 outline-none placeholder:text-fg-3"
             onChange={(event) => setText(event.target.value)}
             onKeyDown={onKeyDown}
+            onPaste={(event) => {
+              const images = pastedImages(Array.from(event.clipboardData.files))
+              if (images.length > 0) {
+                event.preventDefault()
+                setFiles([...files, ...images])
+              }
+            }}
           />
           <button
             type="button"
@@ -133,12 +120,25 @@ export function Composer({ ticketId }: { ticketId: number }) {
             )}
           </button>
         </div>
-        {error && (
+        {/* With files the errors show in the send dialog. */}
+        {error && files.length === 0 && (
           <p role="alert" className="text-sm text-negative">
             {error}
           </p>
         )}
       </div>
+      <AttachDialog
+        files={files}
+        caption={text}
+        error={error ?? null}
+        pending={send.isPending}
+        canSend={canSend}
+        onCaptionChange={setText}
+        onAdd={(added) => setFiles([...files, ...added])}
+        onRemove={(index) => setFiles(files.filter((_, i) => i !== index))}
+        onCancel={() => setFiles([])}
+        onSend={submit}
+      />
     </div>
   )
 }

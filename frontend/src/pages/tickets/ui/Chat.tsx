@@ -1,16 +1,18 @@
 import { Button } from '@maxhub/max-ui'
 import { AnimatePresence, motion } from 'framer-motion'
 import { MessageCircle } from 'lucide-react'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { MessageBubble, useMessages } from '@/entities/message'
 import type { TicketDetail } from '@/entities/ticket'
 import { formatDateTime } from '@/shared/lib/format'
 import { useBrandColor } from '@/entities/theme'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
+import { chatPhotos } from '../lib/chat-photos'
 import { buildTimeline, type TimelineItem } from '../lib/timeline'
 import { useMarkRead } from '../model/use-mark-read'
 import { Composer } from './Composer'
+import { PhotoViewer } from './PhotoViewer'
 
 const NEAR_BOTTOM = 80
 
@@ -42,6 +44,11 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
   const stickToBottom = useRef(true)
   const list = useMemo(() => messages.data ?? [], [messages.data])
   const timeline = useMemo(() => buildTimeline(list, ticket.history), [list, ticket.history])
+  const residentName = [ticket.client.first_name, ticket.client.last_name].filter(Boolean).join(' ')
+  const photos = useMemo(() => chatPhotos(list, residentName), [list, residentName])
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const openPhoto = (fileId: number) =>
+    setViewerIndex(photos.findIndex((photo) => photo.file.id === fileId))
   const lastClientMessageId = list.findLast((m) => m.sender_type === 'CLIENT')?.id
 
   // The chat is on screen: mark it read when it opens and when the resident writes again.
@@ -64,6 +71,13 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
       <div
         ref={scroller}
         className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-surface px-4 py-3"
+        // Photos get their height only once loaded; keep the chat pinned to the bottom meanwhile.
+        onLoadCapture={() => {
+          const element = scroller.current
+          if (element && stickToBottom.current) {
+            element.scrollTop = element.scrollHeight
+          }
+        }}
         onScroll={(event) => {
           const element = event.currentTarget
           stickToBottom.current =
@@ -91,7 +105,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
                 {item.kind === 'message' ? (
-                  <MessageBubble message={item.message} />
+                  <MessageBubble message={item.message} onOpenPhoto={openPhoto} />
                 ) : (
                   <TimelineEvent item={item} />
                 )}
@@ -115,6 +129,16 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
           />
         )}
       </div>
+      <AnimatePresence>
+        {viewerIndex !== null && (
+          <PhotoViewer
+            photos={photos}
+            index={viewerIndex}
+            onIndexChange={setViewerIndex}
+            onClose={() => setViewerIndex(null)}
+          />
+        )}
+      </AnimatePresence>
       {notice ? (
         <div className="border-t border-line p-4 text-center text-sm text-fg-3">{notice}</div>
       ) : (
