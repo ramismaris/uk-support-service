@@ -100,31 +100,35 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
           />
         )}
         {messages.isSuccess && (
-          <AnimatePresence initial={false}>
-            {timeline.map((item) => (
-              <motion.div
-                key={item.key}
-                // Like Max on wide screens: the background spans the pane, messages keep a column.
-                className="mx-auto w-full max-w-3xl"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              >
-                {item.kind === 'message' && item.message.id === unreadFrom && (
-                  <div className="flex items-center gap-3 py-2 text-xs font-medium text-brand">
-                    <span className="h-px flex-1 bg-brand/30" />
-                    Новые сообщения
-                    <span className="h-px flex-1 bg-brand/30" />
-                  </div>
-                )}
-                {item.kind === 'message' ? (
-                  <MessageBubble message={item.message} onOpenPhoto={openPhoto} />
-                ) : (
-                  <TimelineEvent item={item} />
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          // Like messengers: a short chat sits at the bottom, next to the composer.
+          // With no messages yet the empty state stays in the middle instead.
+          <div className={`flex flex-col gap-2 ${list.length > 0 ? 'mt-auto' : ''}`}>
+            <AnimatePresence initial={false}>
+              {timeline.map((item) => (
+                <motion.div
+                  key={item.key}
+                  // Like Max on wide screens: the background spans the pane, messages keep a column.
+                  className="mx-auto w-full max-w-3xl"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                >
+                  {item.kind === 'message' && item.message.id === unreadFrom && (
+                    <div className="flex items-center gap-3 py-2 text-xs font-medium text-brand">
+                      <span className="h-px flex-1 bg-brand/30" />
+                      Новые сообщения
+                      <span className="h-px flex-1 bg-brand/30" />
+                    </div>
+                  )}
+                  {item.kind === 'message' ? (
+                    <MessageBubble message={item.message} onOpenPhoto={openPhoto} />
+                  ) : (
+                    <TimelineEvent item={item} />
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         )}
         {messages.isSuccess && list.length === 0 && (
           <EmptyState
