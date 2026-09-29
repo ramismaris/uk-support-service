@@ -1,10 +1,19 @@
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise
+from unittest.mock import patch
 
+import pytest
 from sqlalchemy import delete, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from scripts.seed import seed
+from scripts import seed as seed_module
+from scripts.seed import (
+    BUILDINGS,
+    CATEGORIES,
+    DEMO_BUILDING,
+    MissingDirectoryEntry,
+    seed,
+)
 from src.core.constants import ContentKey, SenderType, TicketStatus, TicketType, UserRole
 from src.models.building import Building
 from src.models.category import Category
@@ -14,6 +23,8 @@ from src.models.residence import Residence
 from src.models.status_change import StatusChange
 from src.models.ticket import Ticket
 from src.models.user import User
+from src.repositories.building_repository import BuildingRepository
+from src.repositories.category_repository import CategoryRepository
 from src.repositories.content_block_repository import ContentBlockRepository
 from src.repositories.message_repository import MessageRepository
 from src.repositories.status_change_repository import StatusChangeRepository
@@ -275,3 +286,82 @@ async def test_seed_adds_chats_to_existing_tickets_without_messages(db: AsyncSes
     await seed(db)
 
     assert await _count(db, Message) == DEMO_MESSAGES_COUNT
+
+
+async def test_seed_keeps_renamed_directories(db: AsyncSession) -> None:
+    await seed(db)
+    building = await BuildingRepository(db).get_by_address("ул. Гагарина, 5")
+    assert building is not None
+    building.address = "ул. Гагарина, 5 (новый корпус)"
+    category = await CategoryRepository(db).get_by_title("🧹 Уборка")
+    assert category is not None
+    category.title = "Чистота"
+    await db.flush()
+
+    await seed(db)
+
+    assert await _count(db, Building) == 4
+    assert await _count(db, Category) == 7
+    assert (
+        await db.scalar(
+            select(Building).where(Building.address == "ул. Гагарина, 5 (новый корпус)")
+        )
+        is not None
+    )
+    assert await db.scalar(select(Category).where(Category.title == "Чистота")) is not None
+    assert await db.scalar(select(Building).where(Building.address == "ул. Гагарина, 5")) is None
+    assert await db.scalar(select(Category).where(Category.title == "🧹 Уборка")) is None
+
+
+async def test_seed_reports_renamed_demo_building(db: AsyncSession) -> None:
+    await seed(db)
+    building = await BuildingRepository(db).get_by_address(DEMO_BUILDING)
+    assert building is not None
+    building.address = "ул. Ленина, 12А"
+    await db.flush()
+
+    with pytest.raises(MissingDirectoryEntry) as exc_info:
+        await seed(db)
+
+    assert DEMO_BUILDING in str(exc_info.value)
+
+
+async def test_seed_reports_missing_demo_ticket_category(db: AsyncSession) -> None:
+    buildings = BuildingRepository(db)
+    for address in BUILDINGS:
+        await buildings.create(address)
+    categories = CategoryRepository(db)
+    for sort_order, title in enumerate(CATEGORIES, start=1):
+        await categories.create(title, sort_order)
+    category = await categories.get_by_title("🛗 Лифт")
+    assert category is not None
+    category.title = "Подъёмник"
+    await db.flush()
+
+    with pytest.raises(MissingDirectoryEntry) as exc_info:
+        await seed(db)
+
+    assert "🛗 Лифт" in str(exc_info.value)
+
+
+async def test_seed_main_exits_on_missing_directory(
+    db: AsyncSession,
+    session_factory: async_sessionmaker[AsyncSession],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    await seed(db)
+    building = await BuildingRepository(db).get_by_address(DEMO_BUILDING)
+    assert building is not None
+    building.address = "ул. Ленина, 12А"
+    await db.commit()
+
+    with (
+        patch.object(seed_module, "AsyncSessionLocal", session_factory),
+        pytest.raises(SystemExit) as exc_info,
+    ):
+        await seed_module.main()
+
+    assert exc_info.value.code == 1
+    assert DEMO_BUILDING in capsys.readouterr().err
+    assert await _count(db, User) == 3
+    assert await _count(db, Building) == 4

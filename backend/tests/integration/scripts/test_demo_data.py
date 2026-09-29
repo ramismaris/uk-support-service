@@ -1,18 +1,23 @@
+import sys
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from scripts import demo_data as demo_module
 from scripts.demo_data import (
     DEMO_MAX_USER_ID_BASE,
     DEMO_RANDOM_SEED,
     OPEN_STATUSES,
     delete_demo,
     ensure_demo,
+    generate,
     reset_demo,
 )
+from scripts.seed import MissingDirectoryEntry, seed
 from src.core.constants import TicketStatus, TicketType, UserRole
 from src.models.building import Building
 from src.models.category import Category
@@ -140,6 +145,7 @@ async def test_delete_removes_demo_data_and_is_safe_to_repeat(db: AsyncSession) 
 
 async def test_real_data_survives_reset_and_delete(db: AsyncSession) -> None:
     now = datetime.now(UTC)
+    await seed(db)
     users = UserRepository(db)
     buildings = BuildingRepository(db)
     categories = CategoryRepository(db)
@@ -490,3 +496,99 @@ async def test_distribution_by_manager_and_category(db: AsyncSession) -> None:
     assert len(managers.all()) == 3
     assert sum(by_manager.values()) > 0
     assert len(by_category) == 7
+
+
+async def test_generate_reports_renamed_category(db: AsyncSession) -> None:
+    now = datetime.now(UTC)
+    await seed(db)
+    category = await CategoryRepository(db).get_by_title("🔥 Отопление")
+    assert category is not None
+    category.title = "Тепло"
+    await db.flush()
+
+    with pytest.raises(MissingDirectoryEntry) as exc_info:
+        await generate(db, now=now, volume=TEST_VOLUME)
+
+    assert "🔥 Отопление" in str(exc_info.value)
+    await db.rollback()
+    assert not await _demo_user_ids(db)
+
+
+async def test_generate_reports_renamed_building(db: AsyncSession) -> None:
+    now = datetime.now(UTC)
+    await seed(db)
+    building = await BuildingRepository(db).get_by_address("ул. Садовая, 7")
+    assert building is not None
+    building.address = "ул. Садовая, 7А"
+    await db.flush()
+
+    with pytest.raises(MissingDirectoryEntry) as exc_info:
+        await generate(db, now=now, volume=TEST_VOLUME)
+
+    assert "ул. Садовая, 7" in str(exc_info.value)
+    await db.rollback()
+    assert not await _demo_user_ids(db)
+
+
+async def test_reset_keeps_old_history_when_category_renamed(db: AsyncSession) -> None:
+    now = datetime.now(UTC)
+    await reset_demo(db, now=now, volume=TEST_VOLUME)
+    await db.commit()
+    demo_users_before = sorted(await _demo_user_ids(db))
+    tickets_before = len(await _demo_tickets(db))
+    assert demo_users_before
+    assert tickets_before
+
+    category = await CategoryRepository(db).get_by_title("🔥 Отопление")
+    assert category is not None
+    category.title = "Тепло"
+    await db.commit()
+
+    with pytest.raises(MissingDirectoryEntry):
+        await reset_demo(db, now=now, volume=TEST_VOLUME)
+    await db.rollback()
+
+    assert sorted(await _demo_user_ids(db)) == demo_users_before
+    assert len(await _demo_tickets(db)) == tickets_before
+
+
+async def test_disabled_directory_entries_do_not_block_generation(db: AsyncSession) -> None:
+    now = datetime.now(UTC)
+    await seed(db)
+    building = await BuildingRepository(db).get_by_address("ул. Садовая, 7")
+    assert building is not None
+    building.is_active = False
+    category = await CategoryRepository(db).get_by_title("🔥 Отопление")
+    assert category is not None
+    category.is_active = False
+    await db.commit()
+
+    summary = await generate(db, now=now, volume=TEST_VOLUME)
+    await db.commit()
+
+    assert summary.tickets > 0
+    assert category.is_active is False
+    assert building.is_active is False
+
+
+async def test_main_exits_on_missing_directory(
+    db: AsyncSession,
+    session_factory: async_sessionmaker[AsyncSession],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await seed(db)
+    category = await CategoryRepository(db).get_by_title("🔥 Отопление")
+    assert category is not None
+    category.title = "Тепло"
+    await db.commit()
+
+    monkeypatch.setattr(sys, "argv", ["demo_data.py"])
+    with (
+        patch.object(demo_module, "AsyncSessionLocal", session_factory),
+        pytest.raises(SystemExit) as exc_info,
+    ):
+        await demo_module.main()
+
+    assert exc_info.value.code == 1
+    assert "🔥 Отопление" in capsys.readouterr().err

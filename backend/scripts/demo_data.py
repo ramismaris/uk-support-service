@@ -39,7 +39,13 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from scripts import demo_content as content
-from scripts.seed import DEMO_MANAGER_MAX_USER_ID, seed
+from scripts.seed import (
+    DEMO_MANAGER_MAX_USER_ID,
+    MissingDirectoryEntry,
+    require_building,
+    require_category,
+    seed,
+)
 from src.core.config import settings
 from src.core.constants import SenderType, TicketStatus, TicketType, UserRole
 from src.core.texts import status_message_text
@@ -298,6 +304,23 @@ async def _get_or_create_buildings(db: AsyncSession) -> dict[str, Building]:
     return by_address
 
 
+def _demo_category_titles() -> list[str]:
+    titles: list[str] = []
+    for source in (BASE_CATEGORY_WEIGHTS, content.REQUEST_DESCRIPTIONS, content.STAFF_REPLIES):
+        for title in source:
+            if title not in titles:
+                titles.append(title)
+    return titles
+
+
+async def _require_demo_directories(db: AsyncSession) -> None:
+    """The generator looks its buildings and categories up by name."""
+    for address in content.APARTMENT_MAX:
+        await require_building(db, address)
+    for title in _demo_category_titles():
+        await require_category(db, title)
+
+
 async def _get_or_create_user(
     db: AsyncSession,
     *,
@@ -354,7 +377,7 @@ async def _create_residents(
     rng: random.Random,
     buildings: dict[str, Building],
 ) -> list[_Resident]:
-    addresses = [address for address in content.APARTMENT_MAX if address in buildings]
+    addresses = list(content.APARTMENT_MAX)
     names = content.CLIENTS[:]
     rng.shuffle(names)
     used_apartments: dict[str, set[str]] = {address: set() for address in addresses}
@@ -1031,6 +1054,7 @@ async def generate(
     await seed(db)
     rng = random.Random(rng_seed)
     buildings = await _get_or_create_buildings(db)
+    await _require_demo_directories(db)
     categories = {
         category.title: category for category in (await db.scalars(select(Category))).all()
     }
@@ -1231,25 +1255,29 @@ async def main() -> None:
     args = parser.parse_args()
 
     now = datetime.now(UTC)
-    async with AsyncSessionLocal() as db:
-        if args.delete:
-            summary = await delete_demo(db)
+    try:
+        async with AsyncSessionLocal() as db:
+            if args.delete:
+                summary = await delete_demo(db)
+                await db.commit()
+                _print_delete(summary)
+                return
+            if args.reset:
+                summary = await reset_demo(db, now=now)
+                await db.commit()
+                _print_generate(summary)
+                return
+            summary = await ensure_demo(db, now=now)
             await db.commit()
-            _print_delete(summary)
-            return
-        if args.reset:
-            summary = await reset_demo(db, now=now)
-            await db.commit()
-            _print_generate(summary)
-            return
-        summary = await ensure_demo(db, now=now)
-        await db.commit()
-        if summary is None:
-            print(
-                "Демо-данные уже есть. Запустите с --reset, чтобы пересоздать их "
-                "относительно текущего времени."
-            )
-            return
+            if summary is None:
+                print(
+                    "Демо-данные уже есть. Запустите с --reset, чтобы пересоздать их "
+                    "относительно текущего времени."
+                )
+                return
+    except MissingDirectoryEntry as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
     _print_generate(summary)
 
 

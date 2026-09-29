@@ -195,6 +195,32 @@ DEMO_CHATS: list[dict] = [
 ]
 
 
+class MissingDirectoryEntry(Exception):
+    """A directory entry the scripts need by name was renamed or removed."""
+
+
+async def require_building(db: AsyncSession, address: str) -> Building:
+    building = await BuildingRepository(db).get_by_address(address)
+    if building is None:
+        raise MissingDirectoryEntry(
+            f"Нет дома «{address}»: скрипт ищет его по адресу. "
+            "Если его переименовали в «Справочниках», верните прежний адрес "
+            "и запустите скрипт снова."
+        )
+    return building
+
+
+async def require_category(db: AsyncSession, title: str) -> Category:
+    category = await CategoryRepository(db).get_by_title(title)
+    if category is None:
+        raise MissingDirectoryEntry(
+            f"Нет категории «{title}»: скрипт ищет её по названию. "
+            "Если её переименовали в «Справочниках», верните прежнее название "
+            "и запустите скрипт снова."
+        )
+    return category
+
+
 async def seed(db: AsyncSession) -> None:
     users = UserRepository(db)
     for spec in USERS:
@@ -202,13 +228,13 @@ async def seed(db: AsyncSession) -> None:
             await users.create(**spec)
 
     buildings = BuildingRepository(db)
-    for address in BUILDINGS:
-        if await buildings.get_by_address(address) is None:
+    if await db.scalar(select(func.count()).select_from(Building)) == 0:
+        for address in BUILDINGS:
             await buildings.create(address)
 
     categories = CategoryRepository(db)
-    for sort_order, title in enumerate(CATEGORIES, start=1):
-        if await categories.get_by_title(title) is None:
+    if await db.scalar(select(func.count()).select_from(Category)) == 0:
+        for sort_order, title in enumerate(CATEGORIES, start=1):
             await categories.create(title, sort_order)
 
     content = ContentBlockRepository(db)
@@ -218,7 +244,7 @@ async def seed(db: AsyncSession) -> None:
 
     client = await users.get_by_max_user_id(DEMO_CLIENT_MAX_USER_ID)
     manager = await users.get_by_max_user_id(DEMO_MANAGER_MAX_USER_ID)
-    building = await buildings.get_by_address(DEMO_BUILDING)
+    building = await require_building(db, DEMO_BUILDING)
 
     residences = ResidenceRepository(db)
     if await residences.get(client.id, building.id, DEMO_APARTMENT) is None:
@@ -228,7 +254,7 @@ async def seed(db: AsyncSession) -> None:
         select(func.count()).select_from(Ticket).where(Ticket.client_id == client.id)
     )
     if not has_tickets:
-        await _seed_demo_tickets(db, client, manager, building, categories)
+        await _seed_demo_tickets(db, client, manager, building)
 
     await _seed_demo_chats(db, client, manager)
 
@@ -238,7 +264,6 @@ async def _seed_demo_tickets(
     client: User,
     manager: User,
     building: Building,
-    categories: CategoryRepository,
 ) -> None:
     now = datetime.now(UTC)
     tickets = TicketRepository(db)
@@ -327,7 +352,7 @@ async def _seed_demo_tickets(
     for spec in specs:
         category = None
         if spec["category"] is not None:
-            category = await categories.get_by_title(spec["category"])
+            category = await require_category(db, spec["category"])
         assignee = spec.get("assignee")
         has_address = spec.get("has_address", True)
         transitions: list[dict] = spec["transitions"]
@@ -425,11 +450,15 @@ async def _count_rows(db: AsyncSession) -> dict[str, int]:
 
 
 async def main() -> None:
-    async with AsyncSessionLocal() as db:
-        before = await _count_rows(db)
-        await seed(db)
-        await db.commit()
-        after = await _count_rows(db)
+    try:
+        async with AsyncSessionLocal() as db:
+            before = await _count_rows(db)
+            await seed(db)
+            await db.commit()
+            after = await _count_rows(db)
+    except MissingDirectoryEntry as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
 
     added = {name: after[name] - before[name] for name in after}
     print(
