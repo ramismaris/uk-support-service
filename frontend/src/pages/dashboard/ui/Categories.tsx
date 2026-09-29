@@ -70,35 +70,56 @@ const CategoryRadar = lazy(() => import('./CategoryRadar'))
 
 const MIN_RADAR_CATEGORIES = 3
 
+const fade = 'col-start-1 row-start-1 transition-opacity duration-200 motion-reduce:transition-none'
+const hidden = 'pointer-events-none opacity-0'
+
 export function Categories({ data }: { data: Dashboard }) {
   const [view, setView] = useState<View>('list')
+  const [radarMounted, setRadarMounted] = useState(false)
   const rows = categoryRows(data.categories, data.sla.resolution_hours)
   const { questions } = data
-  const radar = view === 'radar' && rows.length >= MIN_RADAR_CATEGORIES
+  const canRadar = rows.length >= MIN_RADAR_CATEGORIES
+  const radar = view === 'radar' && canRadar
+
+  const changeView = (next: View) => {
+    setView(next)
+    if (next === 'radar') {
+      setRadarMounted(true)
+    }
+  }
 
   return (
     <Card
       title="Заявки по категориям"
       icon={Tags}
-      aside={
-        rows.length >= MIN_RADAR_CATEGORIES ? <ViewSwitch value={view} onChange={setView} /> : null
-      }
+      aside={canRadar ? <ViewSwitch value={view} onChange={changeView} /> : null}
       bodyClassName="gap-4"
     >
       {rows.length === 0 ? (
         <p className="text-sm text-fg-3">За период заявок не было</p>
-      ) : radar ? (
-        <div className="min-h-[300px]">
-          <Suspense fallback={null}>
-            <CategoryRadar rows={rows} />
-          </Suspense>
-        </div>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {rows.map((row) => (
-            <Row key={row.id} row={row} />
-          ))}
-        </ul>
+        <div className={canRadar ? 'grid min-h-[300px]' : undefined}>
+          <ul
+            className={`${fade} flex flex-col gap-4 ${radar ? hidden : ''}`}
+            inert={radar}
+            aria-hidden={radar}
+          >
+            {rows.map((row) => (
+              <Row key={row.id} row={row} />
+            ))}
+          </ul>
+          {canRadar && radarMounted && (
+            <div
+              className={`${fade} self-center ${radar ? '' : hidden}`}
+              inert={!radar}
+              aria-hidden={!radar}
+            >
+              <Suspense fallback={null}>
+                <CategoryRadar rows={rows} />
+              </Suspense>
+            </div>
+          )}
+        </div>
       )}
       <p className="flex items-baseline gap-2 border-t border-line pt-3 text-sm">
         <span className="text-fg-2">Вопросы отдельно</span>
