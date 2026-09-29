@@ -1,7 +1,7 @@
 from typing import Annotated, Literal, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     admin_max_user_ids: Annotated[list[int], NoDecode] = []
 
     timezone: str = "Europe/Moscow"
+    sla_reaction_hours: int = Field(default=4, ge=1)
+    sla_resolution_hours: int = Field(default=72, ge=1)
 
     cors_origins: list[str] = ["http://localhost:5173"]
 

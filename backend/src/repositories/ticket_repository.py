@@ -1,10 +1,13 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 
 from sqlalchemy import func, or_, select
+from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import TicketPriority, TicketStatus, TicketType
+from src.models.category import Category
+from src.models.status_change import StatusChange
 from src.models.ticket import Ticket
 
 
@@ -140,6 +143,47 @@ class TicketRepository:
         )
         result = await self.db.execute(query)
         return result.scalar_one()
+
+    async def list_for_dashboard(
+        self,
+        *,
+        since: datetime,
+        open_statuses: Iterable[TicketStatus],
+    ) -> Sequence[Row]:
+        # reacted_at: the single change out of NEW (taken, first reply or rejection).
+        reacted_at = (
+            select(func.min(StatusChange.created_at))
+            .where(
+                StatusChange.ticket_id == Ticket.id,
+                StatusChange.from_status == TicketStatus.NEW,
+            )
+            .scalar_subquery()
+            .label("reacted_at")
+        )
+        query = (
+            select(
+                Ticket.type.label("type"),
+                Ticket.status.label("status"),
+                Ticket.category_id.label("category_id"),
+                Category.title.label("category_title"),
+                Category.sort_order.label("category_sort_order"),
+                Ticket.created_at.label("created_at"),
+                Ticket.closed_at.label("closed_at"),
+                reacted_at,
+                Ticket.rating.label("rating"),
+            )
+            .select_from(Ticket)
+            .outerjoin(Category, Category.id == Ticket.category_id)
+            .where(
+                or_(
+                    Ticket.created_at >= since,
+                    Ticket.closed_at >= since,
+                    Ticket.status.in_(open_statuses),
+                )
+            )
+        )
+        result = await self.db.execute(query)
+        return list(result.all())
 
     def _filtered(
         self,

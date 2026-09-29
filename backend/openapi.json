@@ -353,6 +353,59 @@
         ]
       }
     },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Dashboard",
+        "operationId": "get_dashboard_api_v1_admin_dashboard_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                7,
+                30,
+                90
+              ],
+              "type": "integer",
+              "default": 30,
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "tags": [
@@ -1461,6 +1514,247 @@
         "type": "object",
         "title": "ContentResponse"
       },
+      "CountMetric": {
+        "properties": {
+          "value": {
+            "type": "integer",
+            "title": "Value"
+          },
+          "previous": {
+            "type": "integer",
+            "title": "Previous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "previous"
+        ],
+        "title": "CountMetric"
+      },
+      "DashboardCategory": {
+        "properties": {
+          "category_id": {
+            "type": "integer",
+            "title": "Category Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "resolution_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category_id",
+          "title",
+          "created",
+          "resolution_hours"
+        ],
+        "title": "DashboardCategory"
+      },
+      "DashboardDay": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "closed": {
+            "type": "integer",
+            "title": "Closed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "created",
+          "closed"
+        ],
+        "title": "DashboardDay"
+      },
+      "DashboardNow": {
+        "properties": {
+          "new": {
+            "type": "integer",
+            "title": "New"
+          },
+          "in_progress": {
+            "type": "integer",
+            "title": "In Progress"
+          },
+          "waiting_client": {
+            "type": "integer",
+            "title": "Waiting Client"
+          },
+          "overdue": {
+            "type": "integer",
+            "title": "Overdue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new",
+          "in_progress",
+          "waiting_client",
+          "overdue"
+        ],
+        "title": "DashboardNow"
+      },
+      "DashboardQuestions": {
+        "properties": {
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "resolution_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "resolution_hours"
+        ],
+        "title": "DashboardQuestions"
+      },
+      "DashboardResponse": {
+        "properties": {
+          "period_days": {
+            "type": "integer",
+            "title": "Period Days"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "sla": {
+            "$ref": "#/components/schemas/DashboardSla"
+          },
+          "now": {
+            "$ref": "#/components/schemas/DashboardNow"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DashboardSummary"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardDay"
+            },
+            "type": "array",
+            "title": "Daily"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardCategory"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "questions": {
+            "$ref": "#/components/schemas/DashboardQuestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_days",
+          "date_from",
+          "date_to",
+          "sla",
+          "now",
+          "summary",
+          "daily",
+          "categories",
+          "questions"
+        ],
+        "title": "DashboardResponse"
+      },
+      "DashboardSla": {
+        "properties": {
+          "reaction_hours": {
+            "type": "integer",
+            "title": "Reaction Hours"
+          },
+          "resolution_hours": {
+            "type": "integer",
+            "title": "Resolution Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reaction_hours",
+          "resolution_hours"
+        ],
+        "title": "DashboardSla"
+      },
+      "DashboardSummary": {
+        "properties": {
+          "created": {
+            "$ref": "#/components/schemas/CountMetric"
+          },
+          "closed": {
+            "$ref": "#/components/schemas/CountMetric"
+          },
+          "reaction_minutes": {
+            "$ref": "#/components/schemas/ValueMetric"
+          },
+          "resolution_hours": {
+            "$ref": "#/components/schemas/ValueMetric"
+          },
+          "reaction_on_time": {
+            "$ref": "#/components/schemas/ValueMetric"
+          },
+          "resolution_on_time": {
+            "$ref": "#/components/schemas/ValueMetric"
+          },
+          "rating": {
+            "$ref": "#/components/schemas/RatingMetric"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "closed",
+          "reaction_minutes",
+          "resolution_hours",
+          "reaction_on_time",
+          "resolution_on_time",
+          "rating"
+        ],
+        "title": "DashboardSummary"
+      },
       "DevLoginRequest": {
         "properties": {
           "max_user_id": {
@@ -1687,6 +1981,43 @@
           "button_text"
         ],
         "title": "PaymentContent"
+      },
+      "RatingMetric": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "previous",
+          "count"
+        ],
+        "title": "RatingMetric"
       },
       "SenderType": {
         "type": "string",
@@ -2374,6 +2705,38 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "ValueMetric": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "previous"
+        ],
+        "title": "ValueMetric"
       },
       "WelcomeContentResponse": {
         "properties": {
