@@ -3,6 +3,11 @@ import { useState } from 'react'
 import { filterBuildings, toggleId } from '../lib/buildings'
 import type { Scope } from '../lib/validate'
 import { useBuildings } from '../model/use-broadcasts'
+import { Checkbox } from './Checkbox'
+
+const LIST_ROWS = 7
+const ROW_REM = 2
+const PADDING_REM = 0.5
 
 const SCOPES: { key: Scope; label: string }[] = [
   { key: 'all', label: 'Всем жильцам' },
@@ -66,19 +71,22 @@ function BuildingList({
           </button>
         </span>
       </div>
-      <ul className="max-h-56 overflow-y-auto rounded-xl bg-fill p-1">
+      {/* Sized by all the buildings, not the found ones: searching must not move the page. */}
+      <ul
+        className="overflow-y-auto rounded-xl bg-fill p-1"
+        style={{
+          height: `${Math.min(buildings.data.length, LIST_ROWS) * ROW_REM + PADDING_REM}rem`,
+        }}
+      >
         {shown.length === 0 && <li className="px-3 py-2 text-sm text-fg-3">Ничего не найдено</li>}
         {shown.map((building) => (
           <li key={building.id}>
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-press">
-              <input
-                type="checkbox"
-                checked={buildingIds.includes(building.id)}
-                onChange={() => onBuildingIds(toggleId(buildingIds, building.id))}
-                className="size-4 accent-brand"
-              />
+            <Checkbox
+              checked={buildingIds.includes(building.id)}
+              onChange={() => onBuildingIds(toggleId(buildingIds, building.id))}
+            >
               {building.address}
-            </label>
+            </Checkbox>
           </li>
         ))}
       </ul>
