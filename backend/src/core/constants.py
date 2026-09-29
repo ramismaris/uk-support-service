@@ -3,6 +3,10 @@ from enum import StrEnum
 # The largest value of a Postgres bigint.
 BIGINT_MAX = 2**63 - 1
 
+# A Max inline keyboard holds up to 30 rows; the bot puts one building or category per row
+# plus the «Отменить» row.
+DIRECTORY_ACTIVE_LIMIT = 29
+
 
 class UserRole(StrEnum):
     CLIENT = "CLIENT"

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.category import Category
@@ -21,6 +21,20 @@ class CategoryRepository:
             select(Category).where(Category.is_active.is_(True)).order_by(Category.sort_order)
         )
         return list(result.scalars().all())
+
+    async def list_all(self) -> list[Category]:
+        result = await self.db.execute(select(Category).order_by(Category.sort_order, Category.id))
+        return list(result.scalars().all())
+
+    async def count_active(self) -> int:
+        result = await self.db.execute(
+            select(func.count()).select_from(Category).where(Category.is_active.is_(True))
+        )
+        return result.scalar_one()
+
+    async def max_sort_order(self) -> int:
+        result = await self.db.execute(select(func.max(Category.sort_order)))
+        return result.scalar_one() or 0
 
     async def create(self, title: str, sort_order: int) -> Category:
         category = Category(title=title, sort_order=sort_order)

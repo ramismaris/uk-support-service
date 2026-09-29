@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.building import Building
@@ -21,6 +21,16 @@ class BuildingRepository:
             select(Building).where(Building.is_active.is_(True)).order_by(Building.address)
         )
         return list(result.scalars().all())
+
+    async def list_all(self) -> list[Building]:
+        result = await self.db.execute(select(Building).order_by(Building.address))
+        return list(result.scalars().all())
+
+    async def count_active(self) -> int:
+        result = await self.db.execute(
+            select(func.count()).select_from(Building).where(Building.is_active.is_(True))
+        )
+        return result.scalar_one()
 
     async def list_by_ids(self, building_ids: list[int]) -> list[Building]:
         if not building_ids:

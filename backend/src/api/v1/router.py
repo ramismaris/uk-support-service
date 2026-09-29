@@ -5,6 +5,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.admin.broadcasts import router as admin_broadcasts_router
+from src.api.v1.admin.buildings import router as admin_buildings_router
+from src.api.v1.admin.categories import router as admin_categories_router
 from src.api.v1.admin.content import router as admin_content_router
 from src.api.v1.admin.dashboard import router as admin_dashboard_router
 from src.api.v1.admin.users import router as admin_users_router
@@ -17,6 +19,8 @@ from src.db.session import get_db
 
 router = APIRouter()
 router.include_router(admin_broadcasts_router)
+router.include_router(admin_buildings_router)
+router.include_router(admin_categories_router)
 router.include_router(admin_content_router)
 router.include_router(admin_dashboard_router)
 router.include_router(admin_users_router)

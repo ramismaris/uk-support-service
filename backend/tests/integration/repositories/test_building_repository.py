@@ -32,6 +32,30 @@ async def test_list_active_excludes_inactive_and_orders_by_address(db: AsyncSess
     assert [building.address for building in buildings] == ["ул. А, 1", "ул. Б, 1"]
 
 
+async def test_list_all_includes_inactive_ordered_by_address(db: AsyncSession) -> None:
+    repository = BuildingRepository(db)
+    await repository.create("ул. Б, 1")
+    inactive = await repository.create("ул. А, 1")
+    inactive.is_active = False
+    await db.flush()
+
+    buildings = await repository.list_all()
+
+    assert [building.address for building in buildings] == ["ул. А, 1", "ул. Б, 1"]
+    assert inactive.id in [building.id for building in buildings]
+
+
+async def test_count_active_ignores_inactive(db: AsyncSession) -> None:
+    repository = BuildingRepository(db)
+    await repository.create("ул. А, 1")
+    await repository.create("ул. Б, 1")
+    inactive = await repository.create("ул. В, 1")
+    inactive.is_active = False
+    await db.flush()
+
+    assert await repository.count_active() == 2
+
+
 async def test_list_by_ids_returns_matching_and_empty_for_no_ids(db: AsyncSession) -> None:
     repository = BuildingRepository(db)
     # Created out of address order: the result must follow the address, not the id.

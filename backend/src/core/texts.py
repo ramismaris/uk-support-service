@@ -1,4 +1,4 @@
-from src.core.constants import TicketStatus, TicketType
+from src.core.constants import DIRECTORY_ACTIVE_LIMIT, TicketStatus, TicketType
 
 START_TEXT = "Здравствуйте! Это бот управляющей компании.\nВыберите раздел в меню."
 
@@ -335,3 +335,20 @@ USER_CONFIG_ADMIN = (
 BROADCAST_IN_PROGRESS = "Другая рассылка ещё отправляется — дождитесь её окончания"
 BROADCAST_NO_RECIPIENTS = "Нет получателей: рассылка уходит жильцам, которые уже написали боту"
 BROADCAST_PHOTO_UNAVAILABLE = "Не удалось получить фото — загрузите его заново"
+
+# Directories (admin API)
+
+DIRECTORY_NAME_MARKUP = "Без символов разметки: * _ ~ ^ + ` [ ] # >"
+BUILDING_EXISTS = "Такой дом уже есть"
+CATEGORY_EXISTS = "Такая категория уже есть"
+BUILDINGS_LIMIT = (
+    f"Включено уже {DIRECTORY_ACTIVE_LIMIT} домов — больше бот не покажет. "
+    "Сначала отключите ненужный дом"
+)
+CATEGORIES_LIMIT = (
+    f"Включено уже {DIRECTORY_ACTIVE_LIMIT} категорий — больше бот не покажет. "
+    "Сначала отключите ненужную категорию"
+)
+BUILDING_LAST_ACTIVE = "Нельзя отключить последний дом: жилец не сможет указать адрес"
+CATEGORY_LAST_ACTIVE = "Нельзя отключить последнюю категорию: жилец не сможет подать заявку"
+CATEGORY_ORDER_STALE = "Список категорий изменился — обновите страницу"

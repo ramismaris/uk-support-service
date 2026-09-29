@@ -18,6 +18,7 @@ from src.schemas.file import FileResponse
 from src.schemas.message import MessageResponse
 from src.schemas.ticket import (
     BuildingShortResponse,
+    CategoryShortResponse,
     StatusChangeRequest,
     StatusChangeResponse,
     TicketDetailResponse,
@@ -25,6 +26,7 @@ from src.schemas.ticket import (
     UnreadCountResponse,
 )
 from src.services.building_service import BuildingService
+from src.services.category_service import CategoryService
 from src.services.file_service import MAX_FILE_SIZE
 from src.services.message_service import MessageService, UploadedFile
 from src.services.status_service import StatusService
@@ -66,6 +68,15 @@ async def list_buildings(
 ) -> list[BuildingShortResponse]:
     buildings = await BuildingService(db).list_active()
     return [BuildingShortResponse.model_validate(building) for building in buildings]
+
+
+@router.get("/categories", response_model=list[CategoryShortResponse])
+async def list_categories(
+    staff: StaffUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[CategoryShortResponse]:
+    categories = await CategoryService(db).list_active()
+    return [CategoryShortResponse.model_validate(category) for category in categories]
 
 
 # Declared before /tickets/{ticket_id}, which would otherwise take the path.
