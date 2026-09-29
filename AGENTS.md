@@ -53,6 +53,10 @@ uv run python scripts/dump_openapi.py
 uv run python scripts/seed.py
 docker compose exec api python scripts/seed.py
 
+# Демо-история для дашборда: полгода обращений от текущей даты (--reset — пересоздать, --delete — удалить)
+uv run python scripts/demo_data.py --reset
+docker compose exec api python scripts/demo_data.py --reset
+
 # Новая миграция
 uv run alembic revision --autogenerate -m "..."
 

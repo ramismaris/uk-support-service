@@ -48,6 +48,12 @@ docker compose logs -f api
 docker compose exec api python scripts/seed.py
 ```
 
+Демо-история для дашборда — полгода обращений от текущей даты. Запускать прямо перед показом, чтобы свежими были раздел «Сейчас» и последние дни; `--delete` удаляет её перед сдачей. Живые пользователи и их заявки не затрагиваются.
+
+```bash
+docker compose exec api python scripts/demo_data.py --reset
+```
+
 ## Первый админ
 
 Напишите боту `/id` — он пришлёт ваш `max_user_id`. Впишите его в `ADMIN_MAX_USER_IDS` в `.env` (несколько — через запятую) и примените:

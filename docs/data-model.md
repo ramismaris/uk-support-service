@@ -44,6 +44,8 @@ erDiagram
 | created_at | timestamptz not null | |
 | last_seen_at | timestamptz | |
 
+Демо-история (`scripts/demo_data.py`) создаёт пользователей с `max_user_id` от 9 000 000 000 — настоящие id Max меньше. По этому признаку скрипт находит и удаляет свои данные; флага в схеме нет.
+
 ## buildings
 
 Дома УК. Заполняет админ или сиды.
