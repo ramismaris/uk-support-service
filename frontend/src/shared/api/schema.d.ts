@@ -1375,7 +1375,7 @@ export interface operations {
     list_tickets_api_v1_staff_tickets_get: {
         parameters: {
             query?: {
-                status?: ("NEW" | "IN_PROGRESS" | "WAITING_CLIENT") | null;
+                status?: components["schemas"]["TicketStatus"] | null;
                 building_id?: number | null;
                 category_id?: number | null;
                 mine?: boolean;
