@@ -94,7 +94,8 @@ export default function CategoryRadar({ rows }: { rows: CategoryRow[] }) {
         <PolarGrid stroke="var(--text-tertiary)" strokeOpacity={0.35} />
         <PolarAngleAxis dataKey="name" tick={tick} />
         <PolarRadiusAxis domain={[0, 'dataMax']} tick={false} axisLine={false} />
-        <Tooltip content={RadarTooltip} isAnimationActive={false} />
+        {/* No cursor: the default one is a white frame and a line, the active dot marks the corner. */}
+        <Tooltip content={RadarTooltip} cursor={false} isAnimationActive={false} />
         <Radar
           dataKey="created"
           stroke="var(--brand)"
