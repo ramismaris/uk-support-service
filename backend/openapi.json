@@ -572,6 +572,110 @@
         }
       }
     },
+    "/api/v1/admin/dashboard/insights": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Insights",
+        "operationId": "get_insights_api_v1_admin_dashboard_insights_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                7,
+                30,
+                90
+              ],
+              "type": "integer",
+              "default": 30,
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Refresh Insights",
+        "operationId": "refresh_insights_api_v1_admin_dashboard_insights_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                7,
+                30,
+                90
+              ],
+              "type": "integer",
+              "default": 30,
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/users": {
       "get": {
         "tags": [
@@ -2208,6 +2312,73 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InsightItem": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fact",
+              "observation",
+              "warning"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "InsightItem"
+      },
+      "InsightsResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "disabled",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "period_days": {
+            "type": "integer",
+            "title": "Period Days"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InsightItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "period_days",
+          "generated_at",
+          "items"
+        ],
+        "title": "InsightsResponse"
       },
       "MaxLoginRequest": {
         "properties": {

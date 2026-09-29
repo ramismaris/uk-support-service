@@ -67,7 +67,6 @@ def build_insight_payload(
     )
     managers, manager_refs = _managers(
         facts,
-        dashboard,
         start,
         now,
         reaction=reaction,
@@ -121,6 +120,7 @@ def _categories(
                 "created": current.created,
                 "previous_created": previous.created,
                 "resolution_hours": round_optional(current.resolution_hours, 1),
+                "top_building": _top_building(slice_facts, current.created, start, now),
             }
         )
 
@@ -138,9 +138,34 @@ def _categories(
                 else None
             ),
             "resolution_hours": row["resolution_hours"],
+            "top_building": row["top_building"],
         }
         for row in rows
     ]
+
+
+def _top_building(
+    facts: list[TicketFacts],
+    created: int,
+    start: datetime,
+    now: datetime,
+) -> dict[str, Any] | None:
+    by_building: dict[int, tuple[str, int]] = {}
+    for fact in facts:
+        if fact.building_id is None or fact.building_address is None:
+            continue
+        if not start <= fact.created_at <= now:
+            continue
+        address, count = by_building.get(fact.building_id, (fact.building_address, 0))
+        by_building[fact.building_id] = (address, count + 1)
+    if not by_building:
+        return None
+    address, count = min(by_building.values(), key=lambda item: (-item[1], item[0]))
+    return {
+        "address": address,
+        "created": count,
+        "share": round_optional(count / created, 3) if created else None,
+    }
 
 
 def _buildings(
@@ -222,7 +247,6 @@ def _buildings(
 
 def _managers(
     facts: list[TicketFacts],
-    dashboard: DashboardResponse,
     start: datetime,
     now: datetime,
     *,
@@ -259,30 +283,43 @@ def _managers(
     groups.sort(key=lambda group: (-group[1].created, group[0]))
     groups = groups[:MAX_MANAGERS]
 
-    team_reaction = dashboard.summary.reaction_minutes.value
-    team_resolution = dashboard.summary.resolution_hours.value
-
     managers: list[dict[str, Any]] = []
     manager_refs: dict[str, int] = {}
     for index, (assignee_id, current, open_count, overdue) in enumerate(groups, start=1):
         ref = f"m{index}"
         manager_refs[ref] = assignee_id
-        reaction_minutes = round_optional(current.reaction_minutes, 1)
-        resolution_hours = round_optional(current.resolution_hours, 1)
+        others = [
+            fact
+            for fact in facts
+            if fact.assignee_id is not None and fact.assignee_id != assignee_id
+        ]
+        others_metrics = window_metrics(
+            others,
+            start,
+            now,
+            previous=False,
+            now=now,
+            reaction=reaction,
+            resolution=resolution,
+        )
         managers.append(
             {
                 "ref": ref,
                 "assigned": current.created,
-                "reaction_minutes": reaction_minutes,
+                "reaction_minutes": round_optional(current.reaction_minutes, 1),
                 "reaction_on_time": round_optional(current.reaction_on_time, 3),
-                "resolution_hours": resolution_hours,
+                "resolution_hours": round_optional(current.resolution_hours, 1),
                 "resolution_on_time": round_optional(current.resolution_on_time, 3),
                 "rating": round_optional(current.rating, 2),
                 "rating_count": current.rating_count,
                 "open": open_count,
                 "overdue": overdue,
-                "reaction_vs_team": _ratio(reaction_minutes, team_reaction),
-                "resolution_vs_team": _ratio(resolution_hours, team_resolution),
+                "reaction_vs_others": _vs_others(
+                    current.reaction_minutes, others_metrics.reaction_minutes
+                ),
+                "resolution_vs_others": _vs_others(
+                    current.resolution_hours, others_metrics.resolution_hours
+                ),
             }
         )
     return managers, manager_refs
@@ -325,7 +362,7 @@ def _title(facts: list[TicketFacts]) -> str:
     return next((fact.category_title for fact in facts if fact.category_title is not None), "")
 
 
-def _ratio(value: float | None, team: float | None) -> float | None:
-    if value is None or team is None or team == 0:
+def _vs_others(value: float | None, others: float | None) -> float | None:
+    if value is None or others is None or others == 0:
         return None
-    return round_optional(value / team, 1)
+    return round_optional(value / others, 1)

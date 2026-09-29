@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +7,27 @@ from src.core.constants import UserRole
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.user_repository import UserRepository
+
+
+async def test_list_by_ids_returns_found_and_skips_missing(db: AsyncSession) -> None:
+    repository = UserRepository(db)
+    first = await repository.create(max_user_id=1, first_name="Иван")
+    second = await repository.create(max_user_id=2, first_name="Пётр")
+    await repository.create(max_user_id=3, first_name="Олег")
+    await db.commit()
+
+    found = await repository.list_by_ids([first.id, second.id, 999999])
+
+    assert {user.id for user in found} == {first.id, second.id}
+
+
+async def test_list_by_ids_with_empty_input_does_not_query() -> None:
+    db = AsyncMock(spec=AsyncSession)
+    repository = UserRepository(db)
+
+    assert await repository.list_by_ids([]) == []
+
+    db.execute.assert_not_awaited()
 
 
 async def test_get_by_max_user_id_returns_user(db: AsyncSession) -> None:

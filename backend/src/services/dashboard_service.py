@@ -16,6 +16,9 @@ class DashboardService:
         self.tickets = TicketRepository(db)
 
     async def get(self, days: int) -> DashboardResponse:
+        return (await self.snapshot(days))[1]
+
+    async def snapshot(self, days: int) -> tuple[list[TicketFacts], DashboardResponse]:
         tz = ZoneInfo(settings.timezone)
         now = datetime.now(UTC)
         bounds = period_bounds(now, days, tz)
@@ -24,7 +27,7 @@ class DashboardService:
             open_statuses=OPEN_STATUSES,
         )
         facts = [TicketFacts(**row._mapping) for row in rows]
-        return build_dashboard(
+        dashboard = build_dashboard(
             facts,
             now=now,
             days=days,
@@ -32,3 +35,4 @@ class DashboardService:
             reaction=timedelta(hours=settings.sla_reaction_hours),
             resolution=timedelta(hours=settings.sla_resolution_hours),
         )
+        return facts, dashboard

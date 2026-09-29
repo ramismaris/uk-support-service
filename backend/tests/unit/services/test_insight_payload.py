@@ -139,6 +139,7 @@ def test_category_only_in_previous_window_is_listed_with_zero_growth() -> None:
             "share": None,
             "growth": 0.0,
             "resolution_hours": None,
+            "top_building": None,
         }
     ]
 
@@ -232,6 +233,147 @@ def test_category_resolution_hours() -> None:
 
     assert categories["А"]["resolution_hours"] == 36.0
     assert categories["Б"]["resolution_hours"] is None
+
+
+def test_category_top_building() -> None:
+    facts = [
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="🛗 Лифт",
+            building_id=2,
+            building_address="ул. Мира, 2",
+        ),
+        fact(
+            created_at=_ago(days=3),
+            category_id=1,
+            category_title="🛗 Лифт",
+            building_id=2,
+            building_address="ул. Мира, 2",
+        ),
+        fact(
+            created_at=_ago(days=4),
+            category_id=1,
+            category_title="🛗 Лифт",
+            building_id=2,
+            building_address="ул. Мира, 2",
+        ),
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="🛗 Лифт",
+            building_id=1,
+            building_address="ул. Ленина, 1",
+        ),
+    ]
+
+    payload = run(facts)
+    category = payload.data["categories"][0]
+
+    assert category["created"] == 4
+    assert category["top_building"] == {
+        "address": "ул. Мира, 2",
+        "created": 3,
+        "share": 0.75,
+    }
+
+
+def test_category_top_building_tie_broken_by_address() -> None:
+    facts = [
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="Лифт",
+            building_id=1,
+            building_address="Б",
+        ),
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="Лифт",
+            building_id=2,
+            building_address="А",
+        ),
+    ]
+
+    payload = run(facts)
+    category = payload.data["categories"][0]
+
+    assert category["top_building"] == {"address": "А", "created": 1, "share": 0.5}
+
+
+def test_category_top_building_is_none_without_buildings() -> None:
+    facts = [fact(created_at=_ago(days=2), category_id=1, category_title="Лифт")]
+
+    payload = run(facts)
+
+    assert payload.data["categories"][0]["top_building"] is None
+
+
+def test_category_top_building_ignores_previous_window() -> None:
+    facts = [
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="Лифт",
+            building_id=1,
+            building_address="Старый",
+        ),
+        fact(
+            created_at=_ago(days=40),
+            category_id=1,
+            category_title="Лифт",
+            building_id=2,
+            building_address="Новый",
+        ),
+        fact(
+            created_at=_ago(days=41),
+            category_id=1,
+            category_title="Лифт",
+            building_id=2,
+            building_address="Новый",
+        ),
+        fact(
+            created_at=_ago(days=42),
+            category_id=1,
+            category_title="Лифт",
+            building_id=2,
+            building_address="Новый",
+        ),
+    ]
+
+    payload = run(facts)
+    category = payload.data["categories"][0]
+
+    assert category["top_building"] == {"address": "Старый", "created": 1, "share": 1.0}
+
+
+def test_category_top_building_ignores_tickets_without_address() -> None:
+    facts = [
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="Лифт",
+            building_id=1,
+            building_address=None,
+        ),
+        fact(
+            created_at=_ago(days=2),
+            category_id=1,
+            category_title="Лифт",
+            building_id=2,
+            building_address="ул. Мира, 2",
+        ),
+    ]
+
+    payload = run(facts)
+    category = payload.data["categories"][0]
+
+    assert category["top_building"] == {
+        "address": "ул. Мира, 2",
+        "created": 1,
+        "share": 0.5,
+    }
 
 
 def test_buildings_numbers() -> None:
@@ -454,57 +596,112 @@ def test_manager_open_and_overdue() -> None:
     assert manager["overdue"] == 1
 
 
-def test_manager_reaction_vs_team() -> None:
+def test_managers_reaction_vs_others() -> None:
     created = _ago(days=2)
     facts = [
         fact(created_at=created, assignee_id=101, reacted_at=created + timedelta(minutes=180)),
-        fact(created_at=created, assignee_id=None, reacted_at=created),
-        fact(created_at=created, assignee_id=None, reacted_at=created),
+        fact(created_at=created, assignee_id=102, reacted_at=created + timedelta(minutes=60)),
+    ]
+
+    payload = run(facts)
+    managers = {manager["ref"]: manager for manager in payload.data["managers"]}
+
+    assert managers["m1"]["reaction_minutes"] == 180.0
+    assert managers["m1"]["reaction_vs_others"] == 3.0
+    assert managers["m2"]["reaction_minutes"] == 60.0
+    assert managers["m2"]["reaction_vs_others"] == 0.3
+
+
+def test_managers_vs_others_is_none_with_single_manager() -> None:
+    created = _ago(days=2)
+    facts = [
+        fact(created_at=created, assignee_id=101, reacted_at=created + timedelta(minutes=180)),
     ]
 
     payload = run(facts)
     manager = payload.data["managers"][0]
 
-    assert manager["reaction_minutes"] == 180.0
-    assert manager["reaction_vs_team"] == 3.0
+    assert manager["reaction_vs_others"] is None
+    assert manager["resolution_vs_others"] is None
 
 
-def test_manager_reaction_vs_team_is_none_without_team_value() -> None:
-    payload = run([fact(created_at=_ago(days=2), assignee_id=101)])
-    manager = payload.data["managers"][0]
+def test_managers_vs_others_ignores_unassigned_tickets() -> None:
+    created = _ago(days=2)
+    facts = [
+        fact(created_at=created, assignee_id=101, reacted_at=created + timedelta(minutes=180)),
+        fact(created_at=created, assignee_id=102),
+        fact(created_at=created, assignee_id=None, reacted_at=created + timedelta(minutes=60)),
+        fact(created_at=created, assignee_id=None, reacted_at=created + timedelta(minutes=60)),
+    ]
 
-    assert manager["reaction_minutes"] is None
-    assert manager["reaction_vs_team"] is None
+    payload = run(facts)
+    managers = {manager["ref"]: manager for manager in payload.data["managers"]}
+
+    # The only other assigned ticket has no reaction, so there is nothing to compare to.
+    assert managers["m1"]["reaction_vs_others"] is None
 
 
-def test_manager_resolution_vs_team() -> None:
+def test_managers_vs_others_is_none_without_others_reaction() -> None:
+    created = _ago(days=2)
+    facts = [
+        fact(created_at=created, assignee_id=101, reacted_at=created + timedelta(minutes=180)),
+        fact(created_at=created, assignee_id=102),
+    ]
+
+    payload = run(facts)
+    managers = {manager["ref"]: manager for manager in payload.data["managers"]}
+
+    assert managers["m1"]["reaction_vs_others"] is None
+
+
+def test_managers_resolution_vs_others() -> None:
     created = _ago(days=10)
     facts = [
         fact(
             created_at=created,
             assignee_id=101,
             status=TicketStatus.CLOSED,
-            closed_at=created + timedelta(hours=72),
+            closed_at=created + timedelta(hours=180),
         ),
         fact(
             created_at=created,
-            assignee_id=None,
+            assignee_id=102,
             status=TicketStatus.CLOSED,
-            closed_at=created,
-        ),
-        fact(
-            created_at=created,
-            assignee_id=None,
-            status=TicketStatus.CLOSED,
-            closed_at=created,
+            closed_at=created + timedelta(hours=60),
         ),
     ]
 
     payload = run(facts)
-    manager = payload.data["managers"][0]
+    managers = {manager["ref"]: manager for manager in payload.data["managers"]}
 
-    assert manager["resolution_hours"] == 72.0
-    assert manager["resolution_vs_team"] == 3.0
+    assert managers["m1"]["resolution_hours"] == 180.0
+    assert managers["m1"]["resolution_vs_others"] == 3.0
+    assert managers["m2"]["resolution_hours"] == 60.0
+    assert managers["m2"]["resolution_vs_others"] == 0.3
+
+
+def test_manager_outside_top_ten_counts_in_others() -> None:
+    created = _ago(days=2)
+    facts = [
+        fact(created_at=created, assignee_id=101, reacted_at=created + timedelta(minutes=180)),
+    ]
+    for assignee_id in range(102, 111):
+        facts.append(
+            fact(
+                created_at=created,
+                assignee_id=assignee_id,
+                reacted_at=created + timedelta(minutes=60),
+            )
+        )
+    # The 11th manager is cut from the report but still counted among "others".
+    facts.append(fact(created_at=created, assignee_id=111, reacted_at=created))
+
+    payload = run(facts)
+    managers = {manager["ref"]: manager for manager in payload.data["managers"]}
+
+    assert "m11" not in managers
+    # Others = nine tickets at 60 min plus one at 0 min -> mean 54 min.
+    assert managers["m1"]["reaction_vs_others"] == 3.3
 
 
 def test_managers_cap_keeps_biggest() -> None:
@@ -629,5 +826,14 @@ def test_demo_patterns_scenario() -> None:
     )
     assert lift_building["categories"]["🛗 Лифт"] == 6
 
+    lift_category = next(
+        category for category in data["categories"] if category["title"] == "🛗 Лифт"
+    )
+    assert lift_category["top_building"] == {
+        "address": "ул. Лифтовая, 1",
+        "created": 6,
+        "share": 0.75,
+    }
+
     slow = next(manager for manager in data["managers"] if manager["ref"] == "m1")
-    assert slow["reaction_vs_team"] == 3.0
+    assert slow["reaction_vs_others"] == 3.0
