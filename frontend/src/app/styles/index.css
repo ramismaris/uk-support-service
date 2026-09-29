@@ -93,6 +93,13 @@
     scrollbar-color: color-mix(in srgb, var(--text-tertiary) 55%, transparent) transparent;
   }
 
+  /* Desktop bars take room from the content, so the page jumped by the bar's width whenever it
+     started or stopped scrolling (a table opening, another period loading). Keep the room always. */
+  .overflow-y-auto,
+  .overflow-auto {
+    scrollbar-gutter: stable;
+  }
+
   /* Chromium (Chrome, Edge, Max WebView) and Safari draw the bar from these rules instead:
      a rounded thumb, no arrow buttons. Chromium ignores them while scrollbar-width/color are set,
      so those go back to auto here; Firefox has no ::-webkit-scrollbar and keeps the rules above. */
