@@ -1,59 +1,32 @@
 import { Button } from '@maxhub/max-ui'
 import { motion, useReducedMotion, type Variants } from 'framer-motion'
-import { ChartColumn } from 'lucide-react'
-import { lazy, Suspense, type ReactNode } from 'react'
+import { ChartColumn, CircleCheck, Inbox, Tags, Timer } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { NavMenuButton } from '@/widgets/app-shell'
 import { PERIODS, type Dashboard, type Period } from '../api/dashboard'
-import { SERIES } from '../config/series'
+import { SERIES, type SeriesKey } from '../config/series'
 import { compare, formatDuration, formatRating, formatShare, previousNote } from '../lib/metrics'
 import { formatDay, formatRange, parsePeriod } from '../lib/period'
 import { useDashboard } from '../model/use-dashboard'
+import { AnimatedNumber } from './AnimatedNumber'
+import { Card } from './Card'
 import { Categories } from './Categories'
-import { Figure, Meter } from './Figure'
-import { NowStrip } from './NowStrip'
+import { Delta, Figure, Meter } from './Figure'
+import { NowPanel } from './NowPanel'
+import { Sparkline } from './Sparkline'
+import { StatCard } from './StatCard'
 import { Stars } from './Stars'
 
 // Recharts is heavy: only the admin opening the dashboard downloads it.
 const DailyChart = lazy(() => import('./DailyChart'))
 
-const CHART_HEIGHT = 'h-60'
-
 const count = (value: number) => String(Math.round(value))
 const minutesAsDuration = (minutes: number) => formatDuration(minutes / 60)
 
-// The panels come in one after another when the dashboard opens.
+// The cards come in one after another when the dashboard opens.
 const stagger: Variants = { shown: { transition: { staggerChildren: 0.06 } } }
-const rise: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  shown: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-}
-
-function Panel({
-  title,
-  hint,
-  className = '',
-  children,
-}: {
-  title: string
-  hint?: string
-  className?: string
-  children: ReactNode
-}) {
-  return (
-    <motion.section
-      variants={rise}
-      className={`flex min-w-0 flex-col gap-4 rounded-2xl bg-layer p-4 ring-1 ring-line lg:p-5 ${className}`}
-    >
-      <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <h2 className="font-semibold">{title}</h2>
-        {hint && <span className="text-xs text-fg-3">{hint}</span>}
-      </header>
-      {children}
-    </motion.section>
-  )
-}
 
 function PeriodSwitch({ value, onChange }: { value: Period; onChange: (period: Period) => void }) {
   return (
@@ -79,6 +52,33 @@ function PeriodSwitch({ value, onChange }: { value: Period; onChange: (period: P
           >
             {period} дн
           </span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SeriesSwitch({
+  value,
+  onChange,
+}: {
+  value: SeriesKey
+  onChange: (series: SeriesKey) => void
+}) {
+  return (
+    <div role="radiogroup" aria-label="Что показывать" className="flex rounded-lg bg-fill p-0.5">
+      {SERIES.map((series) => (
+        <button
+          key={series.key}
+          type="button"
+          role="radio"
+          aria-checked={series.key === value}
+          onClick={() => onChange(series.key)}
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            series.key === value ? 'bg-layer text-fg shadow-sm' : 'text-fg-2 hover:text-fg'
+          }`}
+        >
+          {series.label}
         </button>
       ))}
     </div>
@@ -116,56 +116,75 @@ function DailyTable({ days }: { days: Dashboard['daily'] }) {
   )
 }
 
+function DailyCard({ data }: { data: Dashboard }) {
+  const [series, setSeries] = useState<SeriesKey>('created')
+  const metric = data.summary[series]
+  return (
+    <Card
+      title="Обращения по дням"
+      icon={ChartColumn}
+      aside={<SeriesSwitch value={series} onChange={setSeries} />}
+      bodyClassName="gap-3"
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="text-[32px] leading-9 font-semibold">
+          <AnimatedNumber value={metric.value} format={count} />
+        </span>
+        {(() => {
+          const comparison = compare(metric, 'percent', 'up')
+          return comparison && <Delta comparison={comparison} />
+        })()}
+        <span className="text-xs text-fg-3">к прошлым {data.period_days} дням</span>
+      </div>
+      <div className="min-h-[260px]">
+        <Suspense fallback={null}>
+          <DailyChart days={data.daily} series={series} />
+        </Suspense>
+      </div>
+      <DailyTable days={data.daily} />
+    </Card>
+  )
+}
+
 function DashboardBody({ data }: { data: Dashboard }) {
-  const { now, summary, sla } = data
+  const { summary, sla } = data
   const reduceMotion = useReducedMotion()
   const reaction = summary.reaction_minutes
+  const createdByDay = data.daily.map((day) => day.created)
+  const closedByDay = data.daily.map((day) => day.closed)
 
   return (
     <motion.div
-      className="grid gap-4 lg:grid-cols-4"
+      className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]"
       variants={stagger}
       initial={reduceMotion ? false : 'hidden'}
       animate="shown"
     >
-      <Panel title="Сейчас" hint="Открытые обращения" className="lg:col-span-4">
-        <NowStrip now={now} />
-      </Panel>
+      <NowPanel now={data.now} className="xl:order-last" />
 
-      <Panel title="Нагрузка" hint={`К прошлым ${data.period_days} дням`}>
-        <div className="grid grid-cols-2 gap-4">
-          <Figure
-            label="Поступило"
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            title="Поступило"
+            icon={Inbox}
             value={summary.created.value}
             format={count}
             comparison={compare(summary.created, 'percent', 'up')}
             note={previousNote(summary.created.previous, String)}
+            chart={<Sparkline values={createdByDay} color="var(--brand)" />}
           />
-          <Figure
-            label="Закрыто"
+          <StatCard
+            title="Закрыто"
+            icon={CircleCheck}
             value={summary.closed.value}
             format={count}
             comparison={compare(summary.closed, 'percent', 'up')}
             note={previousNote(summary.closed.previous, String)}
+            chart={<Sparkline values={closedByDay} color="var(--icon-positive)" />}
           />
-        </div>
-      </Panel>
-
-      <Panel
-        title="Сроки"
-        hint={`Норма: реакция ${sla.reaction_hours} ч, решение ${sla.resolution_hours} ч`}
-        className="lg:col-span-2"
-      >
-        <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-          <Figure
-            label="Реакция в среднем"
-            value={reaction.value}
-            format={minutesAsDuration}
-            comparison={compare(reaction, 'percent', 'down')}
-            note={previousNote(reaction.previous, minutesAsDuration)}
-          />
-          <Figure
-            label="Реакция в срок"
+          <StatCard
+            title="Реакция в срок"
+            icon={Timer}
             value={summary.reaction_on_time.value}
             format={formatShare}
             comparison={compare(summary.reaction_on_time, 'points', 'up')}
@@ -174,71 +193,67 @@ function DashboardBody({ data }: { data: Dashboard }) {
             {summary.reaction_on_time.value !== null && (
               <Meter share={summary.reaction_on_time.value} />
             )}
-          </Figure>
-          <Figure
-            label="Решение в среднем"
-            value={summary.resolution_hours.value}
-            format={formatDuration}
-            comparison={compare(summary.resolution_hours, 'percent', 'down')}
-            note={previousNote(summary.resolution_hours.previous, formatDuration)}
-          />
-          <Figure
-            label="Решено в срок"
-            value={summary.resolution_on_time.value}
-            format={formatShare}
-            comparison={compare(summary.resolution_on_time, 'points', 'up')}
-            note={previousNote(summary.resolution_on_time.previous, formatShare)}
-          >
-            {summary.resolution_on_time.value !== null && (
-              <Meter share={summary.resolution_on_time.value} />
-            )}
-          </Figure>
+          </StatCard>
         </div>
-      </Panel>
 
-      <Panel title="Оценки жильцов" hint="По закрытым за период">
-        <Figure
-          label="Средняя оценка из 5"
-          value={summary.rating.value}
-          format={formatRating}
-          comparison={compare(summary.rating, 'difference', 'up')}
-          note={
-            summary.rating.count > 0
-              ? [
-                  `Оценок: ${summary.rating.count}`,
-                  previousNote(summary.rating.previous, formatRating),
-                ]
-                  .filter(Boolean)
-                  .join('. ')
-              : 'Оценок пока нет'
-          }
+        <DailyCard data={data} />
+
+        <Card
+          title="Сроки и оценки"
+          icon={Timer}
+          aside={`Норма: реакция ${sla.reaction_hours} ч, решение ${sla.resolution_hours} ч`}
         >
-          {summary.rating.value !== null && <Stars rating={summary.rating.value} />}
-        </Figure>
-      </Panel>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4">
+            <Figure
+              label="Реакция в среднем"
+              value={reaction.value}
+              format={minutesAsDuration}
+              comparison={compare(reaction, 'percent', 'down')}
+              note={previousNote(reaction.previous, minutesAsDuration)}
+            />
+            <Figure
+              label="Решение в среднем"
+              value={summary.resolution_hours.value}
+              format={formatDuration}
+              comparison={compare(summary.resolution_hours, 'percent', 'down')}
+              note={previousNote(summary.resolution_hours.previous, formatDuration)}
+            />
+            <Figure
+              label="Решено в срок"
+              value={summary.resolution_on_time.value}
+              format={formatShare}
+              comparison={compare(summary.resolution_on_time, 'points', 'up')}
+              note={previousNote(summary.resolution_on_time.previous, formatShare)}
+            >
+              {summary.resolution_on_time.value !== null && (
+                <Meter share={summary.resolution_on_time.value} />
+              )}
+            </Figure>
+            <Figure
+              label="Средняя оценка из 5"
+              value={summary.rating.value}
+              format={formatRating}
+              comparison={compare(summary.rating, 'difference', 'up')}
+              note={
+                summary.rating.count > 0
+                  ? [
+                      `Оценок: ${summary.rating.count}`,
+                      previousNote(summary.rating.previous, formatRating),
+                    ]
+                      .filter(Boolean)
+                      .join('. ')
+                  : 'Оценок пока нет'
+              }
+            >
+              {summary.rating.value !== null && <Stars rating={summary.rating.value} />}
+            </Figure>
+          </div>
+        </Card>
 
-      <Panel title="По дням" className="lg:col-span-4">
-        <ul className="-mt-2 flex flex-wrap gap-4 text-sm text-fg-2">
-          {SERIES.map((series) => (
-            <li key={series.key} className="flex items-center gap-2">
-              <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: series.color }} />
-              {series.label}
-            </li>
-          ))}
-        </ul>
-        <Suspense fallback={<div className={CHART_HEIGHT} />}>
-          <DailyChart days={data.daily} />
-        </Suspense>
-        <DailyTable days={data.daily} />
-      </Panel>
-
-      <Panel
-        title="По категориям"
-        hint="Поступило за период и среднее время решения"
-        className="lg:col-span-4"
-      >
-        <Categories categories={data.categories} questions={data.questions} />
-      </Panel>
+        <Card title="По категориям" icon={Tags} aside="Поступило за период и среднее время решения">
+          <Categories categories={data.categories} questions={data.questions} />
+        </Card>
+      </div>
     </motion.div>
   )
 }
@@ -265,7 +280,7 @@ export function DashboardPage() {
     return (
       // While another period loads, the previous one stays, dimmed, instead of a blank page.
       <div
-        className={`mx-auto w-full max-w-6xl p-4 transition-opacity lg:p-6 ${
+        className={`w-full p-4 transition-opacity lg:p-6 ${
           dashboard.isPlaceholderData ? 'opacity-60' : ''
         }`}
       >
@@ -277,7 +292,7 @@ export function DashboardPage() {
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-y-auto">
       <header className="border-b border-line px-3 py-3 lg:px-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2">
           <NavMenuButton />
           <div className="mr-auto flex min-w-0 flex-col">
             <h1 className="text-lg leading-6 font-semibold">Дашборд</h1>

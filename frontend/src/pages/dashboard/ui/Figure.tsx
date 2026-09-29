@@ -12,7 +12,7 @@ const deltaStyle: Record<Comparison['tone'], string> = {
   neutral: 'bg-fill text-fg-3',
 }
 
-function Delta({ comparison }: { comparison: Comparison }) {
+export function Delta({ comparison }: { comparison: Comparison }) {
   const Icon = comparison.text.startsWith('+')
     ? ArrowUpRight
     : comparison.text.startsWith('−')
