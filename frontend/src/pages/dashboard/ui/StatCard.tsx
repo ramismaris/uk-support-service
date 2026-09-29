@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { Comparison } from '../lib/metrics'
 import { AnimatedNumber } from './AnimatedNumber'
 import { Card } from './Card'
-import { Delta } from './Figure'
+import { Delta } from './Delta'
 
 interface StatCardProps {
   title: string

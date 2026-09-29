@@ -1,20 +1,21 @@
 import { Button } from '@maxhub/max-ui'
 import { motion, useReducedMotion, type Variants } from 'framer-motion'
-import { ChartColumn, CircleCheck, Inbox, Tags, Timer } from 'lucide-react'
+import { ChartColumn, CircleCheck, Inbox, Star } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { NavMenuButton } from '@/widgets/app-shell'
 import { PERIODS, type Dashboard, type Period } from '../api/dashboard'
 import { SERIES, type SeriesKey } from '../config/series'
-import { compare, formatDuration, formatRating, formatShare, previousNote } from '../lib/metrics'
+import { compare, formatRating, previousNote } from '../lib/metrics'
 import { formatDay, formatRange, parsePeriod } from '../lib/period'
 import { useDashboard } from '../model/use-dashboard'
 import { AnimatedNumber } from './AnimatedNumber'
 import { Card } from './Card'
 import { Categories } from './Categories'
-import { Delta, Figure, Meter } from './Figure'
+import { Delta } from './Delta'
 import { NowPanel } from './NowPanel'
+import { SlaCard } from './SlaCard'
 import { Sparkline } from './Sparkline'
 import { StatCard } from './StatCard'
 import { Stars } from './Stars'
@@ -23,7 +24,6 @@ import { Stars } from './Stars'
 const DailyChart = lazy(() => import('./DailyChart'))
 
 const count = (value: number) => String(Math.round(value))
-const minutesAsDuration = (minutes: number) => formatDuration(minutes / 60)
 
 // The cards come in one after another when the dashboard opens.
 const stagger: Variants = { shown: { transition: { staggerChildren: 0.06 } } }
@@ -119,6 +119,7 @@ function DailyTable({ days }: { days: Dashboard['daily'] }) {
 function DailyCard({ data }: { data: Dashboard }) {
   const [series, setSeries] = useState<SeriesKey>('created')
   const metric = data.summary[series]
+  const comparison = compare(metric, 'percent', 'up')
   return (
     <Card
       title="Обращения по дням"
@@ -130,10 +131,7 @@ function DailyCard({ data }: { data: Dashboard }) {
         <span className="text-[32px] leading-9 font-semibold">
           <AnimatedNumber value={metric.value} format={count} />
         </span>
-        {(() => {
-          const comparison = compare(metric, 'percent', 'up')
-          return comparison && <Delta comparison={comparison} />
-        })()}
+        {comparison && <Delta comparison={comparison} />}
         <span className="text-xs text-fg-3">к прошлым {data.period_days} дням</span>
       </div>
       <div className="min-h-[260px]">
@@ -146,12 +144,18 @@ function DailyCard({ data }: { data: Dashboard }) {
   )
 }
 
+function ratingNote(rating: Dashboard['summary']['rating']): string {
+  if (rating.count === 0) {
+    return 'Оценок пока нет'
+  }
+  return [`Оценок: ${rating.count}`, previousNote(rating.previous, formatRating)]
+    .filter(Boolean)
+    .join('. ')
+}
+
 function DashboardBody({ data }: { data: Dashboard }) {
-  const { summary, sla } = data
+  const { summary } = data
   const reduceMotion = useReducedMotion()
-  const reaction = summary.reaction_minutes
-  const createdByDay = data.daily.map((day) => day.created)
-  const closedByDay = data.daily.map((day) => day.closed)
 
   return (
     <motion.div
@@ -160,9 +164,9 @@ function DashboardBody({ data }: { data: Dashboard }) {
       initial={reduceMotion ? false : 'hidden'}
       animate="shown"
     >
-      <NowPanel now={data.now} className="xl:order-last" />
+      <NowPanel now={data.now} className="xl:col-start-2 xl:row-start-1" />
 
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4 xl:col-start-1 xl:row-span-2 xl:row-start-1">
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             title="Поступило"
@@ -171,7 +175,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
             format={count}
             comparison={compare(summary.created, 'percent', 'up')}
             note={previousNote(summary.created.previous, String)}
-            chart={<Sparkline values={createdByDay} color="var(--brand)" />}
+            chart={<Sparkline values={data.daily.map((day) => day.created)} color="var(--brand)" />}
           />
           <StatCard
             title="Закрыто"
@@ -180,80 +184,30 @@ function DashboardBody({ data }: { data: Dashboard }) {
             format={count}
             comparison={compare(summary.closed, 'percent', 'up')}
             note={previousNote(summary.closed.previous, String)}
-            chart={<Sparkline values={closedByDay} color="var(--icon-positive)" />}
+            chart={
+              <Sparkline
+                values={data.daily.map((day) => day.closed)}
+                color="var(--icon-positive)"
+              />
+            }
           />
           <StatCard
-            title="Реакция в срок"
-            icon={Timer}
-            value={summary.reaction_on_time.value}
-            format={formatShare}
-            comparison={compare(summary.reaction_on_time, 'points', 'up')}
-            note={previousNote(summary.reaction_on_time.previous, formatShare)}
+            title="Оценка жильцов"
+            icon={Star}
+            value={summary.rating.value}
+            format={formatRating}
+            comparison={compare(summary.rating, 'difference', 'up')}
+            note={ratingNote(summary.rating)}
           >
-            {summary.reaction_on_time.value !== null && (
-              <Meter share={summary.reaction_on_time.value} />
-            )}
+            {summary.rating.value !== null && <Stars rating={summary.rating.value} />}
           </StatCard>
         </div>
 
         <DailyCard data={data} />
-
-        <Card
-          title="Сроки и оценки"
-          icon={Timer}
-          aside={`Норма: реакция ${sla.reaction_hours} ч, решение ${sla.resolution_hours} ч`}
-        >
-          <div className="grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4">
-            <Figure
-              label="Реакция в среднем"
-              value={reaction.value}
-              format={minutesAsDuration}
-              comparison={compare(reaction, 'percent', 'down')}
-              note={previousNote(reaction.previous, minutesAsDuration)}
-            />
-            <Figure
-              label="Решение в среднем"
-              value={summary.resolution_hours.value}
-              format={formatDuration}
-              comparison={compare(summary.resolution_hours, 'percent', 'down')}
-              note={previousNote(summary.resolution_hours.previous, formatDuration)}
-            />
-            <Figure
-              label="Решено в срок"
-              value={summary.resolution_on_time.value}
-              format={formatShare}
-              comparison={compare(summary.resolution_on_time, 'points', 'up')}
-              note={previousNote(summary.resolution_on_time.previous, formatShare)}
-            >
-              {summary.resolution_on_time.value !== null && (
-                <Meter share={summary.resolution_on_time.value} />
-              )}
-            </Figure>
-            <Figure
-              label="Средняя оценка из 5"
-              value={summary.rating.value}
-              format={formatRating}
-              comparison={compare(summary.rating, 'difference', 'up')}
-              note={
-                summary.rating.count > 0
-                  ? [
-                      `Оценок: ${summary.rating.count}`,
-                      previousNote(summary.rating.previous, formatRating),
-                    ]
-                      .filter(Boolean)
-                      .join('. ')
-                  : 'Оценок пока нет'
-              }
-            >
-              {summary.rating.value !== null && <Stars rating={summary.rating.value} />}
-            </Figure>
-          </div>
-        </Card>
-
-        <Card title="По категориям" icon={Tags} aside="Поступило за период и среднее время решения">
-          <Categories categories={data.categories} questions={data.questions} />
-        </Card>
+        <SlaCard data={data} />
       </div>
+
+      <Categories data={data} />
     </motion.div>
   )
 }
