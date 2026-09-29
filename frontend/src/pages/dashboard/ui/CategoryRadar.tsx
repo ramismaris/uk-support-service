@@ -84,7 +84,13 @@ export default function CategoryRadar({ rows }: { rows: CategoryRow[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <RadarChart data={points} outerRadius="76%" margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+      <RadarChart
+        data={points}
+        outerRadius="76%"
+        margin={{ top: 8, right: 8, bottom: 8, left: 8 }}
+        // Not focusable: a tap must not draw a focus frame; the list view has the same numbers.
+        accessibilityLayer={false}
+      >
         <PolarGrid stroke="var(--text-tertiary)" strokeOpacity={0.35} />
         <PolarAngleAxis dataKey="name" tick={tick} />
         <PolarRadiusAxis domain={[0, 'dataMax']} tick={false} axisLine={false} />
