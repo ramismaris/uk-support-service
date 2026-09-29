@@ -36,7 +36,8 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex h-dvh">
+    // Holds the sr-only unread labels, which would otherwise stretch the document.
+    <div className="relative flex h-dvh overflow-hidden">
       <NavRail user={user} />
       {/* Phones: navigation is a drawer opened from the page header (NavMenuButton). */}
       <NavDrawer user={user} />
