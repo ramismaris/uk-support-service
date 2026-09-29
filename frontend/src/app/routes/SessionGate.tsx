@@ -1,6 +1,6 @@
 import { Button } from '@maxhub/max-ui'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router'
 import { useMe, useSessionStore } from '@/entities/session'
 import { useLoginByMax } from '@/features/auth-by-max'
@@ -9,6 +9,7 @@ import { isInMax } from '@/shared/lib/max-bridge'
 import { StatusScreen } from '@/shared/ui/status-screen'
 import { BrandSplash } from '@/widgets/app-shell'
 import { resolveSessionState } from './session-state'
+import { shouldShowSplash, SPLASH_MIN_MS } from './splash'
 
 export function SessionGate() {
   const queryClient = useQueryClient()
@@ -25,6 +26,12 @@ export function SessionGate() {
       loginByMax()
     }
   }, [shouldLoginByMax, loginByMax])
+
+  const [minElapsed, setMinElapsed] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setMinElapsed(true), SPLASH_MIN_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   const state = resolveSessionState({
     token,
@@ -52,6 +59,10 @@ export function SessionGate() {
       Выйти
     </Button>
   )
+
+  if (shouldShowSplash(state.kind, minElapsed)) {
+    return <BrandSplash />
+  }
 
   switch (state.kind) {
     case 'ready':

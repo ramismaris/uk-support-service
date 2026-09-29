@@ -14,7 +14,7 @@ export function SplashScreen({ mark, name }: { mark: ReactNode; name: string }) 
       <motion.div
         initial={reduceMotion ? false : { opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: EASE }}
+        transition={{ duration: 0.4, ease: EASE }}
       >
         {mark}
       </motion.div>
@@ -22,7 +22,7 @@ export function SplashScreen({ mark, name }: { mark: ReactNode; name: string }) 
         className="text-center text-xl font-semibold"
         initial={reduceMotion ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.12, ease: EASE }}
+        transition={{ duration: 0.4, delay: 0.08, ease: EASE }}
       >
         {name}
       </motion.p>
