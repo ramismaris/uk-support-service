@@ -358,10 +358,31 @@ async def test_list_forbidden_for_client(client: AsyncClient, base: SimpleNamesp
     assert resp.status_code == 403
 
 
-async def test_list_rejects_closed_status(client: AsyncClient, base: SimpleNamespace) -> None:
+@pytest.mark.parametrize("status", [TicketStatus.CLOSED, TicketStatus.REJECTED])
+async def test_list_filter_by_archived_status(
+    client: AsyncClient, db: AsyncSession, base: SimpleNamespace, status: TicketStatus
+) -> None:
+    await _create_ticket(db, base, status=TicketStatus.NEW, created_at=NOW - timedelta(hours=1))
+    archived_id = await _create_ticket(db, base, status=status, created_at=NOW - timedelta(hours=2))
+    other = TicketStatus.REJECTED if status == TicketStatus.CLOSED else TicketStatus.CLOSED
+    await _create_ticket(db, base, status=other, created_at=NOW - timedelta(hours=3))
+
     resp = await client.get(
         "/api/v1/staff/tickets",
-        params={"status": "CLOSED"},
+        params={"status": status},
+        headers=_auth(base.manager_token),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert [item["id"] for item in body["items"]] == [archived_id]
+
+
+async def test_list_rejects_unknown_status(client: AsyncClient, base: SimpleNamespace) -> None:
+    resp = await client.get(
+        "/api/v1/staff/tickets",
+        params={"status": "CANCELLED"},
         headers=_auth(base.manager_token),
     )
 

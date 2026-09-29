@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Path, Query, UploadFile, status
 from fastapi import File as FileParam
@@ -30,18 +30,12 @@ from src.services.ticket_service import TicketService
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 
-OpenStatus = Literal[
-    TicketStatus.NEW,
-    TicketStatus.IN_PROGRESS,
-    TicketStatus.WAITING_CLIENT,
-]
-
 
 @router.get("/tickets", response_model=PaginatedResponse[TicketListItemResponse])
 async def list_tickets(
     staff: StaffUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-    status: OpenStatus | None = None,
+    status: TicketStatus | None = None,
     building_id: Annotated[int | None, Query(ge=1, le=BIGINT_MAX)] = None,
     category_id: Annotated[int | None, Query(ge=1, le=BIGINT_MAX)] = None,
     mine: bool = False,

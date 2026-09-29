@@ -788,12 +788,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "NEW",
-                    "IN_PROGRESS",
-                    "WAITING_CLIENT"
-                  ],
-                  "type": "string"
+                  "$ref": "#/components/schemas/TicketStatus"
                 },
                 {
                   "type": "null"
