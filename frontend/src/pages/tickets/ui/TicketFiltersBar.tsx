@@ -1,7 +1,16 @@
 import { WifiOff } from 'lucide-react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from 'react'
 import type { TicketFilters, TicketStatus } from '@/entities/ticket'
 import { useSocketStatus } from '@/shared/lib/ws'
 import { NavMenuButton } from '@/widgets/app-shell'
+import { centeredScrollLeft, scrollEdges, type ScrollEdges } from '../lib/scroll-edges'
 
 const STATUS_OPTIONS: { value: TicketStatus | null; label: string }[] = [
   { value: null, label: 'Все' },
@@ -23,8 +32,72 @@ function chipClass(active: boolean): string {
   }`
 }
 
+const FADE = '1.75rem'
+
+// The chips do not all fit a phone or the narrow list: fade the edge that hides more, turn the
+// mouse wheel into sideways scrolling and keep the chosen chip in view.
+function useChipRow(row: RefObject<HTMLDivElement | null>, activeKey: string): CSSProperties {
+  const [edges, setEdges] = useState<ScrollEdges>({ start: false, end: false })
+
+  useLayoutEffect(() => {
+    const element = row.current
+    if (!element) {
+      return
+    }
+    const update = () => setEdges(scrollEdges(element))
+    const onWheel = (event: WheelEvent) => {
+      const current = scrollEdges(element)
+      const canMove = event.deltaY < 0 ? current.start : current.end
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX) && canMove) {
+        element.scrollLeft += event.deltaY
+        event.preventDefault()
+      }
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    element.addEventListener('scroll', update, { passive: true })
+    element.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      observer.disconnect()
+      element.removeEventListener('scroll', update)
+      element.removeEventListener('wheel', onWheel)
+    }
+  }, [row])
+
+  // Only the row scrolls (scrollIntoView would also move its parents), and the first time at once.
+  const first = useRef(true)
+  useEffect(() => {
+    const element = row.current
+    const chip = element?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!element || !chip) {
+      return
+    }
+    const rowBox = element.getBoundingClientRect()
+    const chipBox = chip.getBoundingClientRect()
+    element.scrollTo({
+      left: centeredScrollLeft({
+        scrollLeft: element.scrollLeft,
+        rowLeft: rowBox.left,
+        rowWidth: rowBox.width,
+        chipLeft: chipBox.left,
+        chipWidth: chipBox.width,
+      }),
+      behavior: first.current ? 'auto' : 'smooth',
+    })
+    first.current = false
+  }, [row, activeKey])
+
+  const left = edges.start ? `transparent, black ${FADE}` : 'black, black'
+  const right = edges.end ? `black calc(100% - ${FADE}), transparent` : 'black, black'
+  const mask = `linear-gradient(to right, ${left}, ${right})`
+  return { maskImage: mask, WebkitMaskImage: mask }
+}
+
 export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
   const online = useSocketStatus((state) => state.online)
+  const chipRow = useRef<HTMLDivElement>(null)
+  const chipRowStyle = useChipRow(chipRow, filters.status ?? 'ALL')
   return (
     <div className="flex flex-col gap-2 border-b border-line p-3">
       <div className="flex items-center justify-between gap-2">
@@ -50,7 +123,11 @@ export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
           </button>
         </div>
       </div>
-      <div className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        ref={chipRow}
+        style={chipRowStyle}
+        className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {STATUS_OPTIONS.map((option) => (
           <button
             key={option.label}
