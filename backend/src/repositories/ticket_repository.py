@@ -6,6 +6,7 @@ from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import TicketPriority, TicketStatus, TicketType
+from src.models.building import Building
 from src.models.category import Category
 from src.models.status_change import StatusChange
 from src.models.ticket import Ticket
@@ -171,9 +172,13 @@ class TicketRepository:
                 Ticket.closed_at.label("closed_at"),
                 reacted_at,
                 Ticket.rating.label("rating"),
+                Ticket.building_id.label("building_id"),
+                Building.address.label("building_address"),
+                Ticket.assignee_id.label("assignee_id"),
             )
             .select_from(Ticket)
             .outerjoin(Category, Category.id == Ticket.category_id)
+            .outerjoin(Building, Building.id == Ticket.building_id)
             .where(
                 or_(
                     Ticket.created_at >= since,

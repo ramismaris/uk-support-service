@@ -29,6 +29,9 @@ class TicketFacts:
     closed_at: datetime | None
     reacted_at: datetime | None
     rating: int | None
+    building_id: int | None = None
+    building_address: str | None = None
+    assignee_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -40,7 +43,7 @@ class PeriodBounds:
 
 
 @dataclass(frozen=True)
-class _WindowMetrics:
+class WindowMetrics:
     created: int
     closed: int
     reaction_minutes: float | None
@@ -74,7 +77,7 @@ def build_dashboard(
     resolution: timedelta,
 ) -> DashboardResponse:
     bounds = period_bounds(now, days, tz)
-    current = _window_metrics(
+    current = window_metrics(
         facts,
         bounds.start,
         now,
@@ -83,7 +86,7 @@ def build_dashboard(
         reaction=reaction,
         resolution=resolution,
     )
-    previous = _window_metrics(
+    previous = window_metrics(
         facts,
         bounds.previous_start,
         bounds.start,
@@ -106,24 +109,24 @@ def build_dashboard(
             created=CountMetric(value=current.created, previous=previous.created),
             closed=CountMetric(value=current.closed, previous=previous.closed),
             reaction_minutes=ValueMetric(
-                value=_round(current.reaction_minutes, 1),
-                previous=_round(previous.reaction_minutes, 1),
+                value=round_optional(current.reaction_minutes, 1),
+                previous=round_optional(previous.reaction_minutes, 1),
             ),
             resolution_hours=ValueMetric(
-                value=_round(current.resolution_hours, 1),
-                previous=_round(previous.resolution_hours, 1),
+                value=round_optional(current.resolution_hours, 1),
+                previous=round_optional(previous.resolution_hours, 1),
             ),
             reaction_on_time=ValueMetric(
-                value=_round(current.reaction_on_time, 3),
-                previous=_round(previous.reaction_on_time, 3),
+                value=round_optional(current.reaction_on_time, 3),
+                previous=round_optional(previous.reaction_on_time, 3),
             ),
             resolution_on_time=ValueMetric(
-                value=_round(current.resolution_on_time, 3),
-                previous=_round(previous.resolution_on_time, 3),
+                value=round_optional(current.resolution_on_time, 3),
+                previous=round_optional(previous.resolution_on_time, 3),
             ),
             rating=RatingMetric(
-                value=_round(current.rating, 2),
-                previous=_round(previous.rating, 2),
+                value=round_optional(current.rating, 2),
+                previous=round_optional(previous.rating, 2),
                 count=current.rating_count,
             ),
         ),
@@ -133,7 +136,7 @@ def build_dashboard(
     )
 
 
-def _window_metrics(
+def window_metrics(
     facts: list[TicketFacts],
     start: datetime,
     end: datetime,
@@ -142,7 +145,7 @@ def _window_metrics(
     now: datetime,
     reaction: timedelta,
     resolution: timedelta,
-) -> _WindowMetrics:
+) -> WindowMetrics:
     created = 0
     closed = 0
     reaction_minutes: list[float] = []
@@ -179,7 +182,7 @@ def _window_metrics(
                 ratings.append(fact.rating)
 
     reaction_total = reaction_on_time + reaction_late
-    return _WindowMetrics(
+    return WindowMetrics(
         created=created,
         closed=closed,
         reaction_minutes=_mean(reaction_minutes),
@@ -189,6 +192,19 @@ def _window_metrics(
         rating=_mean(ratings),
         rating_count=len(ratings),
     )
+
+
+def is_overdue(
+    fact: TicketFacts,
+    *,
+    now: datetime,
+    reaction: timedelta,
+    resolution: timedelta,
+) -> bool:
+    if fact.status not in OPEN_STATUSES:
+        return False
+    age = now - fact.created_at
+    return (fact.status == TicketStatus.NEW and age > reaction) or age > resolution
 
 
 def _now_block(
@@ -203,10 +219,7 @@ def _now_block(
     for fact in facts:
         if fact.status in by_status:
             by_status[fact.status] += 1
-        if fact.status not in OPEN_STATUSES:
-            continue
-        age = now - fact.created_at
-        if (fact.status == TicketStatus.NEW and age > reaction) or age > resolution:
+        if is_overdue(fact, now=now, reaction=reaction, resolution=resolution):
             overdue += 1
     return DashboardNow(
         new=by_status[TicketStatus.NEW],
@@ -294,7 +307,7 @@ def _categories(
             category_id=category_id,
             title=titles[category_id],
             created=created.get(category_id, 0),
-            resolution_hours=_round(_mean(resolution.get(category_id, [])), 1),
+            resolution_hours=round_optional(_mean(resolution.get(category_id, [])), 1),
         )
         for category_id in ids
     ]
@@ -321,7 +334,7 @@ def _questions(
             resolution.append((fact.closed_at - fact.created_at).total_seconds() / 3600)
     return DashboardQuestions(
         created=created,
-        resolution_hours=_round(_mean(resolution), 1),
+        resolution_hours=round_optional(_mean(resolution), 1),
     )
 
 
@@ -337,7 +350,7 @@ def _mean(values: list[float] | list[int]) -> float | None:
     return sum(values) / len(values)
 
 
-def _round(value: float | None, digits: int) -> float | None:
+def round_optional(value: float | None, digits: int) -> float | None:
     if value is None:
         return None
     return round(value, digits)

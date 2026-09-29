@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.constants import TicketStatus, TicketType
+from src.core.constants import TicketStatus, TicketType, UserRole
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.status_change_repository import StatusChangeRepository
@@ -131,3 +131,54 @@ async def test_filter_includes_created_or_closed_after_since_and_open_tickets(
     rows = await TicketRepository(db).list_for_dashboard(since=SINCE, open_statuses=OPEN_STATUSES)
 
     assert {row.created_at for row in rows} == {created_after, closed_after, open_old}
+
+
+async def test_dashboard_row_includes_building_and_assignee(db: AsyncSession) -> None:
+    client = await UserRepository(db).create(max_user_id=1, first_name="Мария")
+    manager = await UserRepository(db).create(
+        max_user_id=2, first_name="Пётр", role=UserRole.MANAGER
+    )
+    building = await BuildingRepository(db).create("ул. Ленина, 12")
+    category = await CategoryRepository(db).create("🚰 Сантехника", 1)
+    created_at = datetime(2026, 9, 10, 9, 0, tzinfo=UTC)
+
+    await TicketRepository(db).create(
+        type=TicketType.REQUEST,
+        status=TicketStatus.NEW,
+        client_id=client.id,
+        description="Течёт кран на кухне",
+        category_id=category.id,
+        building_id=building.id,
+        apartment="45",
+        assignee_id=manager.id,
+        created_at=created_at,
+    )
+    await db.commit()
+
+    rows = await TicketRepository(db).list_for_dashboard(since=SINCE, open_statuses=OPEN_STATUSES)
+
+    row = next(row for row in rows if row.created_at == created_at)
+    assert row.building_id == building.id
+    assert row.building_address == "ул. Ленина, 12"
+    assert row.assignee_id == manager.id
+
+
+async def test_dashboard_row_without_building_and_assignee_is_none(db: AsyncSession) -> None:
+    client = await UserRepository(db).create(max_user_id=1, first_name="Мария")
+    created_at = datetime(2026, 9, 10, 9, 0, tzinfo=UTC)
+
+    await TicketRepository(db).create(
+        type=TicketType.QUESTION,
+        status=TicketStatus.NEW,
+        client_id=client.id,
+        description="Как передать показания?",
+        created_at=created_at,
+    )
+    await db.commit()
+
+    rows = await TicketRepository(db).list_for_dashboard(since=SINCE, open_statuses=OPEN_STATUSES)
+
+    row = next(row for row in rows if row.created_at == created_at)
+    assert row.building_id is None
+    assert row.building_address is None
+    assert row.assignee_id is None
