@@ -78,7 +78,7 @@ pnpm test
 # Перегенерировать типы API после изменения backend/openapi.json
 pnpm gen:api
 
-# Проверка перед вливанием в main: tsc, eslint, prettier, steiger, vitest, актуальность типов API, сборка
+# Проверка перед вливанием в main: типы API из openapi.json, tsc, eslint, prettier, steiger, vitest, сборка
 scripts/check.sh
 ```
 
@@ -128,7 +128,7 @@ scripts/check.sh
 - Сегменты по назначению: `ui`, `model`, `api`, `lib`, `config` (в `app` — `entrypoint`, `routes`, `theme`, `session`, `styles`) — не `components`, `hooks`, `types`, `utils`, `providers`.
 - Код, который нужен одному слайсу, живёт в нём; в `features`/`entities` выносим, когда появляется второй потребитель.
 - Steiger (`pnpm fsd`) зелёный; правила не отключать без согласования.
-- `src/shared/api/schema.d.ts` — только `pnpm gen:api`, руками не править; при конфликте перегенерировать.
+- `src/shared/api/schema.d.ts` — только `pnpm gen:api`, руками не править; при конфликте перегенерировать. `pnpm build` и `scripts/check.sh` перегенерируют его сами, поэтому новый `openapi.json` от бэкенда сборку не ломает; файл коммитится — по нему собирается Docker-образ.
 - Пользователь — только в кэше TanStack Query (`['me']`); в Zustand — токен и клиентские флаги.
 - Компоненты — Max UI; Tailwind — раскладка и кастомные блоки. Цвет бренда — `--brand` / `bg-brand`.
 - Тесты — Vitest на чистую логику рядом с кодом (`*.test.ts`); новая чистая логика — тест.
