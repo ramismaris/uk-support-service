@@ -14,7 +14,7 @@ const user = (role: User['role']): User => ({
 
 describe('homePathFor', () => {
   it.each([
-    ['ADMIN', '/staff'],
+    ['ADMIN', '/staff/dashboard'],
     ['MANAGER', '/staff'],
     ['CLIENT', '/client'],
   ] as const)('sends %s to %s', (role, path) => {

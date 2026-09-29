@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import { isAdmin, isClient, isStaff } from '@/entities/user'
 import { AppearancePage } from '@/pages/appearance'
 import { ContentLayout, SectionEditor } from '@/pages/content'
+import { DashboardPage } from '@/pages/dashboard'
 import { UserCard, UsersIndex, UsersLayout } from '@/pages/users'
 import { ClientHomePage } from '@/pages/client-home'
 import { LoginPage } from '@/pages/login'
@@ -32,6 +33,15 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
+          {
+            errorElement: <RouteError inline />,
+            path: routePaths.dashboard,
+            element: (
+              <RequireRole allow={isAdmin}>
+                <DashboardPage />
+              </RequireRole>
+            ),
+          },
           {
             errorElement: <RouteError inline />,
             path: routePaths.content,

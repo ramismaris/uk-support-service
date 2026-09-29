@@ -1,4 +1,11 @@
-import { MessageSquareText, MessagesSquare, Palette, Users, type LucideIcon } from 'lucide-react'
+import {
+  ChartColumn,
+  MessageSquareText,
+  MessagesSquare,
+  Palette,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { isAdmin, type User } from '@/entities/user'
 import { routePaths } from '@/shared/config'
 
@@ -16,6 +23,13 @@ export interface NavItem {
 export type VisibleNavItem = NavItem & { to: string }
 
 const navItems: NavItem[] = [
+  {
+    key: 'dashboard',
+    label: 'Дашборд',
+    icon: ChartColumn,
+    to: routePaths.dashboard,
+    adminOnly: true,
+  },
   {
     key: 'tickets',
     label: 'Обращения',

@@ -8,6 +8,7 @@ export const routePaths = {
   users: '/staff/users',
   user: '/staff/users/:id',
   appearance: '/staff/appearance',
+  dashboard: '/staff/dashboard',
   client: '/client',
 } as const
 
