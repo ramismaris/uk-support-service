@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     sla_reaction_hours: int = Field(default=4, ge=1)
     sla_resolution_hours: int = Field(default=72, ge=1)
 
+    ai_insights_enabled: bool = True
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = ""
+    llm_timeout_seconds: int = Field(default=30, ge=1)
+    llm_extra_headers: dict[str, str] = {}
+
     cors_origins: list[str] = ["http://localhost:5173"]
 
     @field_validator("admin_max_user_ids", mode="before")

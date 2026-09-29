@@ -1,8 +1,10 @@
 from src.core.config import settings
+from src.providers.llm_provider import LlmProvider
 from src.providers.local_storage_provider import LocalStorageProvider
 from src.providers.max_messenger_provider import MaxMessengerProvider
 from src.providers.messenger_provider import MessengerProvider
 from src.providers.noop_messenger_provider import NoopMessengerProvider
+from src.providers.openai_compatible_llm_provider import OpenAiCompatibleLlmProvider
 from src.providers.storage_provider import StorageProvider
 
 _storage_provider: StorageProvider | None = None
@@ -31,3 +33,15 @@ async def close_messenger_provider() -> None:
     if _messenger_provider is not None:
         await _messenger_provider.close()
         _messenger_provider = None
+
+
+def get_llm_provider() -> LlmProvider | None:
+    if not settings.llm_base_url or not settings.llm_model:
+        return None
+    return OpenAiCompatibleLlmProvider(
+        base_url=settings.llm_base_url,
+        api_key=settings.llm_api_key,
+        model=settings.llm_model,
+        timeout_seconds=settings.llm_timeout_seconds,
+        extra_headers=settings.llm_extra_headers,
+    )

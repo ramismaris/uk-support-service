@@ -101,6 +101,7 @@ backend/
 |---|---|---|
 | `MessengerProvider` | отправить и отредактировать сообщение, загрузить файл в Max, скачать вложение | `MaxMessengerProvider`; `NoopMessengerProvider` — при `BOT_MODE=off` |
 | `StorageProvider` | загрузить, прочитать, удалить файл | `LocalStorageProvider` (Docker-том); при необходимости — `S3StorageProvider` из arendalike |
+| `LlmProvider` | запрос к языковой модели: системный и пользовательский промпт → JSON-ответ | `OpenAiCompatibleLlmProvider` (OpenAI-совместимый API); `get_llm_provider()` возвращает `None`, если ИИ не настроен |
 | `ClassifierProvider` | ML-разметка обращения | `NoopClassifier`, `LlmClassifier` (OpenAI-совместимый API) |
 | `ResidentDirectoryProvider` | данные о жильцах из базы УК | `CoreResidentDirectory` (ручной ввод), `MockResidentDirectory` (лицевые счета из сидов) |
 
@@ -280,8 +281,12 @@ frontend/src/
 | `TIMEZONE` | часовой пояс УК: время в сообщениях людям и дни на дашборде, по умолчанию `Europe/Moscow` |
 | `SLA_REACTION_HOURS`, `SLA_RESOLUTION_HOURS` | нормы дашборда в часах: реакция и решение, по умолчанию 4 и 72 |
 | `RESIDENT_DIRECTORY` | `core` / `mock` |
-| `CLASSIFIER` | `noop` / `llm` |
-| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | для `CLASSIFIER=llm` |
+| `AI_INSIGHTS_ENABLED` | выводы ИИ на дашборде; `false` выключает их, даже если ИИ настроен; по умолчанию `true` |
+| `LLM_BASE_URL`, `LLM_MODEL` | OpenAI-совместимый API: адрес (без `/chat/completions`) и модель. Пустые — ИИ не настроен, выводов на дашборде нет |
+| `LLM_API_KEY` | ключ API; может быть пустым (локальные модели) |
+| `LLM_TIMEOUT_SECONDS` | таймаут запроса к ИИ, по умолчанию 30 |
+| `LLM_EXTRA_HEADERS` | JSON-объект с дополнительными заголовками запроса, например `{"x-opencode-session": "uk-support"}`: этот заголовок обязателен для opencode Zen |
+| `CLASSIFIER` | `noop` / `llm` (Б7; использует те же `LLM_*`) |
 | `DEV_AUTH` | `true` только локально |
 | `DEBUG`, `CORS_ORIGINS` | |
 

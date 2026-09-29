@@ -76,3 +76,27 @@ def test_valid_timezone_is_allowed():
     settings = _make_settings(timezone="Asia/Yekaterinburg")
 
     assert settings.timezone == "Asia/Yekaterinburg"
+
+
+def test_llm_settings_defaults():
+    settings = _make_settings()
+
+    assert settings.ai_insights_enabled is True
+    assert settings.llm_base_url == ""
+    assert settings.llm_api_key == ""
+    assert settings.llm_model == ""
+    assert settings.llm_timeout_seconds == 30
+    assert settings.llm_extra_headers == {}
+
+
+def test_llm_extra_headers_parsed_from_json_env(monkeypatch):
+    monkeypatch.setenv("LLM_EXTRA_HEADERS", '{"x-opencode-session": "uk-support"}')
+
+    settings = _make_settings()
+
+    assert settings.llm_extra_headers == {"x-opencode-session": "uk-support"}
+
+
+def test_llm_timeout_seconds_zero_raises():
+    with pytest.raises(ValidationError):
+        _make_settings(llm_timeout_seconds=0)

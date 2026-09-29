@@ -28,3 +28,8 @@ class ConflictException(AppException):
 class MessengerException(AppException):
     def __init__(self, message: str = "Не удалось связаться с Max"):
         super().__init__(message, status_code=502)
+
+
+class LlmException(AppException):
+    def __init__(self, message: str = "Не удалось получить ответ от ИИ"):
+        super().__init__(message, status_code=502)
