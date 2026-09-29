@@ -1,6 +1,10 @@
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import UserRole
+from src.repositories.building_repository import BuildingRepository
+from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.user_repository import UserRepository
 
 
@@ -168,3 +172,80 @@ async def test_list_orders_by_id_desc_and_pages(db: AsyncSession) -> None:
 
     assert [u.id for u in page_one] == [third.id, second.id]
     assert [u.id for u in page_two] == [first.id]
+
+
+async def _seen(user):
+    user.last_seen_at = datetime.now(UTC)
+    return user
+
+
+async def test_list_broadcast_recipients_includes_only_seen_clients_ordered_by_id(
+    db: AsyncSession,
+) -> None:
+    repository = UserRepository(db)
+    first = await _seen(await _create(db, repository, max_user_id=200, first_name="Первый"))
+    second = await _seen(await _create(db, repository, max_user_id=100, first_name="Второй"))
+    await _create(db, repository, max_user_id=1, first_name="Молчун")
+    blocked = await _seen(
+        await _create(db, repository, max_user_id=2, first_name="Блок", is_blocked=True)
+    )
+    manager = await _seen(
+        await _create(db, repository, max_user_id=3, first_name="Мен", role=UserRole.MANAGER)
+    )
+    admin = await _seen(
+        await _create(db, repository, max_user_id=4, first_name="Адм", role=UserRole.ADMIN)
+    )
+    await db.commit()
+
+    recipients = await repository.list_broadcast_recipients(None)
+
+    # Ordered by users.id, not by max_user_id: first was created before second.
+    assert recipients == [first.max_user_id, second.max_user_id]
+    assert blocked.max_user_id not in recipients
+    assert manager.max_user_id not in recipients
+    assert admin.max_user_id not in recipients
+
+
+async def test_list_broadcast_recipients_by_buildings_deduplicates(db: AsyncSession) -> None:
+    repository = UserRepository(db)
+    buildings = BuildingRepository(db)
+    chosen_a = await buildings.create("ул. А, 1")
+    chosen_b = await buildings.create("ул. Б, 1")
+    other = await buildings.create("ул. В, 1")
+
+    residents = ResidenceRepository(db)
+    in_a = await _seen(await _create(db, repository, max_user_id=11, first_name="Аня"))
+    await residents.create(in_a.id, chosen_a.id, "1")
+    out = await _seen(await _create(db, repository, max_user_id=12, first_name="Олег"))
+    await residents.create(out.id, other.id, "1")
+    both = await _seen(await _create(db, repository, max_user_id=13, first_name="Борис"))
+    await residents.create(both.id, chosen_a.id, "1")
+    await residents.create(both.id, chosen_b.id, "2")
+    await db.commit()
+
+    recipients = await repository.list_broadcast_recipients([chosen_a.id, chosen_b.id])
+
+    assert recipients == [in_a.max_user_id, both.max_user_id]
+    assert out.max_user_id not in recipients
+
+
+async def test_list_broadcast_recipients_by_building_needs_a_residence(
+    db: AsyncSession,
+) -> None:
+    repository = UserRepository(db)
+    building = await BuildingRepository(db).create("ул. А, 1")
+    seen = await _seen(await _create(db, repository, max_user_id=21, first_name="Аня"))
+    await db.commit()
+
+    assert await repository.list_broadcast_recipients([building.id]) == []
+    assert await repository.list_broadcast_recipients(None) == [seen.max_user_id]
+
+
+async def test_list_broadcast_recipients_empty_buildings_returns_nobody(
+    db: AsyncSession,
+) -> None:
+    repository = UserRepository(db)
+    await _seen(await _create(db, repository, max_user_id=31, first_name="Аня"))
+    await db.commit()
+
+    assert await repository.list_broadcast_recipients([]) == []

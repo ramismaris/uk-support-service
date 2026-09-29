@@ -9,6 +9,7 @@ from src.providers.messenger_provider import MessengerProvider
 from src.providers.storage_provider import StorageProvider
 from src.repositories.file_repository import FileRepository
 from src.services.content_service import ContentService
+from src.services.file_service import FileService
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class WelcomeService:
         self.storage = storage
         self.content = ContentService(db)
         self.files = FileRepository(db)
+        self.file_service = FileService(db, storage)
 
     async def get_message(self) -> WelcomeMessage:
         content = await self.content.get_welcome()
@@ -42,18 +44,9 @@ class WelcomeService:
         if file is None:
             logger.error("Welcome photo file %s not found", file_id)
             return None
-        if file.max_token:
-            return file.max_token
 
         try:
-            data = await self.storage.read(file.storage_key)
-            token = await self.messenger.upload_file(data, file.mime, file.original_name)
+            return await self.file_service.get_max_token(file, self.messenger)
         except (OSError, MessengerException) as exc:
             logger.warning("Welcome photo unavailable: %s", type(exc).__name__)
             return None
-        if token is None:
-            return None
-
-        file.max_token = token
-        await self.db.commit()
-        return token

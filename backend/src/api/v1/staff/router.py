@@ -17,12 +17,14 @@ from src.schemas.common import PaginatedResponse
 from src.schemas.file import FileResponse
 from src.schemas.message import MessageResponse
 from src.schemas.ticket import (
+    BuildingShortResponse,
     StatusChangeRequest,
     StatusChangeResponse,
     TicketDetailResponse,
     TicketListItemResponse,
     UnreadCountResponse,
 )
+from src.services.building_service import BuildingService
 from src.services.file_service import MAX_FILE_SIZE
 from src.services.message_service import MessageService, UploadedFile
 from src.services.status_service import StatusService
@@ -55,6 +57,15 @@ async def list_tickets(
         total=total,
         items=[TicketListItemResponse.model_validate(ticket) for ticket in tickets],
     )
+
+
+@router.get("/buildings", response_model=list[BuildingShortResponse])
+async def list_buildings(
+    staff: StaffUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[BuildingShortResponse]:
+    buildings = await BuildingService(db).list_active()
+    return [BuildingShortResponse.model_validate(building) for building in buildings]
 
 
 # Declared before /tickets/{ticket_id}, which would otherwise take the path.

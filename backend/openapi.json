@@ -5,6 +5,172 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/admin/broadcasts/audience": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Broadcast Audience",
+        "operationId": "get_broadcast_audience_api_v1_admin_broadcasts_audience_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "building_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "maximum": 9223372036854775807,
+                    "minimum": 1
+                  },
+                  "maxItems": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Building Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudienceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/broadcasts": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create Broadcast",
+        "operationId": "create_broadcast_api_v1_admin_broadcasts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Broadcasts",
+        "operationId": "list_broadcasts_api_v1_admin_broadcasts_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_BroadcastResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/content": {
       "get": {
         "tags": [
@@ -892,6 +1058,36 @@
         }
       }
     },
+    "/api/v1/staff/buildings": {
+      "get": {
+        "tags": [
+          "staff"
+        ],
+        "summary": "List Buildings",
+        "operationId": "list_buildings_api_v1_staff_buildings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BuildingShortResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Buildings Api V1 Staff Buildings Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/staff/tickets/unread-count": {
       "get": {
         "tags": [
@@ -1315,6 +1511,19 @@
         ],
         "title": "AdminUserResponse"
       },
+      "AudienceResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "title": "AudienceResponse"
+      },
       "Body_send_message_api_v1_staff_tickets__ticket_id__messages_post": {
         "properties": {
           "text": {
@@ -1360,6 +1569,172 @@
           "file"
         ],
         "title": "Body_upload_content_image_api_v1_admin_content_images_post"
+      },
+      "BroadcastAuthorResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name"
+        ],
+        "title": "BroadcastAuthorResponse"
+      },
+      "BroadcastCreateRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          },
+          "building_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer",
+                  "maximum": 9.223372036854776e+18,
+                  "minimum": 1.0
+                },
+                "type": "array",
+                "maxItems": 100,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Building Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "BroadcastCreateRequest"
+      },
+      "BroadcastResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "author": {
+            "$ref": "#/components/schemas/BroadcastAuthorResponse"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "buildings": {
+            "items": {
+              "$ref": "#/components/schemas/BuildingShortResponse"
+            },
+            "type": "array",
+            "title": "Buildings"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BroadcastStatus"
+          },
+          "recipients_total": {
+            "type": "integer",
+            "title": "Recipients Total"
+          },
+          "delivered_count": {
+            "type": "integer",
+            "title": "Delivered Count"
+          },
+          "failed_count": {
+            "type": "integer",
+            "title": "Failed Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "file_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Url",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "author",
+          "text",
+          "buildings",
+          "status",
+          "recipients_total",
+          "delivered_count",
+          "failed_count",
+          "created_at",
+          "finished_at",
+          "file_url"
+        ],
+        "title": "BroadcastResponse"
+      },
+      "BroadcastStatus": {
+        "type": "string",
+        "enum": [
+          "SENDING",
+          "DONE",
+          "INTERRUPTED"
+        ],
+        "title": "BroadcastStatus"
       },
       "BuildingShortResponse": {
         "properties": {
@@ -1926,6 +2301,27 @@
           "items"
         ],
         "title": "PaginatedResponse[AdminUserResponse]"
+      },
+      "PaginatedResponse_BroadcastResponse_": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BroadcastResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "PaginatedResponse[BroadcastResponse]"
       },
       "PaginatedResponse_TicketListItemResponse_": {
         "properties": {

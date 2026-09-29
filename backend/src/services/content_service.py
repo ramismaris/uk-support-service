@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.constants import ContentKey
 from src.core.exceptions import AppException
 from src.core.texts import CONTENT_IMAGE_NOT_FOUND
+from src.models.file import File
 from src.models.user import User
 from src.repositories.content_block_repository import ContentBlockRepository
 from src.repositories.file_repository import FileRepository
@@ -52,11 +53,11 @@ class ContentService:
     async def save(self, key: ContentKey, content: BaseModel, admin: User) -> None:
         file_id = _file_reference(content)
         if file_id is not None:
-            await self._ensure_content_image(file_id)
+            await self.ensure_content_image(file_id)
         await self.blocks.upsert(key, content.model_dump(mode="json"), updated_by_id=admin.id)
         await self.db.commit()
 
-    async def _ensure_content_image(self, file_id: int) -> None:
+    async def ensure_content_image(self, file_id: int) -> File:
         file = await self.files.get_by_id(file_id)
         if (
             file is None
@@ -65,6 +66,7 @@ class ContentService:
             or file.mime not in CONTENT_IMAGE_MIMES
         ):
             raise AppException(CONTENT_IMAGE_NOT_FOUND, status_code=400)
+        return file
 
     async def _get(self, key: ContentKey, model: type[ModelT]) -> ModelT | None:
         block = await self.blocks.get(key)

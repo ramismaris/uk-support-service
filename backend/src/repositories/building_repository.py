@@ -22,6 +22,14 @@ class BuildingRepository:
         )
         return list(result.scalars().all())
 
+    async def list_by_ids(self, building_ids: list[int]) -> list[Building]:
+        if not building_ids:
+            return []
+        result = await self.db.execute(
+            select(Building).where(Building.id.in_(building_ids)).order_by(Building.address)
+        )
+        return list(result.scalars().all())
+
     async def create(self, address: str, external_id: str | None = None) -> Building:
         building = Building(address=address, external_id=external_id)
         self.db.add(building)

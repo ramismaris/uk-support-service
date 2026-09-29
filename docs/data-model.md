@@ -24,6 +24,10 @@ erDiagram
     messages |o--o{ files : "вложения"
     users ||--o{ auth_tokens : "сессии"
     users ||--o{ login_tokens : "вход"
+    users ||--o{ broadcasts : "автор"
+    files |o--o{ broadcasts : "фото"
+    broadcasts ||--o{ broadcast_buildings : "адресаты"
+    buildings ||--o{ broadcast_buildings : "рассылки"
 ```
 
 ## users
@@ -200,6 +204,36 @@ CMS. Ключ-значение: новый раздел не требует ми
 | `PAYMENT` | `text`, `url`, `button_text` |
 | `CONTACTS` | `text`, `phones: [{title, phone}]` |
 | `THEME` | `company_name`, `primary_color`, `logo_file_id` |
+
+## broadcasts
+
+Рассылки жильцам ([product.md](product.md#рассылка)). Получателей не храним: список собирается в момент создания и живёт в памяти фоновой задачи, в таблице — только его размер и итоги.
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| id | bigint PK | |
+| author_id | bigint FK users not null | админ, из токена |
+| text | text not null | markdown, до 3000 символов |
+| file_id | bigint FK files | фото — файл контента (JPEG/PNG) |
+| status | enum `broadcast_status`: `SENDING`, `DONE`, `INTERRUPTED` | `INTERRUPTED` — процесс остановили, пока рассылка шла, или отправка упала с неожиданной ошибкой |
+| recipients_total | int not null | сколько получателей было при запуске |
+| delivered_count | int not null | default 0; Max принял сообщение |
+| failed_count | int not null | default 0; Max отказал (например, жилец заблокировал бота) |
+| created_at | timestamptz not null | |
+| finished_at | timestamptz | когда статус перестал быть `SENDING` |
+
+Partial unique index `uq_broadcasts_single_sending` по `status` `where status = 'SENDING'`: одновременно идёт не больше одной рассылки — защита от двойного нажатия и от превышения лимита Max.
+
+## broadcast_buildings
+
+Дома, которым адресована рассылка. Нет строк — рассылка ушла всем.
+
+| Поле | Тип | Примечание |
+|---|---|---|
+| broadcast_id | bigint FK broadcasts not null | |
+| building_id | bigint FK buildings not null | |
+
+PK: `(broadcast_id, building_id)`.
 
 ## login_tokens
 

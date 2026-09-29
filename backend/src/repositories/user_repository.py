@@ -4,6 +4,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import UserRole
+from src.models.residence import Residence
 from src.models.user import User
 
 
@@ -29,6 +30,19 @@ class UserRepository:
             .where(User.role.in_([UserRole.MANAGER, UserRole.ADMIN]), User.is_blocked.is_(False))
             .order_by(User.id)
         )
+        return list(result.scalars().all())
+
+    async def list_broadcast_recipients(self, building_ids: list[int] | None) -> list[int]:
+        query = select(User.max_user_id).where(
+            User.role == UserRole.CLIENT,
+            User.is_blocked.is_(False),
+            User.last_seen_at.is_not(None),
+        )
+        if building_ids is not None:
+            residents = select(Residence.user_id).where(Residence.building_id.in_(building_ids))
+            query = query.where(User.id.in_(residents))
+        query = query.order_by(User.id)
+        result = await self.db.execute(query)
         return list(result.scalars().all())
 
     async def list(

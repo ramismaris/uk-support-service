@@ -1,4 +1,5 @@
 from src.models.auth_token import AuthToken
+from src.models.broadcast import Broadcast, BroadcastBuilding
 from src.models.building import Building
 from src.models.category import Category
 from src.models.content_block import ContentBlock
@@ -13,6 +14,8 @@ from src.models.user import User
 
 __all__ = [
     "AuthToken",
+    "Broadcast",
+    "BroadcastBuilding",
     "Building",
     "Category",
     "ContentBlock",

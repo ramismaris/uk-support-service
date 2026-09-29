@@ -11,12 +11,15 @@ from src.core.config import settings
 from src.core.exceptions import AppException
 from src.core.logging import setup_logging
 from src.providers.factory import close_messenger_provider
+from src.services.broadcast_service import interrupt_stale_broadcasts
 
 setup_logging(debug=settings.debug)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # A restart kills the in-process sending task; stale rows must not stay «sending».
+    await interrupt_stale_broadcasts()
     if settings.bot_mode == "polling":
         await start_bot()
     try:

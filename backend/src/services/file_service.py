@@ -12,6 +12,7 @@ from src.core.texts import (
     PHOTOS_DUPLICATED,
 )
 from src.models.file import File
+from src.providers.messenger_provider import MessengerProvider
 from src.providers.storage_provider import StorageProvider
 from src.repositories.file_repository import FileRepository
 
@@ -117,6 +118,24 @@ class FileService:
         self.check_data(data)
         mime = _image_mime(data)
         return await self.save(data, mime, original_name)
+
+    async def get_max_token(self, file: File, messenger: MessengerProvider) -> str | None:
+        """Return the cached Max token for a file, uploading it once if needed.
+
+        Raises OSError when the file cannot be read from storage and MessengerException when
+        Max rejects the upload; callers decide whether that is fatal.
+        """
+        if file.max_token:
+            return file.max_token
+
+        data = await self.storage.read(file.storage_key)
+        token = await messenger.upload_file(data, file.mime, file.original_name)
+        if token is None:
+            return None
+
+        file.max_token = token
+        await self.db.commit()
+        return token
 
     async def read(self, file_id: int) -> tuple[File, bytes]:
         file = await self.files.get_by_id(file_id)

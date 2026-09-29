@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.core.exceptions import AppException, NotFoundException
+from src.core.exceptions import AppException, MessengerException, NotFoundException
 from src.core.texts import CONTENT_IMAGE_FORMAT
 from src.services.file_service import MAX_FILE_SIZE, FileService
 
@@ -370,3 +370,99 @@ async def test_save_image_rejects_too_large_data(storage: MagicMock, files_repo:
     assert exc_info.value.status_code == 413
     storage.save.assert_not_awaited()
     files_repo.create.assert_not_awaited()
+
+
+async def test_get_max_token_returns_cached_token_without_upload(
+    storage: MagicMock, files_repo: MagicMock
+):
+    db = AsyncMock()
+    file = MagicMock()
+    file.max_token = "cached"
+    service = _service(db, storage, files_repo)
+    messenger = AsyncMock()
+
+    token = await service.get_max_token(file, messenger)
+
+    assert token == "cached"
+    storage.read.assert_not_awaited()
+    messenger.upload_file.assert_not_awaited()
+    db.commit.assert_not_awaited()
+
+
+async def test_get_max_token_uploads_once_stores_and_commits(
+    storage: MagicMock, files_repo: MagicMock
+):
+    db = AsyncMock()
+    file = MagicMock()
+    file.max_token = None
+    file.storage_key = "files/a.webp"
+    file.mime = "image/webp"
+    file.original_name = "a.webp"
+    storage.read.return_value = b"img"
+    service = _service(db, storage, files_repo)
+    messenger = AsyncMock()
+    messenger.upload_file.return_value = "tok-1"
+
+    token = await service.get_max_token(file, messenger)
+
+    assert token == "tok-1"
+    storage.read.assert_awaited_once_with("files/a.webp")
+    messenger.upload_file.assert_awaited_once_with(b"img", "image/webp", "a.webp")
+    assert file.max_token == "tok-1"
+    db.commit.assert_awaited_once()
+
+
+async def test_get_max_token_none_from_messenger_stores_nothing(
+    storage: MagicMock, files_repo: MagicMock
+):
+    db = AsyncMock()
+    file = MagicMock()
+    file.max_token = None
+    file.storage_key = "files/a.webp"
+    file.mime = "image/webp"
+    file.original_name = "a.webp"
+    storage.read.return_value = b"img"
+    service = _service(db, storage, files_repo)
+    messenger = AsyncMock()
+    messenger.upload_file.return_value = None
+
+    token = await service.get_max_token(file, messenger)
+
+    assert token is None
+    assert file.max_token is None
+    db.commit.assert_not_awaited()
+
+
+async def test_get_max_token_storage_error_propagates(storage: MagicMock, files_repo: MagicMock):
+    db = AsyncMock()
+    file = MagicMock()
+    file.max_token = None
+    file.storage_key = "files/a.webp"
+    storage.read.side_effect = OSError("gone")
+    service = _service(db, storage, files_repo)
+    messenger = AsyncMock()
+
+    with pytest.raises(OSError):
+        await service.get_max_token(file, messenger)
+
+    messenger.upload_file.assert_not_awaited()
+    db.commit.assert_not_awaited()
+
+
+async def test_get_max_token_upload_error_propagates(storage: MagicMock, files_repo: MagicMock):
+    db = AsyncMock()
+    file = MagicMock()
+    file.max_token = None
+    file.storage_key = "files/a.webp"
+    file.mime = "image/webp"
+    file.original_name = "a.webp"
+    storage.read.return_value = b"img"
+    service = _service(db, storage, files_repo)
+    messenger = AsyncMock()
+    messenger.upload_file.side_effect = MessengerException()
+
+    with pytest.raises(MessengerException):
+        await service.get_max_token(file, messenger)
+
+    assert file.max_token is None
+    db.commit.assert_not_awaited()

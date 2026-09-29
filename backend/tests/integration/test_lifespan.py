@@ -8,12 +8,14 @@ from src.main import app
 
 async def test_lifespan_with_bot_off_does_not_start_bot():
     with (
+        patch("src.main.interrupt_stale_broadcasts", new_callable=AsyncMock) as interrupt_mock,
         patch("src.main.start_bot") as start_bot_mock,
         patch("src.main.stop_bot") as stop_bot_mock,
     ):
         async with app.router.lifespan_context(app):
             pass
 
+    interrupt_mock.assert_awaited_once()
     start_bot_mock.assert_not_called()
     stop_bot_mock.assert_not_called()
 
@@ -22,6 +24,7 @@ async def test_lifespan_closes_messenger_provider_when_stop_bot_fails(monkeypatc
     monkeypatch.setattr(settings, "bot_mode", "polling")
 
     with (
+        patch("src.main.interrupt_stale_broadcasts", new_callable=AsyncMock),
         patch("src.main.start_bot", new_callable=AsyncMock),
         patch(
             "src.main.stop_bot",
@@ -35,3 +38,25 @@ async def test_lifespan_closes_messenger_provider_when_stop_bot_fails(monkeypatc
             pass
 
     close_mock.assert_awaited_once()
+
+
+async def test_lifespan_interrupts_stale_broadcasts_before_starting_bot(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "bot_mode", "polling")
+    calls: list[str] = []
+
+    async def _interrupt() -> None:
+        calls.append("interrupt")
+
+    async def _start() -> None:
+        calls.append("start")
+
+    with (
+        patch("src.main.interrupt_stale_broadcasts", new=_interrupt),
+        patch("src.main.start_bot", new=_start),
+        patch("src.main.stop_bot", new_callable=AsyncMock),
+        patch("src.main.close_messenger_provider", new_callable=AsyncMock),
+    ):
+        async with app.router.lifespan_context(app):
+            pass
+
+    assert calls == ["interrupt", "start"]

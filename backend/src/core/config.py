@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     timezone: str = "Europe/Moscow"
     sla_reaction_hours: int = Field(default=4, ge=1)
     sla_resolution_hours: int = Field(default=72, ge=1)
+    broadcast_rate_per_second: int = Field(default=20, ge=1)
 
     ai_insights_enabled: bool = True
     llm_base_url: str = ""

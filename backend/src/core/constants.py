@@ -34,6 +34,12 @@ class SenderType(StrEnum):
     SYSTEM = "SYSTEM"
 
 
+class BroadcastStatus(StrEnum):
+    SENDING = "SENDING"
+    DONE = "DONE"
+    INTERRUPTED = "INTERRUPTED"
+
+
 class ButtonType(StrEnum):
     CALLBACK = "CALLBACK"
     LINK = "LINK"
