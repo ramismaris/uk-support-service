@@ -4,7 +4,7 @@
 
 ## Документация — прочитать перед работой
 
-- [docs/product.md](docs/product.md) — роли, функции, скоуп (Must / Should / не делаем)
+- [docs/product.md](docs/product.md) — роли, функции, скоуп (Must / Should / Could / не делаем)
 - [docs/architecture.md](docs/architecture.md) — слои, структура, провайдеры, авторизация, тесты, конфигурация
 - [docs/data-model.md](docs/data-model.md) — таблицы и поля
 - [docs/ticket-lifecycle.md](docs/ticket-lifecycle.md) — статусы, переходы, маршрутизация сообщений, уведомления
