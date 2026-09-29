@@ -9,10 +9,10 @@
 | `NEW` | Принята | Активные |
 | `IN_PROGRESS` | В работе | Активные |
 | `WAITING_CLIENT` | Нужен ваш ответ | Активные |
-| `CLOSED` | Закрыта | Архив |
-| `REJECTED` | Отклонена | Архив |
+| `CLOSED` | Закрыта | Фильтр «Закрытые» |
+| `REJECTED` | Отклонена | Фильтр «Отклонённые» |
 
-«Открытые» обращения — `NEW`, `IN_PROGRESS`, `WAITING_CLIENT`.
+«Открытые» обращения — `NEW`, `IN_PROGRESS`, `WAITING_CLIENT`. Список панели без фильтра статуса показывает только их; `GET /api/v1/staff/tickets?status=` принимает любой статус, в том числе `CLOSED` и `REJECTED`.
 
 ```mermaid
 stateDiagram-v2
