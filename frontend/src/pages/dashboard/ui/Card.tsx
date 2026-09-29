@@ -27,12 +27,11 @@ export function Card({
       variants={rise}
       className={`flex min-w-0 flex-col rounded-2xl bg-fill/60 p-1 ring-1 ring-line ${className}`}
     >
-      <header className="flex min-h-9 items-center gap-2 px-3 py-1.5">
+      {/* The title is never cut: a wide aside drops to its own line instead. */}
+      <header className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5">
         <Icon size={16} strokeWidth={2} className="shrink-0 text-fg-3" aria-hidden="true" />
-        <h2 className="truncate text-sm font-medium">{title}</h2>
-        {aside && (
-          <div className="ml-auto flex shrink-0 items-center text-xs text-fg-3">{aside}</div>
-        )}
+        <h2 className="text-sm font-medium">{title}</h2>
+        {aside && <div className="ml-auto flex items-center text-xs text-fg-3">{aside}</div>}
       </header>
       <div
         className={`flex flex-1 flex-col rounded-xl bg-layer p-4 ring-1 ring-line ${bodyClassName}`}

@@ -13,7 +13,7 @@ import type { SeriesKey } from '../config/series'
 import { formatDay } from '../lib/period'
 
 // Every day in a quiet brand tint; the one under the pointer in full brand colour.
-const BAR = 'color-mix(in srgb, var(--brand) 22%, transparent)'
+const BAR = 'color-mix(in srgb, var(--brand) 40%, transparent)'
 const ACTIVE_BAR = 'var(--brand)'
 
 function ChartTooltip({ active, payload, label }: TooltipContentProps) {

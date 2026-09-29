@@ -68,7 +68,7 @@ export function SlaCard({ data }: { data: Dashboard }) {
   const { summary, sla } = data
   const minutesToHours = (minutes: number | null) => (minutes === null ? null : minutes / 60)
   return (
-    <Card title="Сроки" icon={Timer} aside="Столбик — среднее время, черта — норма">
+    <Card title="Сроки" icon={Timer}>
       <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
         <SlaRow
           label="Реакция"
@@ -85,6 +85,7 @@ export function SlaCard({ data }: { data: Dashboard }) {
           onTime={summary.resolution_on_time}
         />
       </div>
+      <p className="mt-4 text-xs text-fg-3">Столбик — среднее время, черта — норма.</p>
     </Card>
   )
 }

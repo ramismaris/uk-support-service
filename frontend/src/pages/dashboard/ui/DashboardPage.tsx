@@ -1,7 +1,7 @@
 import { Button } from '@maxhub/max-ui'
 import { motion, useReducedMotion, type Variants } from 'framer-motion'
-import { ChartColumn, CircleCheck, Inbox, Star } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+import { ChartColumn, ChevronRight, CircleCheck, Inbox, Star } from 'lucide-react'
+import { lazy, Suspense, useId, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { NavMenuButton } from '@/widgets/app-shell'
@@ -85,34 +85,60 @@ function SeriesSwitch({
   )
 }
 
+// The chart's numbers as a table. Opens by growing from zero height: a grid row going 0fr → 1fr.
 function DailyTable({ days }: { days: Dashboard['daily'] }) {
+  const [open, setOpen] = useState(false)
+  const tableId = useId()
   return (
-    <details className="text-sm">
-      <summary className="cursor-pointer text-fg-2 select-none hover:text-fg">Таблицей</summary>
-      <div className="mt-2 max-h-72 overflow-y-auto">
-        <table className="w-full tabular-nums">
-          <thead className="sticky top-0 bg-layer text-left text-fg-3">
-            <tr>
-              <th className="py-1 font-normal">День</th>
-              {SERIES.map((series) => (
-                <th key={series.key} className="py-1 text-right font-normal">
-                  {series.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {days.toReversed().map((day) => (
-              <tr key={day.date} className="border-t border-line">
-                <td className="py-1">{formatDay(day.date)}</td>
-                <td className="py-1 text-right">{day.created}</td>
-                <td className="py-1 text-right">{day.closed}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="text-sm">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={tableId}
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-fg-2 hover:text-fg"
+      >
+        <ChevronRight
+          size={16}
+          aria-hidden="true"
+          className={`transition-transform duration-300 ease-out motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}
+        />
+        Таблицей
+      </button>
+      <div
+        id={tableId}
+        inert={!open}
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+          open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="mt-2 max-h-72 overflow-y-auto">
+            <table className="w-full tabular-nums">
+              <thead className="sticky top-0 bg-layer text-left text-fg-3">
+                <tr>
+                  <th className="py-1 font-normal">День</th>
+                  {SERIES.map((series) => (
+                    <th key={series.key} className="py-1 text-right font-normal">
+                      {series.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {days.toReversed().map((day) => (
+                  <tr key={day.date} className="border-t border-line">
+                    <td className="py-1">{formatDay(day.date)}</td>
+                    <td className="py-1 text-right">{day.created}</td>
+                    <td className="py-1 text-right">{day.closed}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </details>
+    </div>
   )
 }
 
