@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/api/v1/admin/broadcasts/audience": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Broadcast Audience */
+        get: operations["get_broadcast_audience_api_v1_admin_broadcasts_audience_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/broadcasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Broadcasts */
+        get: operations["list_broadcasts_api_v1_admin_broadcasts_get"];
+        put?: never;
+        /** Create Broadcast */
+        post: operations["create_broadcast_api_v1_admin_broadcasts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/content": {
         parameters: {
             query?: never;
@@ -293,6 +328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/buildings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Buildings */
+        get: operations["list_buildings_api_v1_staff_buildings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/tickets/unread-count": {
         parameters: {
             query?: never;
@@ -442,6 +494,11 @@ export interface components {
             /** Last Seen At */
             last_seen_at: string | null;
         };
+        /** AudienceResponse */
+        AudienceResponse: {
+            /** Count */
+            count: number;
+        };
         /** Body_send_message_api_v1_staff_tickets__ticket_id__messages_post */
         Body_send_message_api_v1_staff_tickets__ticket_id__messages_post: {
             /** Text */
@@ -454,6 +511,55 @@ export interface components {
             /** File */
             file: string;
         };
+        /** BroadcastAuthorResponse */
+        BroadcastAuthorResponse: {
+            /** Id */
+            id: number;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string | null;
+        };
+        /** BroadcastCreateRequest */
+        BroadcastCreateRequest: {
+            /** Text */
+            text: string;
+            /** File Id */
+            file_id?: number | null;
+            /** Building Ids */
+            building_ids?: number[] | null;
+        };
+        /** BroadcastResponse */
+        BroadcastResponse: {
+            /** Id */
+            id: number;
+            author: components["schemas"]["BroadcastAuthorResponse"];
+            /** Text */
+            text: string;
+            /** Buildings */
+            buildings: components["schemas"]["BuildingShortResponse"][];
+            status: components["schemas"]["BroadcastStatus"];
+            /** Recipients Total */
+            recipients_total: number;
+            /** Delivered Count */
+            delivered_count: number;
+            /** Failed Count */
+            failed_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** File Url */
+            readonly file_url: string | null;
+        };
+        /**
+         * BroadcastStatus
+         * @enum {string}
+         */
+        BroadcastStatus: "SENDING" | "DONE" | "INTERRUPTED";
         /** BuildingShortResponse */
         BuildingShortResponse: {
             /** Id */
@@ -636,6 +742,13 @@ export interface components {
             total: number;
             /** Items */
             items: components["schemas"]["AdminUserResponse"][];
+        };
+        /** PaginatedResponse[BroadcastResponse] */
+        PaginatedResponse_BroadcastResponse_: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["BroadcastResponse"][];
         };
         /** PaginatedResponse[TicketListItemResponse] */
         PaginatedResponse_TicketListItemResponse_: {
@@ -882,6 +995,102 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_broadcast_audience_api_v1_admin_broadcasts_audience_get: {
+        parameters: {
+            query?: {
+                building_id?: number[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudienceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_broadcasts_api_v1_admin_broadcasts_get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_BroadcastResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_broadcast_api_v1_admin_broadcasts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BroadcastCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BroadcastResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_content_api_v1_admin_content_get: {
         parameters: {
             query?: never;
@@ -1404,6 +1613,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_buildings_api_v1_staff_buildings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildingShortResponse"][];
                 };
             };
         };
