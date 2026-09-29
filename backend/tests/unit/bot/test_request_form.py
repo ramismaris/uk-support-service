@@ -5,6 +5,7 @@ import pytest
 from maxapi.context import MemoryContext
 from maxapi.enums.attachment import AttachmentType
 from maxapi.enums.message_link_type import MessageLinkType
+from maxapi.enums.parse_mode import ParseMode
 from maxapi.filters import filter_attrs
 from maxapi.types import MessageCallback, MessageCreated, RequestContactButton
 
@@ -45,6 +46,7 @@ from src.core.texts import (
     FORM_PHOTOS_MAX,
     FORM_PHOTOS_PROMPT,
     FORM_SENT,
+    FORM_TEXT_ONLY,
     FORM_TIME_PROMPT,
     OUTDATED_BUTTON_TEXT,
 )
@@ -165,12 +167,27 @@ def _image_attachment(url: str) -> MagicMock:
     return attachment
 
 
+def _audio_attachment(url: str = "https://i.oneme.ru/voice") -> MagicMock:
+    attachment = MagicMock()
+    attachment.type = AttachmentType.AUDIO
+    attachment.payload.url = url
+    return attachment
+
+
 def _rows(attachment) -> list:
     return attachment.payload.buttons
 
 
 def _answer_text(event: MagicMock) -> str:
     return event.message.answer.await_args.args[0]
+
+
+def _answer_format(event: MagicMock):
+    return event.message.answer.await_args.kwargs["format"]
+
+
+def _edit_format(event: MagicMock):
+    return event.edit.await_args.kwargs["format"]
 
 
 def _edit_text(event: MagicMock) -> str:
@@ -500,6 +517,21 @@ async def test_invalid_apartment_shows_message_and_stays(service: MagicMock) -> 
     assert await context.get_state() == RequestForm.apartment
 
 
+async def test_voice_at_apartment_asks_for_text(service: MagicMock) -> None:
+    event = _message(attachments=[_audio_attachment()], mid="mid-voice")
+    context = _context()
+    await context.set_state(RequestForm.apartment)
+    await context.update_data(building_id=10, prompt_mid="mid-old")
+
+    await request_form.handle_apartment(event, context, MagicMock(), _user())
+
+    service.add_residence.assert_not_awaited()
+    assert await context.get_state() == RequestForm.apartment
+    assert _answer_text(event) == FORM_TEXT_ONLY
+    assert [row[0].payload for row in _answer_rows(event)] == [FORM_CANCEL]
+    event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
+
+
 async def test_unknown_building_at_apartment_returns_to_building(service: MagicMock) -> None:
     service.add_residence.side_effect = NotFoundException()
     event = _message(text="45")
@@ -513,7 +545,7 @@ async def test_unknown_building_at_apartment_returns_to_building(service: MagicM
     assert _answer_text(event) == FORM_BUILDING_PROMPT
 
 
-async def test_empty_description_shows_error_and_stays(service: MagicMock) -> None:
+async def test_blank_description_asks_for_text_and_stays(service: MagicMock) -> None:
     event = _message(text="   ")
     context = _context()
     await context.set_state(RequestForm.description)
@@ -522,7 +554,7 @@ async def test_empty_description_shows_error_and_stays(service: MagicMock) -> No
 
     assert "description" not in await context.get_data()
     assert await context.get_state() == RequestForm.description
-    assert _answer_text(event) == DESCRIPTION_REQUIRED
+    assert _answer_text(event) == FORM_TEXT_ONLY
     assert [row[0].payload for row in _answer_rows(event)] == [FORM_CANCEL]
 
 
@@ -550,6 +582,42 @@ async def test_description_saved_and_asks_photos(service: MagicMock) -> None:
     assert await context.get_state() == RequestForm.photos
     assert _answer_text(event) == FORM_PHOTOS_PROMPT
     assert [row[0].payload for row in _answer_rows(event)] == [FORM_PHOTOS_SKIP, FORM_CANCEL]
+
+
+async def test_voice_at_description_asks_for_text(service: MagicMock) -> None:
+    event = _message(attachments=[_audio_attachment()])
+    context = _context()
+    await context.set_state(RequestForm.description)
+
+    await request_form.handle_description(event, context, MagicMock(), _user())
+
+    assert "description" not in await context.get_data()
+    assert await context.get_state() == RequestForm.description
+    assert _answer_text(event) == FORM_TEXT_ONLY
+    assert [row[0].payload for row in _answer_rows(event)] == [FORM_CANCEL]
+
+
+async def test_photo_without_text_at_description_still_requires_text(service: MagicMock) -> None:
+    event = _message(attachments=[_image_attachment("https://i.oneme.ru/1")])
+    context = _context()
+    await context.set_state(RequestForm.description)
+
+    await request_form.handle_description(event, context, MagicMock(), _user())
+
+    assert "description" not in await context.get_data()
+    assert await context.get_state() == RequestForm.description
+    assert _answer_text(event) == DESCRIPTION_REQUIRED
+    assert [row[0].payload for row in _answer_rows(event)] == [FORM_CANCEL]
+
+
+async def test_description_prompt_has_no_parse_mode(service: MagicMock) -> None:
+    event = _message(text="Течёт кран")
+    context = _context()
+    await context.set_state(RequestForm.description)
+
+    await request_form.handle_description(event, context, MagicMock(), _user())
+
+    assert _answer_format(event) is None
 
 
 async def test_photos_are_saved_and_counted(service: MagicMock) -> None:
@@ -599,12 +667,12 @@ async def test_photo_without_images_after_photos_offers_done(service: MagicMock)
     event = _message(text="ещё фото")
     context = _context()
     await context.set_state(RequestForm.photos)
-    await context.update_data(photo_ids=[1])
+    await context.update_data(photo_ids=[1, 2])
 
     await request_form.handle_photos(event, context, MagicMock(), _user())
 
     service.save_photo.assert_not_awaited()
-    assert _answer_text(event) == FORM_PHOTOS_PROMPT
+    assert _answer_text(event) == "Фото добавлено: 2. Пришлите ещё или нажмите «Готово»."
     assert [row[0].payload for row in _answer_rows(event)] == [FORM_PHOTOS_DONE, FORM_CANCEL]
 
 
@@ -710,6 +778,33 @@ async def test_time_text_saved_and_confirmed(service: MagicMock) -> None:
     assert (await context.get_data())["preferred_time"] == "вечером"
     assert await context.get_state() == RequestForm.confirm
     assert "вечером" in _answer_text(event)
+    assert _answer_format(event) == ParseMode.HTML
+
+
+async def test_time_voice_asks_for_text_and_stays(service: MagicMock) -> None:
+    event = _message(attachments=[_audio_attachment()])
+    context = _context()
+    await context.set_state(RequestForm.preferred_time)
+
+    await request_form.handle_time(event, context, MagicMock(), _user())
+
+    assert "preferred_time" not in await context.get_data()
+    assert await context.get_state() == RequestForm.preferred_time
+    assert _answer_text(event) == FORM_TEXT_ONLY
+    assert [row[0].payload for row in _answer_rows(event)] == [FORM_TIME_SKIP, FORM_CANCEL]
+
+
+async def test_time_photo_without_text_repeats_prompt(service: MagicMock) -> None:
+    event = _message(attachments=[_image_attachment("https://i.oneme.ru/1")])
+    context = _context()
+    await context.set_state(RequestForm.preferred_time)
+
+    await request_form.handle_time(event, context, MagicMock(), _user())
+
+    assert "preferred_time" not in await context.get_data()
+    assert await context.get_state() == RequestForm.preferred_time
+    assert _answer_text(event) == FORM_TIME_PROMPT
+    assert [row[0].payload for row in _answer_rows(event)] == [FORM_TIME_SKIP, FORM_CANCEL]
 
 
 async def test_time_skip_goes_to_confirm(service: MagicMock) -> None:
@@ -722,6 +817,35 @@ async def test_time_skip_goes_to_confirm(service: MagicMock) -> None:
     assert (await context.get_data())["preferred_time"] is None
     assert await context.get_state() == RequestForm.confirm
     assert "не указано" in _edit_text(event)
+    assert _edit_format(event) == ParseMode.HTML
+
+
+async def test_confirm_summary_escapes_client_values(service: MagicMock) -> None:
+    service.list_categories.return_value = [_category(1, "A&B")]
+    event = _message(text="до 18:00 <вечер>")
+    context = _context()
+    await context.set_state(RequestForm.preferred_time)
+    await context.update_data(
+        category_id=1,
+        building_id=10,
+        apartment="45",
+        description="<b>кран</b> & *течёт*",
+        photo_ids=[1, 2],
+    )
+
+    await request_form.handle_time(event, context, MagicMock(), _user())
+
+    assert _answer_text(event) == (
+        "🔎 <b>Проверьте заявку</b>\n\n"
+        "<b>Категория:</b> A&amp;B\n"
+        "<b>Адрес:</b> ул. Ленина, 12, кв. 45\n"
+        "<b>Описание:</b> &lt;b&gt;кран&lt;/b&gt; &amp; *течёт*\n"
+        "<b>Фото:</b> 2\n"
+        "<b>Время:</b> до 18:00 &lt;вечер&gt;\n\n"
+        "Отправляем?"
+    )
+    assert _answer_format(event) == ParseMode.HTML
+    assert (await context.get_data())["description"] == "<b>кран</b> & *течёт*"
 
 
 async def test_send_creates_request_and_clears_context(service: MagicMock) -> None:
@@ -755,6 +879,33 @@ async def test_send_creates_request_and_clears_context(service: MagicMock) -> No
     event.bot.edit_message.assert_awaited_once_with(message_id="mid-old", attachments=[])
     assert _edit_text(event) == FORM_SENT.format(ticket_id=TICKET_ID)
     assert event.edit.await_args.kwargs["attachments"] == []
+
+
+async def test_send_passes_raw_values_to_service(service: MagicMock) -> None:
+    event = _callback(FORM_SEND)
+    context = _context()
+    await context.set_state(RequestForm.confirm)
+    await context.update_data(
+        category_id=1,
+        building_id=10,
+        apartment="45",
+        description="<b>кран</b> & *течёт*",
+        preferred_time="до 18:00 <вечер>",
+        photo_ids=[1],
+    )
+    user = _user()
+
+    await request_form.handle_send(event, context, MagicMock(), user)
+
+    service.create_request.assert_awaited_once_with(
+        user,
+        category_id=1,
+        building_id=10,
+        apartment="45",
+        description="<b>кран</b> & *течёт*",
+        preferred_time="до 18:00 <вечер>",
+        photo_ids=[1],
+    )
 
 
 async def test_send_service_error_shows_message_and_menu(service: MagicMock) -> None:

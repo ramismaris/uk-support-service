@@ -2,6 +2,7 @@ import logging
 
 from aiohttp import ClientError
 from maxapi.context import BaseContext
+from maxapi.enums.parse_mode import ParseMode
 from maxapi.exceptions import MaxError
 from maxapi.types import BotStarted, MessageCallback, MessageCreated
 from maxapi.types.attachments import AttachmentButton
@@ -36,16 +37,18 @@ async def show_prompt(
     context: BaseContext,
     text: str,
     keyboard: AttachmentButton,
+    *,
+    parse_mode: ParseMode | None = None,
 ) -> None:
     if isinstance(event, MessageCallback):
         try:
-            await event.edit(text=text, attachments=[keyboard])
+            await event.edit(text=text, attachments=[keyboard], format=parse_mode)
         except ValueError:
             await event.ack(notification=OUTDATED_BUTTON_TEXT)
             return
         new_mid = _pressed_mid(event)
     else:
-        sent = await event.message.answer(text, attachments=[keyboard])
+        sent = await event.message.answer(text, attachments=[keyboard], format=parse_mode)
         new_mid = sent.message.body.mid
 
     old_mid = (await context.get_data()).get(PROMPT_MID)

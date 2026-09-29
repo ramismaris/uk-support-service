@@ -9,6 +9,7 @@ from src.core.texts import (
     CHAT_NEW_QUESTION_BUTTON,
     CHAT_NO_BUTTON,
     CHAT_YES_BUTTON,
+    EMERGENCY_BUTTON,
     FORM_ADDRESS_ADD_BUTTON,
     FORM_ADDRESS_OK_BUTTON,
     FORM_ADDRESS_OTHER_BUTTON,
@@ -22,8 +23,10 @@ from src.core.texts import (
     MAIN_MENU_BUTTON,
     MY_TICKETS_BUTTON,
     MY_TICKETS_WRITE_BUTTON,
+    PAYMENT_BUTTON,
     QUESTION_BUTTON,
     QUESTION_WRITE_BUTTON,
+    SERVICES_BUTTON,
     ticket_button_label,
     ticket_dative,
 )
@@ -75,11 +78,15 @@ def photo_attachment(token: str) -> AttachmentUpload:
 def main_menu_keyboard() -> AttachmentButton:
     builder = InlineKeyboardBuilder()
     builder.row(CallbackButton(text=FORM_START_BUTTON, payload=FORM_START))
-    builder.row(CallbackButton(text=MY_TICKETS_BUTTON, payload=MENU_TICKETS))
-    builder.row(CallbackButton(text=QUESTION_BUTTON, payload=MENU_QUESTION))
-    builder.row(CallbackButton(text="Аварийные службы", payload=MENU_EMERGENCY))
-    builder.row(CallbackButton(text="Услуги УК", payload=MENU_SERVICES))
-    builder.row(CallbackButton(text="Оплата ЖКХ", payload=MENU_PAYMENT))
+    builder.row(
+        CallbackButton(text=QUESTION_BUTTON, payload=MENU_QUESTION),
+        CallbackButton(text=MY_TICKETS_BUTTON, payload=MENU_TICKETS),
+    )
+    builder.row(
+        CallbackButton(text=PAYMENT_BUTTON, payload=MENU_PAYMENT),
+        CallbackButton(text=SERVICES_BUTTON, payload=MENU_SERVICES),
+    )
+    builder.row(CallbackButton(text=EMERGENCY_BUTTON, payload=MENU_EMERGENCY))
     return builder.as_markup()
 
 

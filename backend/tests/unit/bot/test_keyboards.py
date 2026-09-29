@@ -64,26 +64,21 @@ def test_photo_attachment_carries_token_as_image():
     assert attachment.payload.token == "tok-1"
 
 
-def test_main_menu_has_one_button_per_row_in_order():
+def test_main_menu_has_rows_in_order_with_payloads():
     rows = main_menu_keyboard().payload.buttons
 
-    assert [len(row) for row in rows] == [1, 1, 1, 1, 1, 1]
-    assert [row[0].text for row in rows] == [
-        "Подать заявку",
-        "Мои заявки",
-        "Задать вопрос",
-        "Аварийные службы",
-        "Услуги УК",
-        "Оплата ЖКХ",
+    assert [[button.text for button in row] for row in rows] == [
+        ["📝 Подать заявку"],
+        ["💬 Задать вопрос", "📋 Мои заявки"],
+        ["💳 Оплата ЖКХ", "🛠️ Услуги УК"],
+        ["🚨 Аварийные службы"],
     ]
-    assert all(isinstance(row[0], CallbackButton) for row in rows)
-    assert [row[0].payload for row in rows] == [
-        FORM_START,
-        MENU_TICKETS,
-        MENU_QUESTION,
-        MENU_EMERGENCY,
-        MENU_SERVICES,
-        MENU_PAYMENT,
+    assert all(isinstance(button, CallbackButton) for row in rows for button in row)
+    assert [[button.payload for button in row] for row in rows] == [
+        [FORM_START],
+        [MENU_QUESTION, MENU_TICKETS],
+        [MENU_PAYMENT, MENU_SERVICES],
+        [MENU_EMERGENCY],
     ]
 
 
@@ -287,7 +282,7 @@ def test_my_tickets_keyboard_without_open_tickets_has_only_back():
 def test_my_tickets_empty_keyboard_has_form_start_then_back():
     rows = my_tickets_empty_keyboard().payload.buttons
 
-    assert [row[0].text for row in rows] == ["Подать заявку", "« В меню"]
+    assert [row[0].text for row in rows] == ["📝 Подать заявку", "« В меню"]
     assert [row[0].payload for row in rows] == [FORM_START, MENU_MAIN]
 
 

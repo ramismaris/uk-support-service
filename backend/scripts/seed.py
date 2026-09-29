@@ -38,12 +38,13 @@ BUILDINGS = [
 ]
 
 CATEGORIES = [
-    "Сантехника",
-    "Электрика",
-    "Лифт",
-    "Уборка",
-    "Благоустройство",
-    "Другое",
+    "🚰 Сантехника",
+    "⚡️ Электрика",
+    "🛗 Лифт",
+    "🔥 Отопление",
+    "🧹 Уборка",
+    "🌳 Благоустройство",
+    "❓ Другое",
 ]
 
 DEMO_CLIENT_MAX_USER_ID = 1000003
@@ -247,7 +248,7 @@ async def _seed_demo_tickets(
         {
             "type": TicketType.REQUEST,
             "status": TicketStatus.NEW,
-            "category": "Сантехника",
+            "category": "🚰 Сантехника",
             "created_at": now - timedelta(minutes=40),
             "description": "Течёт кран на кухне, под раковиной лужа.",
             "preferred_time": "Будни после 18:00",
@@ -256,7 +257,7 @@ async def _seed_demo_tickets(
         {
             "type": TicketType.REQUEST,
             "status": TicketStatus.IN_PROGRESS,
-            "category": "Электрика",
+            "category": "⚡️ Электрика",
             "created_at": now - timedelta(days=1),
             "description": "В подъезде на 3-м этаже не горит свет.",
             "assignee": manager,
@@ -270,7 +271,7 @@ async def _seed_demo_tickets(
         {
             "type": TicketType.REQUEST,
             "status": TicketStatus.WAITING_CLIENT,
-            "category": "Лифт",
+            "category": "🛗 Лифт",
             "created_at": now - timedelta(days=2),
             "description": "Лифт останавливается между этажами, двери открываются не сразу.",
             "assignee": manager,
@@ -285,7 +286,7 @@ async def _seed_demo_tickets(
         {
             "type": TicketType.REQUEST,
             "status": TicketStatus.CLOSED,
-            "category": "Уборка",
+            "category": "🧹 Уборка",
             "created_at": now - timedelta(days=5),
             "description": "Не вывозят мусор у второго подъезда.",
             "assignee": manager,
@@ -301,7 +302,7 @@ async def _seed_demo_tickets(
         {
             "type": TicketType.REQUEST,
             "status": TicketStatus.REJECTED,
-            "category": "Благоустройство",
+            "category": "🌳 Благоустройство",
             "created_at": now - timedelta(days=6),
             "description": "Прошу установить шлагбаум во дворе.",
             "transitions": [

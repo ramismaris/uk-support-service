@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import ClientError
 from maxapi.context import MemoryContext
+from maxapi.enums.parse_mode import ParseMode
 from maxapi.exceptions import MaxApiError, MaxConnection
 from maxapi.types import BotStarted, MessageCallback, MessageCreated
 
@@ -64,7 +65,7 @@ async def test_show_prompt_message_without_previous() -> None:
 
     await prompts.show_prompt(event, context, "text", keyboard)
 
-    event.message.answer.assert_awaited_once_with("text", attachments=[keyboard])
+    event.message.answer.assert_awaited_once_with("text", attachments=[keyboard], format=None)
     assert (await context.get_data())[prompts.PROMPT_MID] == "mid-new"
     event.bot.edit_message.assert_not_awaited()
 
@@ -97,9 +98,31 @@ async def test_show_prompt_press_on_stored_prompt_does_not_remove() -> None:
 
     await prompts.show_prompt(event, context, "text", keyboard)
 
-    event.edit.assert_awaited_once_with(text="text", attachments=[keyboard])
+    event.edit.assert_awaited_once_with(text="text", attachments=[keyboard], format=None)
     event.bot.edit_message.assert_not_awaited()
     assert (await context.get_data())[prompts.PROMPT_MID] == "mid-pressed"
+
+
+async def test_show_prompt_passes_parse_mode_to_message() -> None:
+    event = _message("mid-new")
+    context = _context()
+    keyboard = menu_button_keyboard()
+
+    await prompts.show_prompt(event, context, "text", keyboard, parse_mode=ParseMode.HTML)
+
+    event.message.answer.assert_awaited_once_with(
+        "text", attachments=[keyboard], format=ParseMode.HTML
+    )
+
+
+async def test_show_prompt_passes_parse_mode_to_edit() -> None:
+    event = _press("mid-pressed")
+    context = _context()
+    keyboard = menu_button_keyboard()
+
+    await prompts.show_prompt(event, context, "text", keyboard, parse_mode=ParseMode.HTML)
+
+    event.edit.assert_awaited_once_with(text="text", attachments=[keyboard], format=ParseMode.HTML)
 
 
 async def test_show_prompt_press_on_other_message_removes_previous() -> None:

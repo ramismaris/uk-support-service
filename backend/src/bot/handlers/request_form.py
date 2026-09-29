@@ -1,6 +1,9 @@
+import html
+
 from maxapi import Router
 from maxapi.context import BaseContext
 from maxapi.enums.attachment import AttachmentType
+from maxapi.enums.parse_mode import ParseMode
 from maxapi.filters import F
 from maxapi.types import MessageCallback, MessageCreated
 from maxapi.types.attachments import AttachmentButton
@@ -53,6 +56,7 @@ from src.core.texts import (
     FORM_PHOTOS_MAX,
     FORM_PHOTOS_PROMPT,
     FORM_SENT,
+    FORM_TEXT_ONLY,
     FORM_TIME_NOT_SET,
     FORM_TIME_PROMPT,
     OUTDATED_BUTTON_TEXT,
@@ -120,9 +124,11 @@ async def _render(
     state,
     text: str,
     keyboard: AttachmentButton,
+    *,
+    parse_mode: ParseMode | None = None,
 ) -> None:
     await context.set_state(state)
-    await show_prompt(event, context, text, keyboard)
+    await show_prompt(event, context, text, keyboard, parse_mode=parse_mode)
 
 
 async def _ask_category(
@@ -217,13 +223,15 @@ async def _ask_confirm(
     apartment = data.get("apartment", "")
     address_text = format_address(address, apartment) if address else apartment
     text = FORM_CONFIRM_PROMPT.format(
-        category=category_title,
-        address=address_text,
-        description=data.get("description", ""),
+        category=html.escape(category_title, quote=False),
+        address=html.escape(address_text, quote=False),
+        description=html.escape(data.get("description", ""), quote=False),
         photos=len(data.get("photo_ids", [])),
-        time=data.get("preferred_time") or FORM_TIME_NOT_SET,
+        time=html.escape(data.get("preferred_time") or FORM_TIME_NOT_SET, quote=False),
     )
-    await _render(event, context, RequestForm.confirm, text, confirm_keyboard())
+    await _render(
+        event, context, RequestForm.confirm, text, confirm_keyboard(), parse_mode=ParseMode.HTML
+    )
 
 
 @router.message_callback(F.callback.payload == FORM_START)
@@ -345,6 +353,10 @@ async def handle_building(
     await _ask_apartment(event, context)
 
 
+def _is_unsupported(message) -> bool:
+    return not message_text(message) and not image_urls(message)
+
+
 @router.message_created(RequestForm.apartment, NOT_A_COMMAND)
 async def handle_apartment(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
@@ -353,6 +365,9 @@ async def handle_apartment(
     building_id = (await context.get_data()).get("building_id")
     if building_id is None:
         await _ask_building(event, context, service)
+        return
+    if _is_unsupported(event.message):
+        await show_prompt(event, context, FORM_TEXT_ONLY, cancel_keyboard())
         return
     try:
         residence = await service.add_residence(user, building_id, message_text(event.message))
@@ -370,6 +385,9 @@ async def handle_apartment(
 async def handle_description(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
+    if _is_unsupported(event.message):
+        await show_prompt(event, context, FORM_TEXT_ONLY, cancel_keyboard())
+        return
     try:
         description = validate_description(message_text(event.message))
     except AppException as exc:
@@ -386,7 +404,8 @@ async def handle_photos(
     photo_ids = list((await context.get_data()).get("photo_ids", []))
     urls = image_urls(event.message)
     if not urls:
-        await show_prompt(event, context, FORM_PHOTOS_PROMPT, _photos_keyboard(photo_ids))
+        text = FORM_PHOTOS_ADDED.format(count=len(photo_ids)) if photo_ids else FORM_PHOTOS_PROMPT
+        await show_prompt(event, context, text, _photos_keyboard(photo_ids))
         return
 
     service = _service(db)
@@ -432,7 +451,12 @@ async def handle_photos_skip(
 async def handle_time(
     event: MessageCreated, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    await context.update_data(preferred_time=message_text(event.message) or None)
+    text = message_text(event.message)
+    if not text:
+        prompt = FORM_TIME_PROMPT if image_urls(event.message) else FORM_TEXT_ONLY
+        await show_prompt(event, context, prompt, time_keyboard())
+        return
+    await context.update_data(preferred_time=text)
     await _ask_confirm(event, context, _service(db))
 
 

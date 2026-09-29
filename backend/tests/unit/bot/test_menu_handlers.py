@@ -141,13 +141,13 @@ async def test_start_sends_welcome_with_main_menu(welcome_service: MagicMock):
     kwargs = event.message.answer.await_args.kwargs
     assert kwargs["text"] == "Добро пожаловать"
     assert len(kwargs["attachments"]) == 1
-    assert [row[0].payload for row in _keyboard_rows(kwargs["attachments"][0])] == [
-        "form:start",
-        "menu:tickets",
-        "menu:question",
-        "menu:emergency",
-        "menu:services",
-        "menu:payment",
+    assert [
+        [button.payload for button in row] for row in _keyboard_rows(kwargs["attachments"][0])
+    ] == [
+        ["form:start"],
+        ["menu:question", "menu:tickets"],
+        ["menu:payment", "menu:services"],
+        ["menu:emergency"],
     ]
 
 
@@ -164,7 +164,7 @@ async def test_start_sends_photo_before_main_menu(welcome_service: MagicMock):
     assert isinstance(attachments[0], AttachmentUpload)
     assert attachments[0].type == UploadType.IMAGE
     assert attachments[0].payload.token == "tok-1"
-    assert len(_keyboard_rows(attachments[1])) == 6
+    assert len(_keyboard_rows(attachments[1])) == 4
 
 
 async def test_start_retries_without_photo_when_max_rejects(welcome_service: MagicMock):
@@ -206,7 +206,7 @@ async def test_bot_started_sends_welcome_with_main_menu(welcome_service: MagicMo
     assert kwargs["chat_id"] == 7
     assert kwargs["text"] == "Добро пожаловать"
     assert len(kwargs["attachments"]) == 1
-    assert len(_keyboard_rows(kwargs["attachments"][0])) == 6
+    assert len(_keyboard_rows(kwargs["attachments"][0])) == 4
 
 
 async def test_bot_started_sends_photo_before_main_menu(welcome_service: MagicMock):
@@ -221,7 +221,7 @@ async def test_bot_started_sends_photo_before_main_menu(welcome_service: MagicMo
     assert len(attachments) == 2
     assert isinstance(attachments[0], AttachmentUpload)
     assert attachments[0].payload.token == "tok-1"
-    assert len(_keyboard_rows(attachments[1])) == 6
+    assert len(_keyboard_rows(attachments[1])) == 4
 
 
 async def test_bot_started_retries_without_photo_when_max_rejects(welcome_service: MagicMock):
@@ -280,7 +280,7 @@ async def test_main_callback_edits_with_welcome_and_main_menu(welcome_service: M
     kwargs = event.edit.await_args.kwargs
     assert kwargs["text"] == "Добро пожаловать"
     assert len(kwargs["attachments"]) == 1
-    assert len(_keyboard_rows(kwargs["attachments"][0])) == 6
+    assert len(_keyboard_rows(kwargs["attachments"][0])) == 4
 
 
 async def test_main_callback_edits_with_photo(welcome_service: MagicMock):
@@ -295,7 +295,7 @@ async def test_main_callback_edits_with_photo(welcome_service: MagicMock):
     assert len(attachments) == 2
     assert isinstance(attachments[0], AttachmentUpload)
     assert attachments[0].payload.token == "tok-1"
-    assert len(_keyboard_rows(attachments[1])) == 6
+    assert len(_keyboard_rows(attachments[1])) == 4
 
 
 async def test_main_callback_retries_without_photo_when_max_rejects(welcome_service: MagicMock):
@@ -426,7 +426,7 @@ async def test_free_text_prompts_to_use_menu():
     await menu.handle_free_text(event)
 
     assert event.message.answer.await_args.args[0] == USE_MENU_TEXT
-    assert len(_keyboard_rows(event.message.answer.await_args.kwargs["attachments"][0])) == 6
+    assert len(_keyboard_rows(event.message.answer.await_args.kwargs["attachments"][0])) == 4
 
 
 async def test_my_tickets_edits_with_ticket_lines(client_service: MagicMock) -> None:
@@ -637,7 +637,7 @@ async def test_main_menu_sends_welcome_with_photo(welcome_service: MagicMock) ->
     assert len(attachments) == 2
     assert isinstance(attachments[0], AttachmentUpload)
     assert attachments[0].payload.token == "tok-1"
-    assert len(_keyboard_rows(attachments[1])) == 6
+    assert len(_keyboard_rows(attachments[1])) == 4
     event.edit.assert_not_awaited()
 
 

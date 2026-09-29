@@ -21,12 +21,13 @@ from src.repositories.user_repository import UserRepository
 from src.services import ticket_rules
 
 EXPECTED_CATEGORIES = [
-    "Сантехника",
-    "Электрика",
-    "Лифт",
-    "Уборка",
-    "Благоустройство",
-    "Другое",
+    "🚰 Сантехника",
+    "⚡️ Электрика",
+    "🛗 Лифт",
+    "🔥 Отопление",
+    "🧹 Уборка",
+    "🌳 Благоустройство",
+    "❓ Другое",
 ]
 
 
@@ -38,13 +39,13 @@ async def test_seed_creates_demo_data(db: AsyncSession) -> None:
     await seed(db)
 
     assert await _count(db, Building) == 4
-    assert await _count(db, Category) == 6
+    assert await _count(db, Category) == 7
     assert await _count(db, ContentBlock) == 6
     assert await _count(db, User) == 3
 
     categories = (await db.execute(select(Category).order_by(Category.sort_order))).scalars().all()
     assert [category.title for category in categories] == EXPECTED_CATEGORIES
-    assert [category.sort_order for category in categories] == [1, 2, 3, 4, 5, 6]
+    assert [category.sort_order for category in categories] == [1, 2, 3, 4, 5, 6, 7]
 
     users = (await db.execute(select(User))).scalars().all()
     assert {user.role for user in users} == {UserRole.ADMIN, UserRole.MANAGER, UserRole.CLIENT}
@@ -59,7 +60,7 @@ async def test_seed_is_idempotent(db: AsyncSession) -> None:
     await seed(db)
 
     assert await _count(db, Building) == 4
-    assert await _count(db, Category) == 6
+    assert await _count(db, Category) == 7
     assert await _count(db, ContentBlock) == 6
     assert await _count(db, User) == 3
 
@@ -133,6 +134,10 @@ async def test_seed_creates_demo_tickets(db: AsyncSession) -> None:
     assert question.category_id is None
     assert question.building_id is None
     assert question.apartment is None
+
+    lift = next(ticket for ticket in tickets if ticket.description == LIFT_DESCRIPTION)
+    assert lift.category is not None
+    assert lift.category.title == "🛗 Лифт"
 
 
 async def test_seed_creates_primary_residence(db: AsyncSession) -> None:

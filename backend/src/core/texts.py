@@ -78,10 +78,10 @@ CHAT_UNSUPPORTED = "Пока я принимаю только текст и фо
 CHAT_PHOTOS_FAILED = "Часть фото не удалось добавить."
 CHAT_PHOTOS_ALL_FAILED = "Не удалось получить фото. Попробуйте ещё раз."
 CHAT_CHOOSE_TICKET = "К какой заявке относится сообщение?"
-CHAT_OFFER_QUESTION = "Открытых заявок нет. Создать вопрос с этим текстом?"
+CHAT_OFFER_QUESTION = "Открытых заявок нет — оформить это как вопрос?"
 CHAT_TEXT_REQUIRED = (
-    "Открытых заявок нет. Чтобы задать вопрос, напишите его текстом. "
-    "Чтобы сообщить о проблеме, нажмите «Подать заявку»."
+    "Сейчас у вас нет открытых заявок. Хотите спросить — напишите вопрос текстом, "
+    "а если нужно сообщить о проблеме — нажмите «Подать заявку»."
 )
 CHAT_NOT_SENT = "Сообщение не отправлено."
 QUESTION_SENT = "Вопрос №{ticket_id} отправлен."
@@ -244,7 +244,7 @@ def ticket_button_label(ticket_type: TicketType, ticket_id: int, category_title:
 
 # Client request form (bot)
 
-FORM_START_BUTTON = "Подать заявку"
+FORM_START_BUTTON = "📝 Подать заявку"
 FORM_CONTACT_BUTTON = "Поделиться контактом"
 FORM_CANCEL_BUTTON = "Отменить"
 FORM_ADDRESS_OK_BUTTON = "Верно"
@@ -257,27 +257,35 @@ FORM_SEND_BUTTON = "Отправить"
 
 FORM_PHOTOS_MAX = 10
 
-FORM_PHONE_PROMPT = "Поделитесь номером телефона — нажмите кнопку ниже."
-FORM_PHONE_OWN_TEXT = "Нужен ваш собственный номер. Нажмите «Поделиться контактом»."
+FORM_PHONE_PROMPT = (
+    "Для решения проблемы нам может понадобиться ваш номер — укажите его кнопкой ниже."
+)
+FORM_PHONE_OWN_TEXT = "Нужен именно ваш номер — нажмите «Поделиться контактом»."
+FORM_TEXT_ONLY = "Голосовые и файлы я пока не понимаю — напишите текстом."
 FORM_CATEGORY_PROMPT = "Выберите категорию обращения."
-FORM_ADDRESS_PROMPT = "Адрес: {address}.\nВсё верно?"
+FORM_ADDRESS_PROMPT = "Оформляем на адрес:\n{address}\n\nВсё верно?"
 FORM_ADDRESS_OTHER_PROMPT = "Выберите адрес из списка или добавьте новый."
-FORM_BUILDING_PROMPT = "Выберите дом."
-FORM_APARTMENT_PROMPT = "Напишите номер квартиры."
-FORM_DESCRIPTION_PROMPT = "Опишите проблему."
-FORM_PHOTOS_PROMPT = "Пришлите фото — можно несколько. Если фото нет, нажмите «Пропустить»."
+FORM_BUILDING_PROMPT = "Выберите ваш дом из списка ниже."
+FORM_APARTMENT_PROMPT = "Напишите номер вашей квартиры."
+# Max delivers a voice message to the bot as an empty update without a sender, so the bot cannot
+# answer it: the prompts where the client types warn in advance.
+FORM_DESCRIPTION_PROMPT = "Что произошло? Опишите проблему текстом — голосовые я пока не понимаю."
+FORM_PHOTOS_PROMPT = (
+    "Приложите фото, если есть — это поможет быстрее разобраться в проблеме (можно несколько).\n\n"
+    "Нет фото? Нажмите «Пропустить»."
+)
 FORM_PHOTOS_ADDED = "Фото добавлено: {count}. Пришлите ещё или нажмите «Готово»."
 FORM_PHOTOS_LIMIT = "Можно прикрепить не больше {max} фото. Добавлено: {count}."
 FORM_PHOTO_FAILED = "Не удалось добавить фото. Добавлено: {count}."
-FORM_TIME_PROMPT = "Напишите удобное время визита или нажмите «Пропустить»."
+FORM_TIME_PROMPT = "Когда вам удобно принять мастера?\n\nПока не знаете — нажмите «Пропустить»."
 FORM_TIME_NOT_SET = "не указано"
 FORM_CONFIRM_PROMPT = (
-    "Проверьте заявку:\n\n"
-    "Категория: {category}\n"
-    "Адрес: {address}\n"
-    "Описание: {description}\n"
-    "Фото: {photos}\n"
-    "Время: {time}\n\n"
+    "🔎 <b>Проверьте заявку</b>\n\n"
+    "<b>Категория:</b> {category}\n"
+    "<b>Адрес:</b> {address}\n"
+    "<b>Описание:</b> {description}\n"
+    "<b>Фото:</b> {photos}\n"
+    "<b>Время:</b> {time}\n\n"
     "Отправляем?"
 )
 FORM_SENT = "Заявка №{ticket_id} отправлена."
@@ -287,18 +295,23 @@ FORM_CANCELLED = "Заявка отменена."
 
 MAIN_MENU_BUTTON = "Главное меню"
 
-MY_TICKETS_BUTTON = "Мои заявки"
-QUESTION_BUTTON = "Задать вопрос"
+MY_TICKETS_BUTTON = "📋 Мои заявки"
+QUESTION_BUTTON = "💬 Задать вопрос"
+PAYMENT_BUTTON = "💳 Оплата ЖКХ"
+SERVICES_BUTTON = "🛠️ Услуги УК"
+EMERGENCY_BUTTON = "🚨 Аварийные службы"
 
 MY_TICKETS_LIMIT = 10
 MY_TICKETS_TITLE = "Ваши заявки:"
-MY_TICKETS_EMPTY = "У вас пока нет заявок."
+MY_TICKETS_EMPTY = "Заявок пока нет. Если что-то случилось — нажмите «Подать заявку»."
 MY_TICKETS_WRITE_BUTTON = "Написать по {label}"
 
-QUESTION_SECTION_DEFAULT = "Задайте вопрос — ответим здесь, в чате."
+QUESTION_SECTION_DEFAULT = "Есть вопрос? Напишите — ответим прямо здесь."
 QUESTION_WRITE_BUTTON = "Написать вопрос"
 
-QUESTION_PROMPT = "Напишите вопрос одним сообщением. Можно приложить фото."
+QUESTION_PROMPT = (
+    "Напишите вопрос одним сообщением — текстом, можно с фото. Голосовые я пока не понимаю."
+)
 QUESTION_TEXT_REQUIRED = "Напишите вопрос текстом — фото можно приложить к нему."
 QUESTION_CANCELLED = "Вопрос не отправлен."
 
