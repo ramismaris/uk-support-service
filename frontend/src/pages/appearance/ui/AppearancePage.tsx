@@ -1,7 +1,8 @@
 import { Button } from '@maxhub/max-ui'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, SearchX, TriangleAlert } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useDraftKey } from '@/entities/session'
 import {
   applyTheme,
   themeFromResponse,
@@ -11,10 +12,13 @@ import {
 } from '@/entities/theme'
 import { ImagePicker, type ImageValue } from '@/features/upload-image'
 import { contrastWithWhite, LOW_CONTRAST } from '@/shared/lib/color'
+import { browserStorage, clearDraft, readDraft, useDraftSaver } from '@/shared/lib/drafts'
+import { DraftNotice } from '@/shared/ui/draft-notice'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { NavMenuButton } from '@/widgets/app-shell'
 import { saveTheme } from '../api/save-theme'
 import { PALETTE } from '../lib/palette'
+import { restoreTheme, storableTheme } from '../lib/persisted'
 import { NAME_LIMIT, validateTheme } from '../lib/validate'
 import { ColorPicker } from './ColorPicker'
 import { ThemePreview } from './ThemePreview'
@@ -55,13 +59,39 @@ interface FormProps {
   onSaved: (saved: boolean) => void
 }
 
+function readSaved(key: string | null, saved: Draft): Draft | null {
+  const envelope = key && readDraft(browserStorage(), key, (raw) => raw)
+  const restored = envelope ? restoreTheme(saved, envelope.data) : null
+  return restored && !sameDraft(saved, restored) ? restored : null
+}
+
 function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
   const queryClient = useQueryClient()
-  const [draft, setDraft] = useState(saved)
+  const storageKey = useDraftKey('appearance')
+  const [restoredDraft] = useState(() => readSaved(storageKey, saved))
+  const [draft, setDraft] = useState(restoredDraft ?? saved)
+  const [restored, setRestored] = useState(restoredDraft !== null)
   const [showErrors, setShowErrors] = useState(false)
+
+  const storable = useMemo(() => storableTheme(draft), [draft])
+  useDraftSaver(storageKey, storable, (value) => sameDraft(saved, { ...saved, ...value }))
+
+  const forgetDraft = () => {
+    if (storageKey) {
+      clearDraft(browserStorage(), storageKey)
+    }
+  }
+
+  const resetDraft = () => {
+    forgetDraft()
+    setDraft(saved)
+    setRestored(false)
+  }
+
   const save = useMutation({
     mutationFn: saveTheme,
     onSuccess: (response) => {
+      forgetDraft()
       queryClient.setQueryData(themeKeys.current, response)
       applyTheme(themeFromResponse(response))
       onSaved(true)
@@ -100,6 +130,7 @@ function ThemeForm({ saved, justSaved, onSaved }: FormProps) {
           submit()
         }}
       >
+        {restored && <DraftNotice onReset={resetDraft} />}
         <label className="flex flex-col gap-1.5">
           <span className="flex items-baseline justify-between gap-2 text-sm">
             <span className="font-medium">Название компании</span>

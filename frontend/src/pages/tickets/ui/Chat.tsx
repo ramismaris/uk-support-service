@@ -219,7 +219,7 @@ export function Chat({ ticket }: { ticket: TicketDetail }) {
       {notice ? (
         <div className="border-t border-line p-4 text-center text-sm text-fg-3">{notice}</div>
       ) : (
-        <Composer ticketId={ticket.id} />
+        <Composer key={ticket.id} ticketId={ticket.id} />
       )}
     </div>
   )

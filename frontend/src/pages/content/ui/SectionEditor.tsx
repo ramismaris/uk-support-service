@@ -2,11 +2,15 @@ import { Button } from '@maxhub/max-ui'
 import { ChevronLeft, FileQuestion, Plus, SearchX, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useBlocker, useParams } from 'react-router'
+import { useDraftKey } from '@/entities/session'
 import { ImagePicker } from '@/features/upload-image'
 import { routePaths } from '@/shared/config'
+import { browserStorage, clearDraft, readDraft, useDraftSaver } from '@/shared/lib/drafts'
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog'
+import { DraftNotice } from '@/shared/ui/draft-notice'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { draftSignature, isDirty } from '../lib/dirty'
+import { restoreSectionDraft, storableDraft } from '../lib/persisted'
 import { botPreview } from '../lib/preview'
 import {
   draftsFromContent,
@@ -124,10 +128,37 @@ function PhonesField({
   )
 }
 
+function readSaved(key: string | null, section: Section, saved: AnyDraft): AnyDraft | null {
+  const envelope = key && readDraft(browserStorage(), key, (raw) => raw)
+  const restored = envelope ? restoreSectionDraft(section, saved, envelope.data) : null
+  return restored && isDirty(saved, restored) ? restored : null
+}
+
 function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
-  const [draft, setDraft] = useState<AnyDraft>(saved)
+  const storageKey = useDraftKey(`content:${section}`)
+  const [restoredDraft] = useState(() => readSaved(storageKey, section, saved))
+  const [draft, setDraft] = useState<AnyDraft>(restoredDraft ?? saved)
+  const [restored, setRestored] = useState(restoredDraft !== null)
   const [showErrors, setShowErrors] = useState(false)
   const save = useSaveSection(section)
+
+  const storable = useMemo(() => storableDraft(draft), [draft])
+  useDraftSaver(storageKey, storable, (value) => !isDirty(storableDraft(saved), value))
+
+  const forgetDraft = () => {
+    if (storageKey) {
+      clearDraft(browserStorage(), storageKey)
+    }
+  }
+
+  // The editor reads its text only when it mounts, so a reset needs a fresh one.
+  const [resetCount, setResetCount] = useState(0)
+  const resetDraft = () => {
+    forgetDraft()
+    setDraft(saved)
+    setRestored(false)
+    setResetCount(resetCount + 1)
+  }
 
   const errors = useMemo(() => validateSection(section, draft), [section, draft])
   const dirty = isDirty(saved, draft)
@@ -157,7 +188,12 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
     if (!valid) {
       return
     }
-    save.mutate(draft as never, { onSuccess: () => onSaved(true) })
+    save.mutate(draft as never, {
+      onSuccess: () => {
+        forgetDraft()
+        onSaved(true)
+      },
+    })
   }
 
   const preview = botPreview(section, draft as never)
@@ -172,6 +208,7 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
           submit()
         }}
       >
+        {restored && <DraftNotice onReset={resetDraft} />}
         {section === 'welcome' && (
           <ImagePicker
             label="Фото"
@@ -181,6 +218,7 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
           />
         )}
         <TextField
+          key={resetCount}
           label="Текст"
           formatting
           value={draft.text}
@@ -238,7 +276,10 @@ function SectionForm({ section, saved, justSaved, onSaved }: FormProps) {
         text="Изменения в этом разделе пропадут."
         confirmLabel="Уйти"
         destructive
-        onConfirm={() => blocker.proceed?.()}
+        onConfirm={() => {
+          forgetDraft()
+          blocker.proceed?.()
+        }}
         onCancel={() => blocker.reset?.()}
       />
     </div>

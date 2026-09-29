@@ -1,13 +1,20 @@
 import { LoaderCircle, Paperclip, SendHorizontal } from 'lucide-react'
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useDraftKey } from '@/entities/session'
+import { browserStorage, readDraft, useDraftSaver } from '@/shared/lib/drafts'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
 import { pastedImages } from '../lib/attach'
+import { composerDraftKey, parseComposerText } from '../lib/composer-draft'
 import { hasContent, MESSAGE_TEXT_LIMIT, validateMessage } from '../lib/message-rules'
 import { useSendMessage } from '../model/use-send-message'
 import { AttachDialog } from './AttachDialog'
 
 export function Composer({ ticketId }: { ticketId: number }) {
-  const [text, setText] = useState('')
+  const storageKey = useDraftKey(composerDraftKey(ticketId))
+  const [text, setText] = useState(
+    () => (storageKey && readDraft(browserStorage(), storageKey, parseComposerText)?.data) || '',
+  )
+  useDraftSaver(storageKey, text, (value) => value.trim() === '')
   const [files, setFiles] = useState<File[]>([])
   // Bumped on every successful send to replay the "sent" check inside the button.
   const [sentCount, setSentCount] = useState(0)

@@ -1,12 +1,21 @@
 import { Button } from '@maxhub/max-ui'
 import { motion, useReducedMotion, type Variants } from 'framer-motion'
 import { Eye, History as HistoryIcon, Megaphone, SearchX } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useDraftKey } from '@/entities/session'
 import type { ImageValue } from '@/features/upload-image'
+import { browserStorage, clearDraft, readDraft, useDraftSaver } from '@/shared/lib/drafts'
 import { Card } from '@/shared/ui/card'
 import { BotMessage } from '@/shared/ui/bot-message'
+import { DraftNotice } from '@/shared/ui/draft-notice'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { NavMenuButton } from '@/widgets/app-shell'
+import {
+  isBroadcastEmpty,
+  parseBroadcastDraft,
+  restoreBroadcast,
+  type BroadcastDraftState,
+} from '../lib/persisted'
 import type { Draft } from '../lib/validate'
 import { useBroadcasts } from '../model/use-broadcasts'
 import { ComposeForm } from './ComposeForm'
@@ -33,19 +42,34 @@ function Preview({ draft, photo }: { draft: Draft; photo: ImageValue | null }) {
   )
 }
 
+function readSaved(key: string | null): BroadcastDraftState | null {
+  const envelope = key && readDraft(browserStorage(), key, parseBroadcastDraft)
+  return envelope ? restoreBroadcast(envelope) : null
+}
+
 export function BroadcastPage() {
   const reduceMotion = useReducedMotion()
   const history = useBroadcasts()
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
-  const [photo, setPhoto] = useState<ImageValue | null>(null)
+  const storageKey = useDraftKey('broadcast')
+  const [saved] = useState(() => readSaved(storageKey))
+  const [draft, setDraft] = useState<Draft>(saved?.draft ?? EMPTY_DRAFT)
+  const [photo, setPhoto] = useState<ImageValue | null>(saved?.photo ?? null)
+  const [restored, setRestored] = useState(saved !== null)
   // A new key remounts the form, and with it the editor, which reads its text only once.
   const [formKey, setFormKey] = useState(0)
 
+  const state = useMemo(() => ({ draft, photo }), [draft, photo])
+  useDraftSaver(storageKey, state, isBroadcastEmpty)
+
   const busy = history.data?.items.some((item) => item.status === 'SENDING') ?? false
 
-  const sent = () => {
+  const clear = () => {
+    if (storageKey) {
+      clearDraft(browserStorage(), storageKey)
+    }
     setDraft(EMPTY_DRAFT)
     setPhoto(null)
+    setRestored(false)
     setFormKey(formKey + 1)
   }
 
@@ -80,7 +104,8 @@ export function BroadcastPage() {
         initial={reduceMotion ? false : 'hidden'}
         animate="shown"
       >
-        <Card title="Новая рассылка" icon={Megaphone} bodyClassName="p-5">
+        <Card title="Новая рассылка" icon={Megaphone} bodyClassName="gap-4 p-5">
+          {restored && <DraftNotice onReset={clear} />}
           <ComposeForm
             key={formKey}
             draft={draft}
@@ -88,7 +113,7 @@ export function BroadcastPage() {
             busy={busy}
             onDraft={setDraft}
             onPhoto={setPhoto}
-            onSent={sent}
+            onSent={clear}
           />
         </Card>
         <div className="xl:sticky xl:top-6">
