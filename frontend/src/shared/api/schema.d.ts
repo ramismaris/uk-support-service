@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dashboard */
+        get: operations["get_dashboard_api_v1_admin_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -474,6 +491,94 @@ export interface components {
             contacts?: components["schemas"]["ContactsContent"] | null;
             theme?: components["schemas"]["ThemeContentResponse"] | null;
         };
+        /** CountMetric */
+        CountMetric: {
+            /** Value */
+            value: number;
+            /** Previous */
+            previous: number;
+        };
+        /** DashboardCategory */
+        DashboardCategory: {
+            /** Category Id */
+            category_id: number;
+            /** Title */
+            title: string;
+            /** Created */
+            created: number;
+            /** Resolution Hours */
+            resolution_hours: number | null;
+        };
+        /** DashboardDay */
+        DashboardDay: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Created */
+            created: number;
+            /** Closed */
+            closed: number;
+        };
+        /** DashboardNow */
+        DashboardNow: {
+            /** New */
+            new: number;
+            /** In Progress */
+            in_progress: number;
+            /** Waiting Client */
+            waiting_client: number;
+            /** Overdue */
+            overdue: number;
+        };
+        /** DashboardQuestions */
+        DashboardQuestions: {
+            /** Created */
+            created: number;
+            /** Resolution Hours */
+            resolution_hours: number | null;
+        };
+        /** DashboardResponse */
+        DashboardResponse: {
+            /** Period Days */
+            period_days: number;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            sla: components["schemas"]["DashboardSla"];
+            now: components["schemas"]["DashboardNow"];
+            summary: components["schemas"]["DashboardSummary"];
+            /** Daily */
+            daily: components["schemas"]["DashboardDay"][];
+            /** Categories */
+            categories: components["schemas"]["DashboardCategory"][];
+            questions: components["schemas"]["DashboardQuestions"];
+        };
+        /** DashboardSla */
+        DashboardSla: {
+            /** Reaction Hours */
+            reaction_hours: number;
+            /** Resolution Hours */
+            resolution_hours: number;
+        };
+        /** DashboardSummary */
+        DashboardSummary: {
+            created: components["schemas"]["CountMetric"];
+            closed: components["schemas"]["CountMetric"];
+            reaction_minutes: components["schemas"]["ValueMetric"];
+            resolution_hours: components["schemas"]["ValueMetric"];
+            reaction_on_time: components["schemas"]["ValueMetric"];
+            resolution_on_time: components["schemas"]["ValueMetric"];
+            rating: components["schemas"]["RatingMetric"];
+        };
         /** DevLoginRequest */
         DevLoginRequest: {
             /** Max User Id */
@@ -547,6 +652,15 @@ export interface components {
             url: string;
             /** Button Text */
             button_text: string;
+        };
+        /** RatingMetric */
+        RatingMetric: {
+            /** Value */
+            value: number | null;
+            /** Previous */
+            previous: number | null;
+            /** Count */
+            count: number;
         };
         /**
          * SenderType
@@ -735,6 +849,13 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** ValueMetric */
+        ValueMetric: {
+            /** Value */
+            value: number | null;
+            /** Previous */
+            previous: number | null;
         };
         /** WelcomeContentResponse */
         WelcomeContentResponse: {
@@ -999,6 +1120,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dashboard_api_v1_admin_dashboard_get: {
+        parameters: {
+            query?: {
+                period?: 7 | 30 | 90;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
                 };
             };
             /** @description Validation Error */
