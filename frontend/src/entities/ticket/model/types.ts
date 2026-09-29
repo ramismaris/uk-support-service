@@ -7,7 +7,7 @@ export type TicketType = components['schemas']['TicketType']
 export type ActiveTicketStatus = 'NEW' | 'IN_PROGRESS' | 'WAITING_CLIENT'
 
 export interface TicketFilters {
-  status: ActiveTicketStatus | null
+  status: TicketStatus | null
   mine: boolean
 }
 

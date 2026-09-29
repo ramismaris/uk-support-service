@@ -1,13 +1,15 @@
 import { WifiOff } from 'lucide-react'
-import type { ActiveTicketStatus, TicketFilters } from '@/entities/ticket'
+import type { TicketFilters, TicketStatus } from '@/entities/ticket'
 import { useSocketStatus } from '@/shared/lib/ws'
 import { NavMenuButton } from '@/widgets/app-shell'
 
-const STATUS_OPTIONS: { value: ActiveTicketStatus | null; label: string }[] = [
+const STATUS_OPTIONS: { value: TicketStatus | null; label: string }[] = [
   { value: null, label: 'Все' },
   { value: 'NEW', label: 'Новые' },
   { value: 'IN_PROGRESS', label: 'В работе' },
   { value: 'WAITING_CLIENT', label: 'Ждём жильца' },
+  { value: 'CLOSED', label: 'Закрытые' },
+  { value: 'REJECTED', label: 'Отклонённые' },
 ]
 
 interface TicketFiltersBarProps {

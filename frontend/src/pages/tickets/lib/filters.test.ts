@@ -13,8 +13,15 @@ describe('parseTicketFilters', () => {
     expect(parseTicketFilters(new URLSearchParams(''))).toEqual({ status: null, mine: false })
   })
 
+  it.each(['CLOSED', 'REJECTED'] as const)('reads the archive status %s', (status) => {
+    expect(parseTicketFilters(new URLSearchParams(`status=${status}`))).toEqual({
+      status,
+      mine: false,
+    })
+  })
+
   it('drops values the list cannot filter by', () => {
-    expect(parseTicketFilters(new URLSearchParams('status=CLOSED&mine=yes'))).toEqual({
+    expect(parseTicketFilters(new URLSearchParams('status=ARCHIVED&mine=yes'))).toEqual({
       status: null,
       mine: false,
     })
@@ -29,8 +36,11 @@ describe('ticketFiltersToSearch', () => {
     expect(ticketFiltersToSearch({ status: null, mine: false }).toString()).toBe('')
   })
 
-  it('round-trips', () => {
-    const filters = { status: 'IN_PROGRESS', mine: false } as const
-    expect(parseTicketFilters(ticketFiltersToSearch(filters))).toEqual(filters)
-  })
+  it.each(['NEW', 'IN_PROGRESS', 'WAITING_CLIENT', 'CLOSED', 'REJECTED'] as const)(
+    'round-trips %s',
+    (status) => {
+      const filters = { status, mine: false }
+      expect(parseTicketFilters(ticketFiltersToSearch(filters))).toEqual(filters)
+    },
+  )
 })
