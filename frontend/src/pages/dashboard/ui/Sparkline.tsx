@@ -13,7 +13,8 @@ export function Sparkline({ values, color }: { values: number[]; color: string }
   return (
     <svg
       viewBox={`-1 -2 ${WIDTH + 2} ${HEIGHT + 4}`}
-      className="h-8 w-24 shrink-0 overflow-visible"
+      preserveAspectRatio="none"
+      className="h-8 w-24 shrink-0 overflow-visible @sm:h-12 @sm:w-32 @xl:h-16 @xl:w-56"
       aria-hidden="true"
     >
       <path d={`${path} L${WIDTH},${HEIGHT} L0,${HEIGHT} Z`} fill={color} fillOpacity={0.1} />

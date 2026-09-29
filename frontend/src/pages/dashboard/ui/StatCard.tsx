@@ -31,12 +31,12 @@ export function StatCard({
       <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-[32px] leading-9 font-semibold">
+            <span className="text-[32px] leading-9 font-semibold @sm:text-5xl @sm:leading-none @xl:text-6xl">
               {value === null ? '—' : <AnimatedNumber value={value} format={format} />}
             </span>
             {comparison && <Delta comparison={comparison} />}
           </span>
-          {note && <span className="text-xs text-fg-3">{note}</span>}
+          {note && <span className="text-xs text-fg-3 @sm:text-sm">{note}</span>}
         </div>
         {chart}
       </div>

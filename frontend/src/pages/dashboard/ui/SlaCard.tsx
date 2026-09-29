@@ -28,7 +28,7 @@ function SlaRow({ label, hours, previousHours, normHours, onTime }: SlaRowProps)
         <span className="text-xs text-fg-3">норма {normHours} ч</span>
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-[28px] leading-8 font-semibold">
+        <span className="text-[28px] leading-8 font-semibold @2xl:text-4xl @2xl:leading-10">
           {hours === null ? '—' : <AnimatedNumber value={hours} format={formatDuration} />}
         </span>
         {comparison && <Delta comparison={comparison} />}

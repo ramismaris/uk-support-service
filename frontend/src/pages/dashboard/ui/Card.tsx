@@ -31,7 +31,7 @@ export function Card({
         {aside && <div className="ml-auto flex items-center text-xs text-fg-3">{aside}</div>}
       </header>
       <div
-        className={`flex flex-1 flex-col rounded-xl bg-layer p-4 ring-1 ring-line ${bodyClassName}`}
+        className={`@container flex flex-1 flex-col rounded-xl bg-layer p-4 ring-1 ring-line ${bodyClassName}`}
       >
         {children}
       </div>
