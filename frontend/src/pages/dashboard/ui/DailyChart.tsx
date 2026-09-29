@@ -1,7 +1,8 @@
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,13 +33,22 @@ function ChartTooltip({ active, payload, label }: TooltipContentProps) {
   )
 }
 
+const [created, closed] = SERIES
+
+const activeDot = (color: string) => ({
+  r: 4,
+  fill: color,
+  stroke: 'var(--background-primary)',
+  strokeWidth: 2,
+})
+
 const axisTick = { fill: 'var(--text-tertiary)', fontSize: 12 }
 
 // Lines rather than columns: 90 days of paired columns would be a few pixels each.
 export default function DailyChart({ days }: { days: DashboardDay[] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={days} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+      <ComposedChart data={days} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
         <CartesianGrid vertical={false} stroke="var(--background-tertiary)" />
         <XAxis
           dataKey="date"
@@ -55,27 +65,31 @@ export default function DailyChart({ days }: { days: DashboardDay[] }) {
           cursor={{ stroke: 'var(--text-tertiary)', strokeWidth: 1 }}
           isAnimationActive={false}
         />
-        {SERIES.map((series) => (
-          <Line
-            key={series.key}
-            dataKey={series.key}
-            name={series.label}
-            type="linear"
-            stroke={series.color}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            dot={false}
-            activeDot={{
-              r: 4,
-              fill: series.color,
-              stroke: 'var(--background-primary)',
-              strokeWidth: 2,
-            }}
-            animationDuration={400}
-          />
-        ))}
-      </LineChart>
+        {/* A light wash under "created": the load is what the eye should find first. */}
+        <Area
+          dataKey="created"
+          name={created.label}
+          type="linear"
+          stroke={created.color}
+          strokeWidth={2}
+          fill={created.color}
+          fillOpacity={0.1}
+          activeDot={activeDot(created.color)}
+          animationDuration={600}
+        />
+        <Line
+          dataKey="closed"
+          name={closed.label}
+          type="linear"
+          stroke={closed.color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          dot={false}
+          activeDot={activeDot(closed.color)}
+          animationDuration={600}
+        />
+      </ComposedChart>
     </ResponsiveContainer>
   )
 }

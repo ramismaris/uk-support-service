@@ -17,5 +17,5 @@ export type {
   TicketPage,
   TicketStatus,
 } from './model/types'
-export { TicketStatusBadge } from './ui/TicketStatusBadge'
+export { TicketStatusBadge, TicketStatusIcon } from './ui/TicketStatusBadge'
 export { UrgentMark } from './ui/UrgentMark'

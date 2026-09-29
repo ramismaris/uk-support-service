@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import type { components } from '@/shared/api'
 import type { DashboardCategory } from '../api/dashboard'
 import { formatDuration } from '../lib/metrics'
@@ -15,6 +16,7 @@ function Row({
   resolutionHours: number | null
   max: number
 }) {
+  const reduceMotion = useReducedMotion()
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_3rem_4.5rem] items-center gap-x-3 gap-y-1.5 py-2 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_3rem_4.5rem]">
       <span className="truncate text-sm" title={title}>
@@ -22,9 +24,11 @@ function Row({
       </span>
       {/* One colour for every bar: the length already tells the amount. */}
       <span className="col-span-3 row-start-2 h-1.5 rounded-full bg-fill sm:col-span-1 sm:row-start-auto">
-        <span
-          className="block h-full rounded-full bg-brand"
-          style={{ width: max > 0 ? `${(created / max) * 100}%` : 0 }}
+        <motion.span
+          className="block h-full origin-left rounded-full bg-brand"
+          initial={reduceMotion ? false : { scaleX: 0 }}
+          animate={{ scaleX: max > 0 ? created / max : 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         />
       </span>
       <span className="text-right text-sm font-medium tabular-nums">{created}</span>

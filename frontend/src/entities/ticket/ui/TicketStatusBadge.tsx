@@ -22,3 +22,9 @@ export function TicketStatusBadge({ status }: { status: TicketStatus }) {
     </span>
   )
 }
+
+// The badge's icon alone, in the status colour: for counters that already carry a label.
+export function TicketStatusIcon({ status, size = 14 }: { status: TicketStatus; size?: number }) {
+  const Icon = statusIcons[status]
+  return <Icon size={size} strokeWidth={2.25} aria-hidden="true" className={statusColors[status]} />
+}
