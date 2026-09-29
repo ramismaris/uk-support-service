@@ -6,8 +6,8 @@ import { useMe, useSessionStore } from '@/entities/session'
 import { useLoginByMax } from '@/features/auth-by-max'
 import { routePaths } from '@/shared/config'
 import { isInMax } from '@/shared/lib/max-bridge'
-import { SplashScreen } from '@/shared/ui/splash-screen'
 import { StatusScreen } from '@/shared/ui/status-screen'
+import { BrandSplash } from '@/widgets/app-shell'
 import { resolveSessionState } from './session-state'
 
 export function SessionGate() {
@@ -59,7 +59,7 @@ export function SessionGate() {
     case 'unauthenticated':
       return <Navigate to={routePaths.login} replace />
     case 'loading':
-      return <SplashScreen />
+      return <BrandSplash />
     case 'blocked':
       return (
         <StatusScreen

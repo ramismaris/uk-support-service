@@ -2,6 +2,7 @@ export { fetchTheme, themeKeys, useBrandColor, useBrandTheme, useTheme } from '.
 export {
   applyTheme,
   DEFAULT_THEME,
+  paintTheme,
   readCachedTheme,
   themeFromResponse,
   type BrandTheme,

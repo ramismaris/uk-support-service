@@ -31,8 +31,9 @@ export function useTheme(enabled = true) {
 }
 
 // The theme to show right now: the loaded one, or the last known one while loading.
-export function useBrandTheme(): BrandTheme {
-  const theme = useTheme()
+// enabled is off before sign-in: GET /theme needs a token, and only the cache is available.
+export function useBrandTheme(enabled = true): BrandTheme {
+  const theme = useTheme(enabled)
   return theme.isSuccess ? themeFromResponse(theme.data) : readCachedTheme()
 }
 
