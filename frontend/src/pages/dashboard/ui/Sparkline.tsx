@@ -4,7 +4,6 @@ import { sparklinePath } from '../lib/sparkline'
 const WIDTH = 96
 const HEIGHT = 32
 
-// The period's days at a glance, next to the total; plain SVG, no chart library.
 export function Sparkline({ values, color }: { values: number[]; color: string }) {
   const reduceMotion = useReducedMotion()
   const path = sparklinePath(values, WIDTH, HEIGHT)

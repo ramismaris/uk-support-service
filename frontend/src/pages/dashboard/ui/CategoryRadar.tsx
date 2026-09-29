@@ -20,7 +20,6 @@ interface Point {
   hours: number | null
 }
 
-// What recharts hands a custom tick; coordinates may come as strings.
 interface TickProps {
   x?: string | number
   y?: string | number
@@ -56,7 +55,6 @@ function RadarTooltip({ active, payload }: TooltipContentProps) {
   )
 }
 
-// A polygon with one corner per category: the farther a corner from the centre, the more requests.
 export default function CategoryRadar({ rows }: { rows: CategoryRow[] }) {
   const points: Point[] = rows.map((row) => ({
     ...splitCategoryTitle(row.title),
@@ -65,7 +63,6 @@ export default function CategoryRadar({ rows }: { rows: CategoryRow[] }) {
     hours: row.hours,
   }))
 
-  // The corners carry the emoji, the full name and numbers are in the tooltip: no cut-off words.
   const tick = ({ x = 0, y = 0, textAnchor, index = 0 }: TickProps) => {
     const point = points[index]
     return (
@@ -88,13 +85,13 @@ export default function CategoryRadar({ rows }: { rows: CategoryRow[] }) {
         data={points}
         outerRadius="76%"
         margin={{ top: 8, right: 8, bottom: 8, left: 8 }}
-        // Not focusable: a tap must not draw a focus frame; the list view has the same numbers.
+        // No focus frame on tap.
         accessibilityLayer={false}
       >
         <PolarGrid stroke="var(--text-tertiary)" strokeOpacity={0.35} />
         <PolarAngleAxis dataKey="name" tick={tick} />
         <PolarRadiusAxis domain={[0, 'dataMax']} tick={false} axisLine={false} />
-        {/* No cursor: the default one is a white frame and a line, the active dot marks the corner. */}
+        {/* The default cursor draws a white frame. */}
         <Tooltip content={RadarTooltip} cursor={false} isAnimationActive={false} />
         <Radar
           dataKey="created"

@@ -4,10 +4,8 @@ export interface CategoryRow {
   id: number
   title: string
   created: number
-  // Of all requests in the period, 0..1.
   share: number
   hours: number | null
-  // Solving takes longer than the norm.
   slow: boolean
 }
 

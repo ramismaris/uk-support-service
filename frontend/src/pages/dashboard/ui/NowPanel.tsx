@@ -52,7 +52,6 @@ const statusCounter = (status: ActiveTicketStatus) => ({
   icon: <TicketStatusIcon status={status} size={14} />,
 })
 
-// The newest open tickets: the dashboard is also a way into the work itself.
 function RecentTickets() {
   const list = useTicketList({ status: null, mine: false })
   const tickets = list.data?.pages[0]?.items.slice(0, RECENT_COUNT) ?? []

@@ -7,7 +7,6 @@ const deltaStyle: Record<Comparison['tone'], string> = {
   neutral: 'bg-fill text-fg-3',
 }
 
-// The change against the previous period; the colour says whether it is good.
 export function Delta({ comparison }: { comparison: Comparison }) {
   const Icon = comparison.text.startsWith('+')
     ? ArrowUpRight

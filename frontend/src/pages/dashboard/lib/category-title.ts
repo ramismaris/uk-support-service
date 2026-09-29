@@ -3,9 +3,9 @@ export interface CategoryTitle {
   name: string
 }
 
-// Titles come from the bot's menu with the emoji first ("🔧 Сантехника"). \p{Extended_Pictographic}
-// leaves digits out, and the tail takes variation selectors and joiners so the emoji stays whole.
-const LEADING_EMOJI = /^(\p{Extended_Pictographic}[️‍\p{Extended_Pictographic}]*)\s*(.*)$/su
+// The leading emoji with its variation selectors and joiners.
+const LEADING_EMOJI =
+  /^(\p{Extended_Pictographic}[\uFE0F\u200D\p{Extended_Pictographic}]*)\s*(.*)$/su
 
 export function splitCategoryTitle(title: string): CategoryTitle {
   const match = LEADING_EMOJI.exec(title)

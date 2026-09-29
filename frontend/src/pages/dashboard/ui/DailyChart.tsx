@@ -47,8 +47,6 @@ const activeDot = (color: string) => ({
 
 const [created, closed] = SERIES
 
-// Bars while every day gets room for a pair of them; lines when the days are too many for the
-// width (a phone, or 90 days), where the same bars would be a fence of hairlines.
 export default function DailyChart({ days }: { days: DashboardDay[] }) {
   const [width, setWidth] = useState(0)
   const mode = width === 0 ? 'bars' : chartMode(width, days.length)
@@ -60,8 +58,7 @@ export default function DailyChart({ days }: { days: DashboardDay[] }) {
         margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
         barCategoryGap="20%"
         barGap={2}
-        // Not focusable: tapping the chart must not draw a focus frame. The table below is the
-        // keyboard and screen reader way to the same numbers.
+        // No focus frame on tap; the table below has the same numbers.
         accessibilityLayer={false}
       >
         <CartesianGrid vertical={false} stroke="var(--background-tertiary)" />
@@ -97,7 +94,6 @@ export default function DailyChart({ days }: { days: DashboardDay[] }) {
               key={series.key}
               dataKey={series.key}
               name={series.label}
-              // A tinted body with a solid outline: the bars stay readable even when they are thin.
               fill={`color-mix(in srgb, ${series.color} 22%, transparent)`}
               stroke={series.color}
               strokeWidth={1.5}

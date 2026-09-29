@@ -6,14 +6,12 @@ import { rise } from '../config/motion'
 interface CardProps {
   title: string
   icon: LucideIcon
-  // Right side of the title bar: a hint or a control.
   aside?: ReactNode
   className?: string
   bodyClassName?: string
   children: ReactNode
 }
 
-// A title bar on a tinted frame, the content on a surface inside it.
 export function Card({
   title,
   icon: Icon,
@@ -27,7 +25,6 @@ export function Card({
       variants={rise}
       className={`flex min-w-0 flex-col rounded-2xl bg-fill/60 p-1 ring-1 ring-line ${className}`}
     >
-      {/* The title is never cut: a wide aside drops to its own line instead. */}
       <header className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5">
         <Icon size={16} strokeWidth={2} className="shrink-0 text-fg-3" aria-hidden="true" />
         <h2 className="text-sm font-medium">{title}</h2>

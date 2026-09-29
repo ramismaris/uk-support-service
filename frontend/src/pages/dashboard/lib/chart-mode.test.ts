@@ -13,7 +13,6 @@ describe('chartMode', () => {
   })
 
   it('counts the width the plot really gets, without the axis', () => {
-    // 30 days at 14px each need 420px of plot; the axis takes 32px of the container.
     expect(chartMode(452, 30)).toBe('bars')
     expect(chartMode(451, 30)).toBe('lines')
   })

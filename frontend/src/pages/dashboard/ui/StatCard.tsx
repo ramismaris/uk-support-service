@@ -12,13 +12,10 @@ interface StatCardProps {
   format: (value: number) => string
   comparison?: Comparison | null
   note?: string
-  // Right of the number: a sparkline. Wraps under it when the card is narrow.
   chart?: ReactNode
-  // Full width under the number: a meter.
   children?: ReactNode
 }
 
-// One headline number with its change and a glance at the period.
 export function StatCard({
   title,
   icon,

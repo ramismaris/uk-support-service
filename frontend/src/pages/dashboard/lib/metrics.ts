@@ -7,7 +7,6 @@ const fixedDecimal = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 1,
 })
 
-// Minutes under an hour, hours under two days, days after that.
 export function formatDuration(hours: number | null): string {
   if (hours === null) {
     return EMPTY
@@ -34,9 +33,7 @@ export interface Metric {
   previous: number | null
 }
 
-// percent — relative change; points — shares, in percentage points; difference — ratings.
 export type CompareKind = 'percent' | 'points' | 'difference'
-// Which direction is good: more closed tickets is good, a longer reaction is bad.
 export type Better = 'up' | 'down'
 
 export interface Comparison {
@@ -75,7 +72,6 @@ export function compare(metric: Metric, kind: CompareKind, better: Better): Comp
   }
 }
 
-// "Было …" under a figure; nothing when the previous period had no data to show.
 export function previousNote(
   previous: number | null,
   format: (value: number) => string,

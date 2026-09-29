@@ -11,7 +11,7 @@ describe('splitCategoryTitle', () => {
   })
 
   it('keeps an emoji with a variation selector whole', () => {
-    expect(splitCategoryTitle('❓️ Другое')).toEqual({ emoji: '❓️', name: 'Другое' })
+    expect(splitCategoryTitle('❓\uFE0F Другое')).toEqual({ emoji: '❓\uFE0F', name: 'Другое' })
   })
 
   it('has no emoji when the title starts with a letter', () => {

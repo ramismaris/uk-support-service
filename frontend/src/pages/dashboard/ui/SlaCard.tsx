@@ -9,14 +9,12 @@ import { Delta } from './Delta'
 
 interface SlaRowProps {
   label: string
-  // Average time and the norm, both in hours.
   hours: number | null
   previousHours: number | null
   normHours: number
   onTime: { value: number | null; previous: number | null }
 }
 
-// The average time as a bar with the norm as a tick: over the tick is late, under it is fine.
 function SlaRow({ label, hours, previousHours, normHours, onTime }: SlaRowProps) {
   const reduceMotion = useReducedMotion()
   const scale = hours === null ? null : bullet(hours, normHours)

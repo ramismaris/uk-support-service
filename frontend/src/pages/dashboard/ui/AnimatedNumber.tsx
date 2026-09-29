@@ -3,8 +3,7 @@ import { useLayoutEffect, useRef } from 'react'
 
 const DURATION = 0.6
 
-// Counts from the previous value to the new one: on open from zero, then on every period switch.
-// Writes the text straight into the node: 60 re-renders a second for a counter is a waste.
+// Written straight into the node: no re-render per frame.
 export function AnimatedNumber({
   value,
   format,

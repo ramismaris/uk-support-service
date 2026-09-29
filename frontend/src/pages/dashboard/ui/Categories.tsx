@@ -19,7 +19,6 @@ function Row({ row }: { row: CategoryRow }) {
           {Math.round(row.share * 100)}%
         </span>
       </div>
-      {/* The bar is the category's share of all requests: it is only full when it is the only one. */}
       <div className="h-1.5 rounded-full bg-fill">
         <motion.div
           className="h-full origin-left rounded-full bg-brand"
@@ -67,10 +66,8 @@ function ViewSwitch({ value, onChange }: { value: View; onChange: (view: View) =
   )
 }
 
-// Recharts is heavy and the dashboard already pulls it for the daily chart: one more small chunk.
 const CategoryRadar = lazy(() => import('./CategoryRadar'))
 
-// A radar needs at least three corners to be a shape.
 const MIN_RADAR_CATEGORIES = 3
 
 export function Categories({ data }: { data: Dashboard }) {

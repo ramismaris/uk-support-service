@@ -18,12 +18,10 @@ import { Sparkline } from './Sparkline'
 import { StatCard } from './StatCard'
 import { Stars } from './Stars'
 
-// Recharts is heavy: only the admin opening the dashboard downloads it.
 const DailyChart = lazy(() => import('./DailyChart'))
 
 const count = (value: number) => String(Math.round(value))
 
-// The cards come in one after another when the dashboard opens.
 const stagger: Variants = { shown: { transition: { staggerChildren: 0.06 } } }
 
 function PeriodSwitch({ value, onChange }: { value: Period; onChange: (period: Period) => void }) {
@@ -56,7 +54,6 @@ function PeriodSwitch({ value, onChange }: { value: Period; onChange: (period: P
   )
 }
 
-// The chart's numbers as a table. Opens by growing from zero height: a grid row going 0fr → 1fr.
 function DailyTable({ days }: { days: Dashboard['daily'] }) {
   const [open, setOpen] = useState(false)
   const tableId = useId()
@@ -116,7 +113,6 @@ function DailyTable({ days }: { days: Dashboard['daily'] }) {
 function DailyCard({ data }: { data: Dashboard }) {
   return (
     <Card title="Обращения по дням" icon={ChartColumn} bodyClassName="gap-3">
-      {/* Two series need a key; the totals are in the cards above. */}
       <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-fg-2">
         {SERIES.map((series) => (
           <li key={series.key} className="flex items-center gap-2">
@@ -222,7 +218,6 @@ export function DashboardPage() {
       )
     }
     return (
-      // While another period loads, the previous one stays, dimmed, instead of a blank page.
       <div
         className={`w-full p-4 transition-opacity lg:p-6 ${
           dashboard.isPlaceholderData ? 'opacity-60' : ''

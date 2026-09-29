@@ -2,7 +2,6 @@ import { Star } from 'lucide-react'
 
 const MAX = 5
 
-// Five stars filled up to the rating, fractions included (4.3 fills the fifth star by 30%).
 export function Stars({ rating }: { rating: number }) {
   return (
     <span className="flex gap-0.5" aria-hidden="true">

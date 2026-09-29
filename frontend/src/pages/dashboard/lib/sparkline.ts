@@ -1,6 +1,5 @@
 const round = (value: number) => Math.round(value * 100) / 100
 
-// An SVG path through the values: left to right over the width, zero at the bottom, the peak at the top.
 export function sparklinePath(values: number[], width: number, height: number): string {
   if (values.length === 0) {
     return ''
