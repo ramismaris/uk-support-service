@@ -32,3 +32,60 @@ async def test_list_by_user_returns_empty_without_residences(db: AsyncSession) -
     await db.commit()
 
     assert await ResidenceRepository(db).list_by_user(client.id) == []
+
+
+async def test_list_active_by_user_skips_residences_in_disabled_buildings(
+    db: AsyncSession,
+) -> None:
+    users = UserRepository(db)
+    client = await users.create(max_user_id=1, first_name="Мария")
+    other = await users.create(max_user_id=2, first_name="Пётр")
+    buildings = BuildingRepository(db)
+    other_building = await buildings.create("ул. Ленина, 1")
+    active_building = await buildings.create("ул. Ленина, 2")
+    disabled_building = await buildings.create("ул. Ленина, 3")
+    disabled_building.is_active = False
+    await db.commit()
+
+    residences = ResidenceRepository(db)
+    await residences.create(other.id, other_building.id, "9")
+    active = await residences.create(client.id, active_building.id, "1")
+    await residences.create(client.id, disabled_building.id, "2", is_primary=True)
+    await residences.create(other.id, active_building.id, "3", is_primary=True)
+    await db.commit()
+
+    found = await residences.list_active_by_user(client.id)
+
+    assert [residence.id for residence in found] == [active.id]
+
+
+async def test_list_active_by_user_keeps_primary_first_then_id(db: AsyncSession) -> None:
+    users = UserRepository(db)
+    client = await users.create(max_user_id=1, first_name="Мария")
+    buildings = BuildingRepository(db)
+    first_building = await buildings.create("ул. Ленина, 1")
+    second_building = await buildings.create("ул. Ленина, 2")
+    await db.commit()
+
+    residences = ResidenceRepository(db)
+    earlier = await residences.create(client.id, first_building.id, "1")
+    primary = await residences.create(client.id, second_building.id, "2", is_primary=True)
+    await db.commit()
+
+    found = await residences.list_active_by_user(client.id)
+
+    assert [residence.id for residence in found] == [primary.id, earlier.id]
+
+
+async def test_list_active_by_user_returns_empty_without_active_residences(
+    db: AsyncSession,
+) -> None:
+    client = await UserRepository(db).create(max_user_id=1, first_name="Мария")
+    buildings = BuildingRepository(db)
+    building = await buildings.create("ул. Ленина, 1")
+    building.is_active = False
+    await db.commit()
+    await ResidenceRepository(db).create(client.id, building.id, "1")
+    await db.commit()
+
+    assert await ResidenceRepository(db).list_active_by_user(client.id) == []

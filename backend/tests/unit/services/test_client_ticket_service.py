@@ -62,6 +62,7 @@ def env() -> SimpleNamespace:
     residences.get = AsyncMock(return_value=None)
     residences.get_by_id = AsyncMock(return_value=None)
     residences.list_by_user = AsyncMock(return_value=[])
+    residences.list_active_by_user = AsyncMock(return_value=[])
     residences.create = AsyncMock(return_value=residence)
 
     notifications = MagicMock()
@@ -466,6 +467,21 @@ async def test_add_residence_second_is_not_primary(env: SimpleNamespace) -> None
     assert env.residences.create.await_args.kwargs["is_primary"] is False
 
 
+async def test_add_residence_counts_disabled_building_for_is_primary(
+    env: SimpleNamespace,
+) -> None:
+    # A residence in a disabled building still counts: one primary per user is
+    # decided from all residences, not only the active ones.
+    env.residences.list_by_user.return_value = [env.residence]
+    env.residences.list_active_by_user.return_value = []
+
+    await env.service.add_residence(env.client, env.building.id, "45")
+
+    env.residences.list_by_user.assert_awaited_once_with(env.client.id)
+    env.residences.list_active_by_user.assert_not_awaited()
+    assert env.residences.create.await_args.kwargs["is_primary"] is False
+
+
 async def test_add_residence_existing_returned_without_write(env: SimpleNamespace) -> None:
     existing = MagicMock()
     env.residences.get.return_value = existing
@@ -499,6 +515,7 @@ async def test_add_residence_bad_apartment_rejected(env: SimpleNamespace) -> Non
 async def test_get_residence_returns_own(env: SimpleNamespace) -> None:
     own = MagicMock()
     own.user_id = env.client.id
+    own.building_id = env.building.id
     env.residences.get_by_id.return_value = own
 
     assert await env.service.get_residence(env.client, 5) is own
@@ -520,13 +537,36 @@ async def test_get_residence_missing_rejected(env: SimpleNamespace) -> None:
         await env.service.get_residence(env.client, 5)
 
 
+async def test_get_residence_disabled_building_rejected(env: SimpleNamespace) -> None:
+    own = MagicMock()
+    own.user_id = env.client.id
+    own.building_id = env.building.id
+    env.residences.get_by_id.return_value = own
+    env.building.is_active = False
+
+    with pytest.raises(NotFoundException):
+        await env.service.get_residence(env.client, 5)
+
+
+async def test_get_residence_missing_building_rejected(env: SimpleNamespace) -> None:
+    own = MagicMock()
+    own.user_id = env.client.id
+    own.building_id = env.building.id
+    env.residences.get_by_id.return_value = own
+    env.buildings.get_by_id.return_value = None
+
+    with pytest.raises(NotFoundException):
+        await env.service.get_residence(env.client, 5)
+
+
 async def test_lists_delegate_to_repositories(env: SimpleNamespace) -> None:
     assert await env.service.list_categories() == [env.category]
     assert await env.service.list_buildings() == [env.building]
-    env.residences.list_by_user.return_value = [env.residence]
+    env.residences.list_active_by_user.return_value = [env.residence]
 
     assert await env.service.list_residences(env.client) == [env.residence]
-    env.residences.list_by_user.assert_awaited_once_with(env.client.id)
+    env.residences.list_active_by_user.assert_awaited_once_with(env.client.id)
+    env.residences.list_by_user.assert_not_awaited()
 
 
 async def _question(env: SimpleNamespace, **overrides):

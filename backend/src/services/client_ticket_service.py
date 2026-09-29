@@ -95,7 +95,7 @@ class ClientTicketService:
         return await self.buildings.list_active()
 
     async def list_residences(self, client: User) -> list[Residence]:
-        return await self.residences.list_by_user(client.id)
+        return await self.residences.list_active_by_user(client.id)
 
     async def add_residence(self, client: User, building_id: int, apartment: str) -> Residence:
         building = await self.buildings.get_by_id(building_id)
@@ -118,6 +118,9 @@ class ClientTicketService:
     async def get_residence(self, client: User, residence_id: int) -> Residence:
         residence = await self.residences.get_by_id(residence_id)
         if residence is None or residence.user_id != client.id:
+            raise NotFoundException(RESIDENCE_NOT_FOUND)
+        building = await self.buildings.get_by_id(residence.building_id)
+        if building is None or not building.is_active:
             raise NotFoundException(RESIDENCE_NOT_FOUND)
         return residence
 

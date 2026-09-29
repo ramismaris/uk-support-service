@@ -347,6 +347,7 @@ async def test_category_with_residences_shows_primary_address(service: MagicMock
 
     assert await context.get_state() == RequestForm.address
     assert _edit_text(event) == FORM_ADDRESS_PROMPT.format(address="ул. Ленина, 12, кв. 45")
+    assert (await context.get_data())["offered_residence_id"] == 3
     assert [row[0].payload for row in _edit_rows(event)] == [
         FORM_ADDRESS_OK,
         FORM_ADDRESS_OTHER,
@@ -376,21 +377,69 @@ async def test_non_numeric_category_payload_acks(service: MagicMock) -> None:
     event.edit.assert_not_awaited()
 
 
-async def test_address_ok_uses_primary_residence(service: MagicMock) -> None:
-    service.list_residences.return_value = [
-        _residence(3, 10, "45", is_primary=True),
-        _residence(4, 10, "7"),
-    ]
+async def test_address_ok_uses_offered_residence(service: MagicMock) -> None:
+    service.get_residence.return_value = _residence(3, 10, "45", is_primary=True)
+    event = _callback(FORM_ADDRESS_OK)
+    context = _context()
+    await context.set_state(RequestForm.address)
+    await context.update_data(offered_residence_id=3)
+    user = _user()
+
+    await request_form.handle_address_ok(event, context, MagicMock(), user)
+
+    service.get_residence.assert_awaited_once_with(user, 3)
+    data = await context.get_data()
+    assert data["building_id"] == 10
+    assert data["apartment"] == "45"
+    assert await context.get_state() == RequestForm.description
+
+
+async def test_address_ok_disabled_building_shows_next_address(service: MagicMock) -> None:
+    service.list_residences.return_value = [_residence(4, 10, "7")]
+    service.get_residence.side_effect = NotFoundException()
+    event = _callback(FORM_ADDRESS_OK)
+    context = _context()
+    await context.set_state(RequestForm.address)
+    await context.update_data(offered_residence_id=3)
+
+    await request_form.handle_address_ok(event, context, MagicMock(), _user())
+
+    data = await context.get_data()
+    assert "building_id" not in data
+    assert data["offered_residence_id"] == 4
+    assert await context.get_state() == RequestForm.address
+    assert _edit_text(event) == FORM_ADDRESS_PROMPT.format(address="ул. Ленина, 12, кв. 7")
+
+
+async def test_address_ok_disabled_building_without_others_asks_building(
+    service: MagicMock,
+) -> None:
+    service.list_residences.return_value = []
+    service.get_residence.side_effect = NotFoundException()
+    event = _callback(FORM_ADDRESS_OK)
+    context = _context()
+    await context.set_state(RequestForm.address)
+    await context.update_data(offered_residence_id=3)
+
+    await request_form.handle_address_ok(event, context, MagicMock(), _user())
+
+    data = await context.get_data()
+    assert "building_id" not in data
+    assert await context.get_state() == RequestForm.building
+    assert _edit_text(event) == FORM_BUILDING_PROMPT
+
+
+async def test_address_ok_without_offered_id_asks_address_again(service: MagicMock) -> None:
+    service.list_residences.return_value = [_residence(3, 10, "45", is_primary=True)]
     event = _callback(FORM_ADDRESS_OK)
     context = _context()
     await context.set_state(RequestForm.address)
 
     await request_form.handle_address_ok(event, context, MagicMock(), _user())
 
-    data = await context.get_data()
-    assert data["building_id"] == 10
-    assert data["apartment"] == "45"
-    assert await context.get_state() == RequestForm.description
+    service.get_residence.assert_not_awaited()
+    assert await context.get_state() == RequestForm.address
+    assert _edit_text(event) == FORM_ADDRESS_PROMPT.format(address="ул. Ленина, 12, кв. 45")
 
 
 async def test_address_other_lists_other_residences(service: MagicMock) -> None:
@@ -410,6 +459,20 @@ async def test_address_other_lists_other_residences(service: MagicMock) -> None:
         FORM_ADDRESS_ADD,
         FORM_CANCEL,
     ]
+
+
+async def test_address_other_without_active_residences_asks_building(
+    service: MagicMock,
+) -> None:
+    service.list_residences.return_value = []
+    event = _callback(FORM_ADDRESS_OTHER)
+    context = _context()
+    await context.set_state(RequestForm.address)
+
+    await request_form.handle_address_other(event, context, MagicMock(), _user())
+
+    assert await context.get_state() == RequestForm.building
+    assert _edit_text(event) == FORM_BUILDING_PROMPT
 
 
 async def test_address_add_goes_to_building(service: MagicMock) -> None:

@@ -152,6 +152,7 @@ async def _ask_address(
         return
     buildings = await service.list_buildings()
     primary = _primary_residence(residences)
+    await context.update_data(offered_residence_id=primary.id)
     text = FORM_ADDRESS_PROMPT.format(address=_residence_label(buildings, primary))
     await _render(event, context, RequestForm.address, text, address_keyboard())
 
@@ -160,6 +161,9 @@ async def _ask_address_other(
     event: MessageCallback, context: BaseContext, user: User, service: ClientTicketService
 ) -> None:
     residences = await service.list_residences(user)
+    if not residences:
+        await _ask_building(event, context, service)
+        return
     buildings = await service.list_buildings()
     primary = _primary_residence(residences)
     options = [
@@ -298,9 +302,17 @@ async def handle_category(
 async def handle_address_ok(
     event: MessageCallback, context: BaseContext, db: AsyncSession, user: User
 ) -> None:
-    residences = await _service(db).list_residences(user)
-    primary = _primary_residence(residences)
-    await context.update_data(building_id=primary.building_id, apartment=primary.apartment)
+    service = _service(db)
+    offered_id = (await context.get_data()).get("offered_residence_id")
+    if offered_id is None:
+        await _ask_address(event, context, user, service)
+        return
+    try:
+        residence = await service.get_residence(user, offered_id)
+    except NotFoundException:
+        await _ask_address(event, context, user, service)
+        return
+    await context.update_data(building_id=residence.building_id, apartment=residence.apartment)
     await _ask_description(event, context)
 
 

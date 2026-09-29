@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.building import Building
 from src.models.residence import Residence
 
 
@@ -43,6 +44,15 @@ class ResidenceRepository:
         result = await self.db.execute(
             select(Residence)
             .where(Residence.user_id == user_id)
+            .order_by(Residence.is_primary.desc(), Residence.id)
+        )
+        return list(result.scalars().all())
+
+    async def list_active_by_user(self, user_id: int) -> list[Residence]:
+        result = await self.db.execute(
+            select(Residence)
+            .join(Building, Building.id == Residence.building_id)
+            .where(Residence.user_id == user_id, Building.is_active.is_(True))
             .order_by(Residence.is_primary.desc(), Residence.id)
         )
         return list(result.scalars().all())

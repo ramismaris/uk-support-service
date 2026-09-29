@@ -1,12 +1,15 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.constants import ButtonType, TicketStatus, TicketType
+from src.core.exceptions import NotFoundException
 from src.providers.messenger_provider import Button
 from src.repositories.building_repository import BuildingRepository
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.file_repository import FileRepository
+from src.repositories.residence_repository import ResidenceRepository
 from src.repositories.status_change_repository import StatusChangeRepository
 from src.repositories.user_repository import UserRepository
 from src.services.client_ticket_service import ClientTicketService
@@ -66,6 +69,25 @@ async def test_create_request_end_to_end(db: AsyncSession) -> None:
         [Button("Главное меню", ButtonType.CALLBACK, "menu:start")]
     ]
     run_bg.assert_called_once_with(notify.return_value, name=f"notify-staff-{ticket.id}")
+
+
+async def test_residences_in_disabled_buildings_are_hidden(db: AsyncSession) -> None:
+    client = await UserRepository(db).create(max_user_id=1000005, first_name="Мария")
+    buildings = BuildingRepository(db)
+    active_building = await buildings.create("ул. Ленина, 12")
+    disabled_building = await buildings.create("ул. Седова, 3")
+    disabled_building.is_active = False
+    await db.flush()
+    residences = ResidenceRepository(db)
+    active = await residences.create(client.id, active_building.id, "1", is_primary=True)
+    hidden = await residences.create(client.id, disabled_building.id, "2")
+    await db.commit()
+
+    service = ClientTicketService(db, AsyncMock(), MagicMock())
+
+    assert await service.list_residences(client) == [active]
+    with pytest.raises(NotFoundException):
+        await service.get_residence(client, hidden.id)
 
 
 async def test_create_question_end_to_end(db: AsyncSession) -> None:
