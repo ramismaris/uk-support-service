@@ -192,6 +192,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/dashboard/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Insights */
+        get: operations["get_insights_api_v1_admin_dashboard_insights_get"];
+        put?: never;
+        /** Refresh Insights */
+        post: operations["refresh_insights_api_v1_admin_dashboard_insights_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -712,6 +730,30 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** InsightItem */
+        InsightItem: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "fact" | "observation" | "warning";
+            /** Text */
+            text: string;
+        };
+        /** InsightsResponse */
+        InsightsResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "disabled" | "unavailable";
+            /** Period Days */
+            period_days: number;
+            /** Generated At */
+            generated_at: string | null;
+            /** Items */
+            items: components["schemas"]["InsightItem"][];
         };
         /** MaxLoginRequest */
         MaxLoginRequest: {
@@ -1360,6 +1402,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_insights_api_v1_admin_dashboard_insights_get: {
+        parameters: {
+            query?: {
+                period?: 7 | 30 | 90;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refresh_insights_api_v1_admin_dashboard_insights_post: {
+        parameters: {
+            query?: {
+                period?: 7 | 30 | 90;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightsResponse"];
                 };
             };
             /** @description Validation Error */

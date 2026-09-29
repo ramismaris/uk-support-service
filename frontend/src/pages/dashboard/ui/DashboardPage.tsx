@@ -12,6 +12,7 @@ import { formatDay, formatRange, parsePeriod } from '../lib/period'
 import { useDashboard } from '../model/use-dashboard'
 import { Card } from '@/shared/ui/card'
 import { Categories } from './Categories'
+import { InsightsCard } from './InsightsCard'
 import { NowPanel } from './NowPanel'
 import { SlaCard } from './SlaCard'
 import { Sparkline } from './Sparkline'
@@ -140,7 +141,7 @@ function ratingNote(rating: Dashboard['summary']['rating']): string {
     .join('. ')
 }
 
-function DashboardBody({ data }: { data: Dashboard }) {
+function DashboardBody({ data, period }: { data: Dashboard; period: Period }) {
   const { summary } = data
   const reduceMotion = useReducedMotion()
 
@@ -154,6 +155,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
       <NowPanel now={data.now} className="xl:col-start-2 xl:row-start-1" />
 
       <div className="flex min-w-0 flex-col gap-4 xl:col-start-1 xl:row-span-2 xl:row-start-1">
+        <InsightsCard period={period} />
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             title="Поступило"
@@ -223,7 +225,7 @@ export function DashboardPage() {
           dashboard.isPlaceholderData ? 'opacity-60' : ''
         }`}
       >
-        <DashboardBody data={dashboard.data} />
+        <DashboardBody data={dashboard.data} period={period} />
       </div>
     )
   }
