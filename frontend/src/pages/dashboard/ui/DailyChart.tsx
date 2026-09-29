@@ -9,30 +9,41 @@ import {
   type TooltipContentProps,
 } from 'recharts'
 import type { DashboardDay } from '../api/dashboard'
-import type { SeriesKey } from '../config/series'
+import { SERIES } from '../config/series'
 import { formatDay } from '../lib/period'
-
-// Every day in a quiet brand tint; the one under the pointer in full brand colour.
-const BAR = 'color-mix(in srgb, var(--brand) 40%, transparent)'
-const ACTIVE_BAR = 'var(--brand)'
 
 function ChartTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload?.length) {
     return null
   }
   return (
-    <div className="rounded-lg bg-fg px-2 py-1 text-xs font-medium text-layer shadow-lg">
-      {formatDay(String(label))}: {payload[0]?.value}
+    <div className="rounded-lg bg-fg px-2.5 py-1.5 text-xs text-layer shadow-lg">
+      <div className="mb-1 font-medium">{formatDay(String(label))}</div>
+      {SERIES.map((series) => (
+        <div key={series.key} className="flex items-center gap-2">
+          <span className="size-2 rounded-sm" style={{ backgroundColor: series.color }} />
+          {series.label}
+          <span className="ml-auto pl-3 font-medium tabular-nums">
+            {payload.find((item) => item.dataKey === series.key)?.value}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
 
 const axisTick = { fill: 'var(--text-tertiary)', fontSize: 12 }
 
-export default function DailyChart({ days, series }: { days: DashboardDay[]; series: SeriesKey }) {
+// Two series side by side on one axis: what came in and what was closed, day by day.
+export default function DailyChart({ days }: { days: DashboardDay[] }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={days} margin={{ top: 8, right: 0, bottom: 0, left: 0 }} barCategoryGap="20%">
+      <BarChart
+        data={days}
+        margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
+        barCategoryGap="20%"
+        barGap={2}
+      >
         <CartesianGrid vertical={false} stroke="var(--background-tertiary)" />
         <XAxis
           dataKey="date"
@@ -51,15 +62,25 @@ export default function DailyChart({ days, series }: { days: DashboardDay[]; ser
           axisLine={false}
           width={32}
         />
-        <Tooltip content={ChartTooltip} cursor={false} isAnimationActive={false} />
-        <Bar
-          dataKey={series}
-          fill={BAR}
-          activeBar={{ fill: ACTIVE_BAR }}
-          radius={[4, 4, 0, 0]}
-          maxBarSize={32}
-          animationDuration={500}
+        <Tooltip
+          content={ChartTooltip}
+          cursor={{ fill: 'var(--background-tertiary)', opacity: 0.6 }}
+          isAnimationActive={false}
         />
+        {SERIES.map((series) => (
+          <Bar
+            key={series.key}
+            dataKey={series.key}
+            name={series.label}
+            // A tinted body with a solid outline: the bars stay readable even when they are thin.
+            fill={`color-mix(in srgb, ${series.color} 22%, transparent)`}
+            stroke={series.color}
+            strokeWidth={1.5}
+            radius={[3, 3, 0, 0]}
+            maxBarSize={16}
+            animationDuration={500}
+          />
+        ))}
       </BarChart>
     </ResponsiveContainer>
   )

@@ -6,14 +6,12 @@ import { useSearchParams } from 'react-router'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { NavMenuButton } from '@/widgets/app-shell'
 import { PERIODS, type Dashboard, type Period } from '../api/dashboard'
-import { SERIES, type SeriesKey } from '../config/series'
+import { SERIES } from '../config/series'
 import { compare, formatRating, previousNote } from '../lib/metrics'
 import { formatDay, formatRange, parsePeriod } from '../lib/period'
 import { useDashboard } from '../model/use-dashboard'
-import { AnimatedNumber } from './AnimatedNumber'
 import { Card } from './Card'
 import { Categories } from './Categories'
-import { Delta } from './Delta'
 import { NowPanel } from './NowPanel'
 import { SlaCard } from './SlaCard'
 import { Sparkline } from './Sparkline'
@@ -52,33 +50,6 @@ function PeriodSwitch({ value, onChange }: { value: Period; onChange: (period: P
           >
             {period} дн
           </span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function SeriesSwitch({
-  value,
-  onChange,
-}: {
-  value: SeriesKey
-  onChange: (series: SeriesKey) => void
-}) {
-  return (
-    <div role="radiogroup" aria-label="Что показывать" className="flex rounded-lg bg-fill p-0.5">
-      {SERIES.map((series) => (
-        <button
-          key={series.key}
-          type="button"
-          role="radio"
-          aria-checked={series.key === value}
-          onClick={() => onChange(series.key)}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-            series.key === value ? 'bg-layer text-fg shadow-sm' : 'text-fg-2 hover:text-fg'
-          }`}
-        >
-          {series.label}
         </button>
       ))}
     </div>
@@ -143,26 +114,20 @@ function DailyTable({ days }: { days: Dashboard['daily'] }) {
 }
 
 function DailyCard({ data }: { data: Dashboard }) {
-  const [series, setSeries] = useState<SeriesKey>('created')
-  const metric = data.summary[series]
-  const comparison = compare(metric, 'percent', 'up')
   return (
-    <Card
-      title="Обращения по дням"
-      icon={ChartColumn}
-      aside={<SeriesSwitch value={series} onChange={setSeries} />}
-      bodyClassName="gap-3"
-    >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="text-[32px] leading-9 font-semibold">
-          <AnimatedNumber value={metric.value} format={count} />
-        </span>
-        {comparison && <Delta comparison={comparison} />}
-        <span className="text-xs text-fg-3">к прошлым {data.period_days} дням</span>
-      </div>
+    <Card title="Обращения по дням" icon={ChartColumn} bodyClassName="gap-3">
+      {/* Two series need a key; the totals are in the cards above. */}
+      <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-fg-2">
+        {SERIES.map((series) => (
+          <li key={series.key} className="flex items-center gap-2">
+            <span className="size-2.5 rounded-sm" style={{ backgroundColor: series.color }} />
+            {series.label}
+          </li>
+        ))}
+      </ul>
       <div className="min-h-[260px]">
         <Suspense fallback={null}>
-          <DailyChart days={data.daily} series={series} />
+          <DailyChart days={data.daily} />
         </Suspense>
       </div>
       <DailyTable days={data.daily} />
@@ -201,7 +166,9 @@ function DashboardBody({ data }: { data: Dashboard }) {
             format={count}
             comparison={compare(summary.created, 'percent', 'up')}
             note={previousNote(summary.created.previous, String)}
-            chart={<Sparkline values={data.daily.map((day) => day.created)} color="var(--brand)" />}
+            chart={
+              <Sparkline values={data.daily.map((day) => day.created)} color={SERIES[0].color} />
+            }
           />
           <StatCard
             title="Закрыто"
@@ -211,10 +178,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
             comparison={compare(summary.closed, 'percent', 'up')}
             note={previousNote(summary.closed.previous, String)}
             chart={
-              <Sparkline
-                values={data.daily.map((day) => day.closed)}
-                color="var(--icon-positive)"
-              />
+              <Sparkline values={data.daily.map((day) => day.closed)} color={SERIES[1].color} />
             }
           />
           <StatCard
