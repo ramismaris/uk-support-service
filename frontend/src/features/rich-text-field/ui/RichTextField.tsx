@@ -172,7 +172,7 @@ function LinkForm({ editor, onDone }: { editor: Editor; onDone: () => void }) {
   )
 }
 
-interface RichTextFieldProps {
+export interface RichTextFieldProps {
   label: string
   value: string
   limit: number

@@ -4,7 +4,7 @@ import { lazy, Suspense, useState } from 'react'
 import type { Dashboard } from '../api/dashboard'
 import { categoryRows, type CategoryRow } from '../lib/categories'
 import { formatDuration } from '../lib/metrics'
-import { Card } from './Card'
+import { Card } from '@/shared/ui/card'
 
 function Row({ row }: { row: CategoryRow }) {
   const reduceMotion = useReducedMotion()

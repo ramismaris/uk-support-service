@@ -185,20 +185,22 @@ WebSocket для сотрудников, менеджер подключений
 frontend/src/
 ├── app/        entrypoint (провайдеры), routes (гарды, вход, «Открыть» из Max), realtime (WebSocket),
 │               theme, session (токен → API-клиент), styles
-├── pages/      login (с dev-входом), tickets (список, обращение, чат, статусы), content (контент бота),
-│               users (пользователи и роли), appearance (оформление), client-home, not-found
+├── pages/      login (с dev-входом), tickets (список, обращение, чат, статусы), dashboard (дашборд),
+│               broadcast (рассылка), content (контент бота), users (пользователи и роли),
+│               appearance (оформление), client-home, not-found
 ├── widgets/    app-shell — адаптивный каркас сотрудника: знак УК, пункты по ролям, выход
-├── features/   auth-by-max, upload-image (загрузка JPEG/PNG в /admin/content/images)
+├── features/   auth-by-max, upload-image (загрузка JPEG/PNG в /admin/content/images),
+│               rich-text-field (редактор текста с Max-разметкой: контент бота и рассылка)
 ├── entities/   session (токен, /me), user (роли), ticket, message, theme (оформление УК)
 └── shared/     api (openapi-fetch + сгенерированные типы), config, lib/{max-bridge, color-scheme,
-                color, format, media-query, ws}, ui/{empty-state, lottie, confirm-dialog, …}
+                color, format, media-query, ws}, ui/{card, bot-message, empty-state, lottie, confirm-dialog, …}
 ```
 
 Вход:
 
 1. Есть токен → `GET /me`: 200 — вход; 401 — токен сбрасывается; 403 — «Доступ ограничен»; сеть или 5xx — «Не удалось войти» с повтором, токен сохраняется.
 2. Нет токена: в Max — `POST /auth/max` с `initData`; в браузере — `/login` (dev-вход при `VITE_DEV_AUTH=true`, иначе подсказка про `/panel`).
-3. `/` ведёт по роли: `MANAGER`/`ADMIN` → `/staff`, `CLIENT` → `/client`.
+3. `/` ведёт по роли: `MANAGER` → `/staff`, `ADMIN` → `/staff/dashboard`, `CLIENT` → `/client`.
 
 Тема: схема из `prefers-color-scheme`, одна и та же для Max UI и Tailwind (`data-color-scheme` на `<html>`). Стили Max UI — в CSS-слое `maxui` между `base` и `utilities`, поэтому утилиты Tailwind перебивают их.
 
@@ -208,6 +210,8 @@ frontend/src/
 
 Разделы админа (только `ADMIN`, гард `RequireRole` с `isAdmin`; менеджер уходит на `/`):
 
+- `/staff/dashboard` — период 7/30/90 дней в адресе; «Сейчас» с переходом в список по статусу и свежими обращениями, поступило и закрыто одним графиком (столбцы или линии — по ширине), сроки против норм, оценки, категории списком или радаром; данные из `GET /admin/dashboard`.
+- `/staff/broadcast` — редактор текста с превью «Так увидит жилец», фото, адресаты (все или выбранные дома), число получателей до отправки, подтверждение и история; пока идёт отправка, история перечитывается раз в 2 секунды, а новая рассылка недоступна.
 - `/staff/content/:section` — приветствие, аварийные службы, услуги, оплата, контакты. Поля проверяются по тем же ограничениям, что в схемах бэкенда; рядом живое превью сообщения бота; уход с несохранёнными правками — подтверждение.
 - `/staff/users/:id` — поиск (имя, ник, телефон, Max id) и фильтры в адресе, роль и блокировка в карточке, опасные действия через подтверждение. Свою карточку менять нельзя. Эндпоинта «пользователь по id» нет, поэтому карточка берёт данные из загруженного списка.
 - `/staff/appearance` — название, цвет (палитра или `#RRGGBB`, предупреждение при контрасте с белым ниже 3:1), логотип; превью в светлой и тёмной схеме.

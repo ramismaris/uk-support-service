@@ -21,6 +21,7 @@ describe('visibleNavItems', () => {
     expect(visibleNavItems(user('ADMIN')).map((item) => item.key)).toEqual([
       'dashboard',
       'tickets',
+      'broadcast',
       'content',
       'users',
       'appearance',
@@ -29,7 +30,12 @@ describe('visibleNavItems', () => {
 })
 
 describe('isNavItemActive', () => {
-  const [dashboard, tickets, content] = visibleNavItems(user('ADMIN'))
+  const items = visibleNavItems(user('ADMIN'))
+  const item = (key: string) => items.find((entry) => entry.key === key)!
+  const dashboard = item('dashboard')
+  const tickets = item('tickets')
+  const content = item('content')
+  const broadcast = item('broadcast')
 
   it('keeps tickets active on the list and on a ticket, not on admin sections', () => {
     expect(isNavItemActive(tickets, '/staff')).toBe(true)
@@ -41,6 +47,12 @@ describe('isNavItemActive', () => {
   it('keeps the dashboard to its own page', () => {
     expect(isNavItemActive(dashboard, '/staff/dashboard')).toBe(true)
     expect(isNavItemActive(dashboard, '/staff')).toBe(false)
+  })
+
+  it('keeps the broadcast to its own page', () => {
+    expect(isNavItemActive(broadcast, '/staff/broadcast')).toBe(true)
+    expect(isNavItemActive(broadcast, '/staff')).toBe(false)
+    expect(isNavItemActive(tickets, '/staff/broadcast')).toBe(false)
   })
 
   it('matches a section and its sub-pages', () => {

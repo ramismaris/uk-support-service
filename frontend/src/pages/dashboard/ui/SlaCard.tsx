@@ -4,7 +4,7 @@ import type { Dashboard } from '../api/dashboard'
 import { bullet } from '../lib/bullet'
 import { compare, formatDuration, formatShare, previousNote } from '../lib/metrics'
 import { AnimatedNumber } from './AnimatedNumber'
-import { Card } from './Card'
+import { Card } from '@/shared/ui/card'
 import { Delta } from './Delta'
 
 interface SlaRowProps {

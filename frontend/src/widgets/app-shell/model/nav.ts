@@ -1,5 +1,6 @@
 import {
   ChartColumn,
+  Megaphone,
   MessageSquareText,
   MessagesSquare,
   Palette,
@@ -37,6 +38,13 @@ const navItems: NavItem[] = [
     to: routePaths.staff,
     adminOnly: false,
     alsoActiveOn: ['/staff/tickets'],
+  },
+  {
+    key: 'broadcast',
+    label: 'Рассылка',
+    icon: Megaphone,
+    to: routePaths.broadcast,
+    adminOnly: true,
   },
   {
     key: 'content',

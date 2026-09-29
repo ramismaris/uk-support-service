@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Comparison } from '../lib/metrics'
 import { AnimatedNumber } from './AnimatedNumber'
-import { Card } from './Card'
+import { Card } from '@/shared/ui/card'
 import { Delta } from './Delta'
 
 interface StatCardProps {

@@ -11,7 +11,7 @@ import { routePaths, ticketPath } from '@/shared/config'
 import { formatRelativeTime } from '@/shared/lib/format'
 import type { Dashboard } from '../api/dashboard'
 import { AnimatedNumber } from './AnimatedNumber'
-import { Card } from './Card'
+import { Card } from '@/shared/ui/card'
 
 const RECENT_COUNT = 5
 const count = (value: number) => String(Math.round(value))

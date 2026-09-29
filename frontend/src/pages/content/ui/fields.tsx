@@ -1,9 +1,5 @@
-import { lazy, Suspense, type ReactNode } from 'react'
-
-// The editor (TipTap) is heavy and only admins open it: its own chunk, loaded on demand.
-const RichTextField = lazy(() =>
-  import('./RichTextField').then((module) => ({ default: module.RichTextField })),
-)
+import type { ReactNode } from 'react'
+import { RichTextField } from '@/features/rich-text-field'
 
 const control =
   'w-full rounded-xl bg-fill px-3 py-2.5 text-[15px] leading-5 outline-none placeholder:text-fg-3 focus:ring-2 focus:ring-brand/40'
@@ -55,15 +51,7 @@ export function TextField({
 }: TextFieldProps) {
   if (formatting) {
     return (
-      <Suspense fallback={<div className="h-52 animate-pulse rounded-xl bg-fill" />}>
-        <RichTextField
-          label={label}
-          value={value}
-          limit={limit}
-          error={error}
-          onChange={onChange}
-        />
-      </Suspense>
+      <RichTextField label={label} value={value} limit={limit} error={error} onChange={onChange} />
     )
   }
   return (
