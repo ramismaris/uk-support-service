@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { Tags } from 'lucide-react'
+import { List, Radar, Tags } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import type { Dashboard } from '../api/dashboard'
 import { categoryRows, type CategoryRow } from '../lib/categories'
 import { formatDuration } from '../lib/metrics'
@@ -37,14 +38,64 @@ function Row({ row }: { row: CategoryRow }) {
   )
 }
 
+type View = 'list' | 'radar'
+
+const VIEWS = [
+  { key: 'list', label: 'Список', icon: List },
+  { key: 'radar', label: 'Радар', icon: Radar },
+] as const
+
+function ViewSwitch({ value, onChange }: { value: View; onChange: (view: View) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Вид" className="flex rounded-lg bg-fill p-0.5">
+      {VIEWS.map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          type="button"
+          role="radio"
+          aria-checked={key === value}
+          onClick={() => onChange(key)}
+          className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+            key === value ? 'bg-layer text-fg shadow-sm' : 'text-fg-2 hover:text-fg'
+          }`}
+        >
+          <Icon size={14} aria-hidden="true" />
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Recharts is heavy and the dashboard already pulls it for the daily chart: one more small chunk.
+const CategoryRadar = lazy(() => import('./CategoryRadar'))
+
+// A radar needs at least three corners to be a shape.
+const MIN_RADAR_CATEGORIES = 3
+
 export function Categories({ data }: { data: Dashboard }) {
+  const [view, setView] = useState<View>('list')
   const rows = categoryRows(data.categories, data.sla.resolution_hours)
   const { questions } = data
+  const radar = view === 'radar' && rows.length >= MIN_RADAR_CATEGORIES
 
   return (
-    <Card title="Заявки по категориям" icon={Tags} bodyClassName="gap-4">
+    <Card
+      title="Заявки по категориям"
+      icon={Tags}
+      aside={
+        rows.length >= MIN_RADAR_CATEGORIES ? <ViewSwitch value={view} onChange={setView} /> : null
+      }
+      bodyClassName="gap-4"
+    >
       {rows.length === 0 ? (
         <p className="text-sm text-fg-3">За период заявок не было</p>
+      ) : radar ? (
+        <div className="min-h-[300px]">
+          <Suspense fallback={null}>
+            <CategoryRadar rows={rows} />
+          </Suspense>
+        </div>
       ) : (
         <ul className="flex flex-col gap-4">
           {rows.map((row) => (
