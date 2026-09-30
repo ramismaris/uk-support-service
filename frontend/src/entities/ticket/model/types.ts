@@ -9,6 +9,8 @@ export type ActiveTicketStatus = 'NEW' | 'IN_PROGRESS' | 'WAITING_CLIENT'
 export interface TicketFilters {
   status: TicketStatus | null
   mine: boolean
+  buildingId: number | null
+  categoryId: number | null
 }
 
 export interface TicketPage {

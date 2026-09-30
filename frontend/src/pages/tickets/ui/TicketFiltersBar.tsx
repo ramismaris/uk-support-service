@@ -7,10 +7,13 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react'
+import { useStaffBuildings, useStaffCategories } from '@/entities/directory'
 import type { TicketFilters, TicketStatus } from '@/entities/ticket'
 import { useSocketStatus } from '@/shared/lib/ws'
 import { NavMenuButton } from '@/widgets/app-shell'
+import { selectOptions } from '../lib/filter-options'
 import { centeredScrollLeft, scrollEdges, type ScrollEdges } from '../lib/scroll-edges'
+import { FilterSelect } from './FilterSelect'
 
 const STATUS_OPTIONS: { value: TicketStatus | null; label: string }[] = [
   { value: null, label: 'Все' },
@@ -98,6 +101,20 @@ export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
   const online = useSocketStatus((state) => state.online)
   const chipRow = useRef<HTMLDivElement>(null)
   const chipRowStyle = useChipRow(chipRow, filters.status ?? 'ALL')
+  const buildings = useStaffBuildings()
+  const categories = useStaffCategories()
+  const buildingOptions = selectOptions(
+    (buildings.data ?? []).map((building) => ({ id: building.id, label: building.address })),
+    filters.buildingId,
+    'Все дома',
+    (id) => `Дом №${id}`,
+  )
+  const categoryOptions = selectOptions(
+    (categories.data ?? []).map((category) => ({ id: category.id, label: category.title })),
+    filters.categoryId,
+    'Все категории',
+    (id) => `Категория №${id}`,
+  )
   return (
     <div className="flex flex-col gap-2 border-b border-line p-3">
       <div className="flex items-center justify-between gap-2">
@@ -139,6 +156,20 @@ export function TicketFiltersBar({ filters, onChange }: TicketFiltersBarProps) {
             {option.label}
           </button>
         ))}
+      </div>
+      <div className="flex gap-2">
+        <FilterSelect
+          label="Дом"
+          value={filters.buildingId}
+          options={buildingOptions}
+          onChange={(buildingId) => onChange({ ...filters, buildingId })}
+        />
+        <FilterSelect
+          label="Категория"
+          value={filters.categoryId}
+          options={categoryOptions}
+          onChange={(categoryId) => onChange({ ...filters, categoryId })}
+        />
       </div>
     </div>
   )

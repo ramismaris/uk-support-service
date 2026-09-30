@@ -5,6 +5,7 @@ import { useTicketList } from '@/entities/ticket'
 import { useBrandColor } from '@/entities/theme'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { animations, LottieAnimation } from '@/shared/ui/lottie'
+import { hasActiveFilters } from '../lib/filter-options'
 import { parseTicketFilters, ticketFiltersToSearch } from '../lib/filters'
 import { TicketFiltersBar } from './TicketFiltersBar'
 import { TicketRow } from './TicketRow'
@@ -15,7 +16,7 @@ export function TicketList() {
   const list = useTicketList(filters)
   const tickets = list.data?.pages.flatMap((page) => page.items) ?? []
   const total = list.data?.pages.at(-1)?.total ?? 0
-  const filtered = filters.status !== null || filters.mine
+  const filtered = hasActiveFilters(filters)
   const brandColor = useBrandColor()
 
   const body = () => {

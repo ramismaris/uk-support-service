@@ -21,6 +21,8 @@ export function useTicketList(filters: TicketFilters) {
             query: {
               status: filters.status ?? undefined,
               mine: filters.mine || undefined,
+              building_id: filters.buildingId ?? undefined,
+              category_id: filters.categoryId ?? undefined,
               skip: pageParam,
               limit: PAGE_SIZE,
             },

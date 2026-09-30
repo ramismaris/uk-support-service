@@ -1,6 +1,6 @@
-import type { Building } from '../api/broadcasts'
+import type { StaffBuilding } from '@/entities/directory'
 
-export function filterBuildings(buildings: Building[], query: string): Building[] {
+export function filterBuildings(buildings: StaffBuilding[], query: string): StaffBuilding[] {
   const needle = query.trim().toLowerCase()
   if (needle === '') {
     return buildings

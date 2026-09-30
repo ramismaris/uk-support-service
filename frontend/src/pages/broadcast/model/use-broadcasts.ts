@@ -3,7 +3,6 @@ import {
   createBroadcast,
   fetchAudience,
   fetchBroadcasts,
-  fetchBuildings,
   type BroadcastRequest,
 } from '../api/broadcasts'
 
@@ -13,7 +12,6 @@ const keys = {
   history: ['admin', 'broadcasts'] as const,
   audience: (ids: number[] | null) =>
     ['admin', 'broadcasts', 'audience', ids ? [...ids].sort((a, b) => a - b) : 'all'] as const,
-  buildings: ['staff', 'buildings'] as const,
 }
 
 export function useBroadcasts() {
@@ -23,10 +21,6 @@ export function useBroadcasts() {
     refetchInterval: (query) =>
       query.state.data?.items.some((item) => item.status === 'SENDING') ? POLL_MS : false,
   })
-}
-
-export function useBuildings() {
-  return useQuery({ queryKey: keys.buildings, queryFn: fetchBuildings })
 }
 
 // null asks for everyone; an empty selection has no audience to count.

@@ -53,7 +53,7 @@ const statusCounter = (status: ActiveTicketStatus) => ({
 })
 
 function RecentTickets() {
-  const list = useTicketList({ status: null, mine: false })
+  const list = useTicketList({ status: null, mine: false, buildingId: null, categoryId: null })
   const tickets = list.data?.pages[0]?.items.slice(0, RECENT_COUNT) ?? []
 
   if (list.isPending) {

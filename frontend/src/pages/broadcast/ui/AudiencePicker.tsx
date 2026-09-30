@@ -1,8 +1,8 @@
 import { Search } from 'lucide-react'
 import { useState } from 'react'
+import { useStaffBuildings } from '@/entities/directory'
 import { filterBuildings, toggleId } from '../lib/buildings'
 import type { Scope } from '../lib/validate'
-import { useBuildings } from '../model/use-broadcasts'
 import { Checkbox } from './Checkbox'
 
 const LIST_ROWS = 7
@@ -26,7 +26,7 @@ function BuildingList({
   buildingIds,
   onBuildingIds,
 }: Pick<AudiencePickerProps, 'buildingIds' | 'onBuildingIds'>) {
-  const buildings = useBuildings()
+  const buildings = useStaffBuildings()
   const [query, setQuery] = useState('')
 
   if (buildings.isPending) {
