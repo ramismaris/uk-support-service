@@ -23,6 +23,7 @@ describe('visibleNavItems', () => {
       'tickets',
       'broadcast',
       'content',
+      'directories',
       'users',
       'appearance',
     ])
@@ -53,6 +54,13 @@ describe('isNavItemActive', () => {
     expect(isNavItemActive(broadcast, '/staff/broadcast')).toBe(true)
     expect(isNavItemActive(broadcast, '/staff')).toBe(false)
     expect(isNavItemActive(tickets, '/staff/broadcast')).toBe(false)
+  })
+
+  it('keeps the directories to their own page', () => {
+    const directories = item('directories')
+    expect(isNavItemActive(directories, '/staff/directories')).toBe(true)
+    expect(isNavItemActive(directories, '/staff')).toBe(false)
+    expect(isNavItemActive(content, '/staff/directories')).toBe(false)
   })
 
   it('matches a section and its sub-pages', () => {

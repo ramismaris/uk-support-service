@@ -4,6 +4,7 @@ import { AppearancePage } from '@/pages/appearance'
 import { ContentLayout, SectionEditor } from '@/pages/content'
 import { BroadcastPage } from '@/pages/broadcast'
 import { DashboardPage } from '@/pages/dashboard'
+import { DirectoriesPage } from '@/pages/directories'
 import { UserCard, UsersIndex, UsersLayout } from '@/pages/users'
 import { ClientHomePage } from '@/pages/client-home'
 import { LoginPage } from '@/pages/login'
@@ -49,6 +50,15 @@ export const router = createBrowserRouter([
             element: (
               <RequireRole allow={isAdmin}>
                 <BroadcastPage />
+              </RequireRole>
+            ),
+          },
+          {
+            errorElement: <RouteError inline />,
+            path: routePaths.directories,
+            element: (
+              <RequireRole allow={isAdmin}>
+                <DirectoriesPage />
               </RequireRole>
             ),
           },

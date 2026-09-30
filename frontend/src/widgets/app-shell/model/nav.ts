@@ -1,5 +1,6 @@
 import {
   ChartColumn,
+  Library,
   Megaphone,
   MessageSquareText,
   MessagesSquare,
@@ -51,6 +52,13 @@ const navItems: NavItem[] = [
     label: 'Контент бота',
     icon: MessageSquareText,
     to: routePaths.content,
+    adminOnly: true,
+  },
+  {
+    key: 'directories',
+    label: 'Справочники',
+    icon: Library,
+    to: routePaths.directories,
     adminOnly: true,
   },
   { key: 'users', label: 'Пользователи', icon: Users, to: routePaths.users, adminOnly: true },

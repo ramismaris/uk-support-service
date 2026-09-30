@@ -10,6 +10,7 @@ export const routePaths = {
   appearance: '/staff/appearance',
   dashboard: '/staff/dashboard',
   broadcast: '/staff/broadcast',
+  directories: '/staff/directories',
   client: '/client',
 } as const
 
