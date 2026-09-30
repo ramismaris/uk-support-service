@@ -211,6 +211,8 @@ docker compose down -v
 11. **Реальное время.** Откройте панель в двух вкладках под разными пользователями и возьмите заявку в работу в одной — во второй статус обновится сам.
 12. **API.** http://localhost:8080/docs — все эндпоинты; «Authorize» принимает токен из `POST /api/v1/auth/dev` с `{"max_user_id": 1000001}`.
 
+Автоматические проверки API для платформы оценки — [DATA-API.yaml](DATA-API.yaml): только чтение и права доступа, повторный прогон даёт тот же результат.
+
 **Бот** (нужен свой бот в Max и его токен):
 
 ```bash
@@ -309,3 +311,4 @@ uv run uvicorn src.main:app --reload
 - [docs/ticket-lifecycle.md](docs/ticket-lifecycle.md) — статусы, переходы, маршрутизация сообщений, уведомления
 - [docs/plan.md](docs/plan.md) — план и что уже сделано
 - [deploy/README.md](deploy/README.md) — развёртывание и автодеплой
+- [DATA-API.yaml](DATA-API.yaml) — обязательные проверки API для платформы оценки

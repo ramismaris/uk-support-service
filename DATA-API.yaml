@@ -1,0 +1,382 @@
+# Обязательные проверки собственного API (DATA-API 1.0).
+# Полный контракт: backend/openapi.json (OpenAPI 3.1).
+# Тестовые роли (вход через POST /api/v1/auth/dev с {"max_user_id": "<id>"}):
+#   - public: без авторизации
+#   - client: житель, max_user_id 1000003
+#   - manager: ведущий специалист УК, max_user_id 1000002
+#   - admin: администратор УК, max_user_id 1000001
+# Требование стенда: DEV_AUTH=true и выполненные scripts/seed.py, scripts/demo_data.py.
+# Идентификатор обращения в path — обращение из scripts/seed.py (на чистой базе №1000).
+# Проверки только читают данные: повторный прогон даёт тот же результат.
+
+schemaVersion: "1.0"
+
+solution:
+  name: "Отзывчивый УК"
+
+api:
+  baseUrl: "https://vk-max-hackathon.berket.digital/api/v1"
+  openapi: "./backend/openapi.json"
+  defaultHeaders:
+    Accept: "application/json"
+
+checks:
+  - id: "health"
+    name: "Сервис и база доступны"
+    method: "GET"
+    path: "/health"
+    role: "public"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["status"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "login_client"
+    name: "Вход тестового жителя"
+    method: "POST"
+    path: "/auth/dev"
+    role: "public"
+    request:
+      headers:
+        Content-Type: "application/json"
+      body:
+        max_user_id: 1000003
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["token", "user.id", "user.max_user_id", "user.role"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "login_manager"
+    name: "Вход ведущего специалиста"
+    method: "POST"
+    path: "/auth/dev"
+    role: "public"
+    request:
+      headers:
+        Content-Type: "application/json"
+      body:
+        max_user_id: 1000002
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["token", "user.role"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "login_admin"
+    name: "Вход администратора"
+    method: "POST"
+    path: "/auth/dev"
+    role: "public"
+    request:
+      headers:
+        Content-Type: "application/json"
+      body:
+        max_user_id: 1000001
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["token", "user.role"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "me"
+    name: "Текущий пользователь"
+    method: "GET"
+    path: "/me"
+    role: "client"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "max_user_id", "first_name", "last_name", "username", "phone", "role"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "theme"
+    name: "Оформление панели: название УК, цвет, логотип"
+    method: "GET"
+    path: "/theme"
+    role: "client"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["company_name", "primary_color", "logo_url"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_ticket_queue"
+    name: "Очередь обращений сотрудника"
+    method: "GET"
+    path: "/staff/tickets"
+    role: "manager"
+    request:
+      query:
+        skip: 0
+        limit: 50
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["total", "items[].id", "items[].type", "items[].status", "items[].priority", "items[].description", "items[].client.id", "items[].created_at"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_ticket_filter"
+    name: "Фильтр очереди по статусу"
+    method: "GET"
+    path: "/staff/tickets"
+    role: "manager"
+    request:
+      query:
+        status: "NEW"
+        limit: 5
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["total", "items[].id", "items[].status"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_ticket_card"
+    name: "Карточка обращения"
+    method: "GET"
+    path: "/staff/tickets/{ticket_id}"
+    role: "manager"
+    request:
+      path:
+        ticket_id: 1000
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["id", "type", "status", "priority", "description", "category", "building", "client", "created_at", "files", "history", "allowed_statuses", "unread"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_ticket_messages"
+    name: "Переписка по обращению"
+    method: "GET"
+    path: "/staff/tickets/{ticket_id}/messages"
+    role: "manager"
+    request:
+      path:
+        ticket_id: 1000
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["[].id", "[].ticket_id", "[].sender_type", "[].author", "[].text", "[].files", "[].created_at"]
+      bodySchema:
+        type: "array"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_ticket_mark_read"
+    name: "Обращение отмечено прочитанным"
+    method: "POST"
+    path: "/staff/tickets/{ticket_id}/read"
+    role: "manager"
+    request:
+      path:
+        ticket_id: 1000
+    expected:
+      statusCodes: [204]
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_unread_count"
+    name: "Счётчик непрочитанных обращений"
+    method: "GET"
+    path: "/staff/tickets/unread-count"
+    role: "manager"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["count"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_directories"
+    name: "Справочники домов и категорий для сотрудника"
+    method: "GET"
+    path: "/staff/buildings"
+    role: "manager"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["[].id", "[].address"]
+      bodySchema:
+        type: "array"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "staff_categories"
+    name: "Справочник категорий для сотрудника"
+    method: "GET"
+    path: "/staff/categories"
+    role: "manager"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["[].id", "[].title"]
+      bodySchema:
+        type: "array"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "admin_dashboard"
+    name: "Сводка по обращениям для администратора"
+    method: "GET"
+    path: "/admin/dashboard"
+    role: "admin"
+    request:
+      query:
+        period: 30
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["period_days", "date_from", "date_to", "sla.reaction_hours", "sla.resolution_hours", "now.new", "now.in_progress", "now.waiting_client", "now.overdue", "summary.created", "summary.closed", "summary.rating", "daily", "categories", "questions"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "admin_users"
+    name: "Список пользователей с ролями"
+    method: "GET"
+    path: "/admin/users"
+    role: "admin"
+    request:
+      query:
+        skip: 0
+        limit: 50
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["total", "items[].id", "items[].max_user_id", "items[].first_name", "items[].role", "items[].is_blocked", "items[].created_at"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "admin_buildings"
+    name: "Администратор ведёт дома"
+    method: "GET"
+    path: "/admin/buildings"
+    role: "admin"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["[].id", "[].address", "[].is_active"]
+      bodySchema:
+        type: "array"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "admin_categories"
+    name: "Администратор ведёт категории"
+    method: "GET"
+    path: "/admin/categories"
+    role: "admin"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["[].id", "[].title", "[].is_active"]
+      bodySchema:
+        type: "array"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "admin_content"
+    name: "Тексты бота редактируются администратором"
+    method: "GET"
+    path: "/admin/content"
+    role: "admin"
+    expected:
+      statusCodes: [200]
+      contentType: "application/json"
+      requiredFields: ["welcome", "emergency", "services", "payment", "contacts", "theme"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "client_forbidden_staff_queue"
+    name: "Житель не видит очередь сотрудника"
+    method: "GET"
+    path: "/staff/tickets"
+    role: "client"
+    expected:
+      statusCodes: [403]
+      contentType: "application/json"
+      requiredFields: ["detail"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "manager_forbidden_admin"
+    name: "Ведущий специалист не видит админку"
+    method: "GET"
+    path: "/admin/dashboard"
+    role: "manager"
+    expected:
+      statusCodes: [403]
+      contentType: "application/json"
+      requiredFields: ["detail"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "no_token_me"
+    name: "Без токена доступ закрыт"
+    method: "GET"
+    path: "/me"
+    role: "public"
+    expected:
+      statusCodes: [401]
+      contentType: "application/json"
+      requiredFields: ["detail"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
+
+  - id: "ticket_not_found"
+    name: "Несуществующее обращение"
+    method: "GET"
+    path: "/staff/tickets/{ticket_id}"
+    role: "manager"
+    request:
+      path:
+        ticket_id: 99999999
+    expected:
+      statusCodes: [404]
+      contentType: "application/json"
+      requiredFields: ["detail"]
+      bodySchema:
+        type: "object"
+    timeoutMs: 5000
+    repeatable: true
