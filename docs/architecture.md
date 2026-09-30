@@ -321,6 +321,8 @@ VPS, `docker compose`: `db` (Postgres), `api` (бэкенд, том для фа�
 
 Наружу открыты только порты Caddy (80 и 443); у базы и бэкенда портов нет. Выкатка — GitHub Actions: проверки, затем SSH на сервер и пересборка стека; пуш в `main` только проверяется, выкатывает ручной запуск workflow, тег `demo-*` уходит сразу. Файлы — в `deploy/`, пошаговая инструкция — [deploy/README.md](../deploy/README.md).
 
+Локально весь стек поднимает `docker-compose.yml` в корне: те же `db`, `api`, `web` и `caddy` с `deploy/Caddyfile`, но на `http://localhost:8080` без HTTPS, без `.env`, с dev-входом и Swagger; `api` при старте заполняет сиды и демо-историю. Бот включается переменными `BOT_MODE` и `BOT_TOKEN`.
+
 ## Max: что известно и что проверить
 
 По исходникам `maxapi` 1.2.2:

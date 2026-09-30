@@ -1,0 +1,81 @@
+# Local demo: the whole stack in Docker with one command, no .env needed.
+#   docker compose up -d --build --wait   →   http://localhost:8080
+# Dev login and Swagger are on, the bot is off unless BOT_MODE and BOT_TOKEN are set.
+# Server deployment lives in deploy/.
+name: uk-support-local
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: uk
+      POSTGRES_PASSWORD: uk
+      POSTGRES_DB: uk_support
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uk -d uk_support"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: backend
+    environment:
+      DEBUG: "true"
+      DEV_AUTH: "true"
+      SECRET_KEY: local-demo-secret-key-not-for-production
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: uk
+      DATABASE_PASSWORD: uk
+      DATABASE_NAME: uk_support
+      CORS_ORIGINS: "[]"
+      FORWARDED_ALLOW_IPS: "*"
+      BOT_MODE: ${BOT_MODE:-off}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      ADMIN_MAX_USER_IDS: ${ADMIN_MAX_USER_IDS:-}
+      AI_INSIGHTS_ENABLED: ${AI_INSIGHTS_ENABLED:-true}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_EXTRA_HEADERS: ${LLM_EXTRA_HEADERS:-{}}
+    # The entrypoint applies migrations first; both scripts only add missing rows.
+    command:
+      - sh
+      - -c
+      - python scripts/seed.py && python scripts/demo_data.py && exec uvicorn src.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - storage_data:/app/storage
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: frontend
+      args:
+        VITE_DEV_AUTH: "true"
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    environment:
+      DOMAIN: ":80"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  storage_data:
