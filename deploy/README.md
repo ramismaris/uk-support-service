@@ -16,13 +16,28 @@ cd uk-support-service/deploy
 cp .env.template .env
 ```
 
-Заполните `.env`:
+Сгенерируйте секреты и впишите домен:
 
-- `DOMAIN` — ваш домен, например `uk.example.ru`.
+```bash
+sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$(openssl rand -hex 32)/" .env && sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$(openssl rand -hex 32)/" .env
+```
+
+```bash
+sed -i "s/^DOMAIN=.*/DOMAIN=uk.example.ru/" .env
+```
+
+`DATABASE_PASSWORD` генерируйте только до первого запуска: Postgres запоминает пароль в томе при создании базы, и новый пароль в `.env` после этого сломает подключение.
+
+Остальное впишите в `.env` вручную (`nano .env`):
+
 - `BOT_TOKEN` — токен бота Max.
-- `SECRET_KEY` — `openssl rand -hex 32`.
-- `DATABASE_PASSWORD` — `openssl rand -hex 32`.
 - `ADMIN_MAX_USER_IDS` — можно оставить пустым и выдать первого админа позже (см. ниже).
+
+Проверьте, что ничего не забыли, — команда выводит пустые обязательные переменные:
+
+```bash
+grep -E "^(DOMAIN|BOT_TOKEN|SECRET_KEY|DATABASE_PASSWORD)=$" .env
+```
 
 Пустой `DATABASE_PASSWORD` не даст запуститься Postgres, а `SECRET_KEY` короче 32 символов — приложению: ошибка видна сразу, а не превращается в слабый дефолт. `openssl rand -hex 32` даёт hex намеренно: `DATABASE_PASSWORD` подставляется в URL подключения без экранирования, и символы `/`, `@`, `+` сломали бы его.
 
