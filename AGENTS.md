@@ -103,7 +103,7 @@ scripts/check.sh
 
 ### Backend
 
-Структура и паттерны — как в `arendalike-api`; подробно — [docs/architecture.md](docs/architecture.md).
+Структура и паттерны — [docs/architecture.md](docs/architecture.md).
 
 - Слои: API и бот → services → repositories; внешний мир — через `providers/`.
 - API-роутеры и хендлеры бота: валидация, вызов сервисов, ответ. Без бизнес-логики и без запросов к БД.
