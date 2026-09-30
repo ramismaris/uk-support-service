@@ -38,7 +38,7 @@ docker compose up -d --build --wait
 
 ```bash
 # Первый запуск
-cp .env.template .env
+cp .env.example .env
 docker compose up -d --wait db
 uv sync
 uv run alembic upgrade head
@@ -76,7 +76,7 @@ docker compose up -d --build
 
 ```bash
 # Первый запуск
-cp .env.template .env
+cp .env.example .env
 pnpm install
 
 # Dev-сервер на http://localhost:5173; /api проксируется на http://localhost:8000
@@ -101,7 +101,7 @@ scripts/check.sh
 - Код, идентификаторы, комментарии, сообщения коммитов — на английском. Документация, тексты бота и интерфейса — на русском.
 - Не выходить за рамки задачи. Функции вне Must/Should из `docs/product.md` не добавлять без согласования.
 - Изменил модель данных, статусы или правила — обнови `docs/` в том же изменении.
-- Секреты — только через `.env`; в репозитории лежит `.env.template`.
+- Секреты — только через `.env`; в репозитории лежит `.env.example`.
 - Не добавлять фичи, рефакторинг и улучшения сверх задачи.
 - Не добавлять обработку ошибок для сценариев, которые не могут произойти.
 - Не создавать абстракции для одноразовых операций.

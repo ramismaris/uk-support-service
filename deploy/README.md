@@ -13,7 +13,7 @@
 ```bash
 git clone https://github.com/ramismaris/uk-support-service.git
 cd uk-support-service/deploy
-cp .env.template .env
+cp .env.example .env
 ```
 
 Сгенерируйте секреты и впишите домен:

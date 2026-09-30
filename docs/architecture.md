@@ -292,7 +292,7 @@ frontend/src/
 
 ## Конфигурация
 
-`pydantic-settings`, значения из `.env`; в репозитории — `.env.template`.
+`pydantic-settings`, значения из `.env`; в репозитории — `.env.example`.
 
 | Переменная | Значение |
 |---|---|

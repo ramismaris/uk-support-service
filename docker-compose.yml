@@ -1,4 +1,5 @@
 # Local demo: the whole stack in Docker with one command, no .env needed.
+# Optional settings (bot, AI, port): cp .env.example .env
 #   docker compose up -d --build --wait   →   http://localhost:8080
 # Dev login and Swagger are on, the bot is off unless BOT_MODE and BOT_TOKEN are set.
 # Server deployment lives in deploy/.

@@ -70,6 +70,7 @@ flowchart LR
 
 ```
 docker-compose.yml   локальный запуск всего решения
+.env.example        необязательные настройки локального запуска
 backend/             API + бот
 frontend/            SPA: мини-приложение и веб-панель
 deploy/              docker compose и Caddy для сервера
@@ -88,7 +89,7 @@ docker compose up -d --build --wait
 
 Откройте http://localhost:8080 и выберите «Анна — администратор» или «Игорь — менеджер».
 
-Команда собирает образы, поднимает базу, применяет миграции, заполняет демо-данные и ждёт, пока все сервисы станут здоровыми. Первая сборка — 5–10 минут, дальше — секунды. Файл `.env` не нужен: локальные значения зашиты в [docker-compose.yml](docker-compose.yml). Бот по умолчанию выключен — панель и API работают без него.
+Команда собирает образы, поднимает базу, применяет миграции, заполняет демо-данные и ждёт, пока все сервисы станут здоровыми. Первая сборка — 5–10 минут, дальше — секунды. Файл `.env` не нужен: локальные значения зашиты в [docker-compose.yml](docker-compose.yml), свои — через `.env` (см. [переменные](#переменные-окружения)). Бот по умолчанию выключен — панель и API работают без него.
 
 Swagger — http://localhost:8080/docs.
 
@@ -104,7 +105,11 @@ Swagger — http://localhost:8080/docs.
 
 ## Переменные окружения
 
-Локально все переменные необязательны: их можно передать в командной строке или положить в `.env` в корне репозитория — Compose подставит их сам.
+Локально все переменные необязательны: пустое значение = значение по умолчанию. Задать свои — скопировать шаблон [.env.example](.env.example) в `.env` в корне репозитория и заполнить (Compose подставит их сам) или передать в командной строке:
+
+```bash
+cp .env.example .env
+```
 
 | Переменная | По умолчанию локально | Назначение |
 |---|---|---|
@@ -117,7 +122,7 @@ Swagger — http://localhost:8080/docs.
 | `LLM_API_KEY` | — | ключ LLM API |
 | `LLM_EXTRA_HEADERS` | `{}` | дополнительные заголовки запроса к ИИ, JSON |
 
-Остальное локальный Compose задаёт сам: `DEBUG=true` (Swagger), `DEV_AUTH=true` (вход без Max), тестовые `SECRET_KEY` и пароль базы. На сервере переменные задаются в `deploy/.env` — шаблон с комментариями: [deploy/.env.template](deploy/.env.template). Полный список с описанием — [docs/architecture.md](docs/architecture.md#конфигурация).
+Остальное локальный Compose задаёт сам: `DEBUG=true` (Swagger), `DEV_AUTH=true` (вход без Max), тестовые `SECRET_KEY` и пароль базы. На сервере переменные задаются в `deploy/.env` — шаблон с комментариями: [deploy/.env.example](deploy/.env.example). Полный список с описанием — [docs/architecture.md](docs/architecture.md#конфигурация).
 
 Пример запуска с ботом:
 
@@ -269,7 +274,7 @@ BOT_MODE=polling BOT_TOKEN=<токен> docker compose up -d --wait
 ```bash
 git clone https://github.com/ramismaris/uk-support-service.git
 cd uk-support-service/deploy
-cp .env.template .env
+cp .env.example .env
 sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$(openssl rand -hex 32)/" .env
 sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$(openssl rand -hex 32)/" .env
 sed -i "s/^DOMAIN=.*/DOMAIN=uk.example.ru/" .env
@@ -284,7 +289,7 @@ docker compose up -d --build
 Без Docker для `api` и `web` — с горячей перезагрузкой. Бэкенд, из `backend/`:
 
 ```bash
-cp .env.template .env
+cp .env.example .env
 docker compose up -d --wait db
 uv sync
 uv run alembic upgrade head
@@ -292,7 +297,7 @@ uv run python scripts/seed.py
 uv run uvicorn src.main:app --reload
 ```
 
-Фронтенд, из `frontend/`: `cp .env.template .env`, `pnpm install`, `pnpm dev` → http://localhost:5173.
+Фронтенд, из `frontend/`: `cp .env.example .env`, `pnpm install`, `pnpm dev` → http://localhost:5173.
 
 Проверки перед вливанием в `main` — `backend/scripts/check.sh` (ruff, pytest, актуальность `openapi.json`, миграции) и `frontend/scripts/check.sh` (типы API, tsc, ESLint, Prettier, Steiger, Vitest, сборка). GitHub Actions повторяет их на каждый пуш. Правила кода, веток и коммитов — [AGENTS.md](AGENTS.md).
 
